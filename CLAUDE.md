@@ -17,10 +17,19 @@
 - **IMPORTANT: Always commit and push changes to deploy them**
 
 ## Claude Code Workflow Rules
-1. **Always commit and push after completing tasks** - Digital Ocean auto-deploys from GitHub
-2. **Use descriptive commit messages** with the standard footer
-3. **Check build status** after pushing (builds take ~30 seconds)
-4. **Test locally first** with `npm run build` to catch TypeScript errors
+🚨 **CRITICAL: ALWAYS COMMIT AND PUSH AFTER EVERY CHANGE** 🚨
+
+1. **MANDATORY: Push after completing ANY task** - Digital Ocean auto-deploys from GitHub
+2. **MANDATORY: Push after ANY file modification** - Even small fixes need deployment
+3. **Use descriptive commit messages** with the standard footer
+4. **Check build status** after pushing (builds take ~30 seconds) 
+5. **Test locally first** with `npm run build` to catch TypeScript errors
+
+### Commit Checklist:
+- [ ] Made changes to code/files?
+- [ ] Built successfully with `npm run build`?  
+- [ ] Added, committed, and pushed changes?
+- [ ] Verified deployment started on Digital Ocean?
 
 ## Common Issues
 - If git push fails, use: `git remote set-url origin https://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@github.com/huckfinne-a/toeqbank.git`
