@@ -47,70 +47,59 @@ const ReviewerDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // For now, we'll use the regular questions endpoint and get the first pending question
-      // In a full implementation, you'd have a specific endpoint for review queue
-      const questionsResponse = await questionService.getQuestions();
-      const allQuestions = questionsResponse.questions;
+      // Get pending questions from the review API
+      const pendingResponse = await questionService.getPendingReview();
+      const pendingQuestions = pendingResponse.questions || [];
       
-      // Load additional data for each question and simulate review status
-      const questionsWithStatus = await Promise.all(
-        allQuestions.map(async (q: Question) => {
-          try {
-            // Load images, metadata, and exam data in parallel
-            const [questionImages, metadata, examAssignments] = await Promise.all([
-              imageService.getImagesForQuestion(q.id!).catch(() => []),
-              questionMetadataService.getByQuestionId(q.id!).catch(() => null),
-              examService.getExamAssignments(q.id!).catch(() => [])
-            ]);
-
-            // Separate question and explanation images
-            const allImages = questionImages || [];
-            
-            return {
-              ...q,
-              review_status: 'pending' as const,
-              review_notes: '',
-              questionImages: allImages,
-              explanationImages: [], // For now, we'll assume all images are for questions
-              metadata: metadata,
-              examAssignments: examAssignments
-            };
-          } catch (error) {
-            console.error(`Error loading data for question ${q.id}:`, error);
-            return {
-              ...q,
-              review_status: 'pending' as const,
-              review_notes: '',
-              questionImages: [],
-              explanationImages: [],
-              metadata: undefined,
-              examAssignments: []
-            };
-          }
-        })
-      );
-      
-      // Find the oldest pending question (first in, first out)
-      const pendingQuestions = questionsWithStatus.filter((q: QuestionWithStatus) => q.review_status === 'pending');
-      // Sort by creation date ascending (oldest first) or by ID ascending if no creation date
-      const sortedPendingQuestions = pendingQuestions.sort((a, b) => {
-        if (a.created_at && b.created_at) {
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        }
-        // Fall back to ID sorting if no creation dates
-        return (a.id || 0) - (b.id || 0);
-      });
-      const pendingQuestion = sortedPendingQuestions[0] || null;
-      
-      setCurrentQuestion(pendingQuestion || null);
-      
-      // Calculate stats
+      // Get review stats
+      const statsResponse = await questionService.getReviewStats();
       setStats({
-        total: questionsWithStatus.length,
-        pending: questionsWithStatus.filter((q: QuestionWithStatus) => q.review_status === 'pending').length,
-        approved: questionsWithStatus.filter((q: QuestionWithStatus) => q.review_status === 'approved').length,
-        needs_work: questionsWithStatus.filter((q: QuestionWithStatus) => q.review_status === 'needs_work').length
+        total: statsResponse.total,
+        pending: statsResponse.pending,
+        approved: statsResponse.approved,
+        needs_work: statsResponse.rejected + statsResponse.returned
       });
+      
+      if (pendingQuestions.length === 0) {
+        setCurrentQuestion(null);
+        return;
+      }
+      
+      // Get the first (oldest) pending question
+      const question = pendingQuestions[0];
+      
+      // Load additional data for the question
+      try {
+        const [questionImages, metadata, examAssignments] = await Promise.all([
+          imageService.getImagesForQuestion(question.id!).catch(() => []),
+          questionMetadataService.getByQuestionId(question.id!).catch(() => null),
+          examService.getExamAssignments(question.id!).catch(() => [])
+        ]);
+
+        // Separate question and explanation images
+        const allImages = questionImages || [];
+        
+        setCurrentQuestion({
+          ...question,
+          review_status: question.review_status || 'pending',
+          review_notes: question.review_notes || '',
+          questionImages: allImages,
+          explanationImages: [], // For now, we'll assume all images are for questions
+          metadata: metadata,
+          examAssignments: examAssignments
+        });
+      } catch (error) {
+        console.error(`Error loading data for question ${question.id}:`, error);
+        setCurrentQuestion({
+          ...question,
+          review_status: question.review_status || 'pending',
+          review_notes: question.review_notes || '',
+          questionImages: [],
+          explanationImages: [],
+          metadata: undefined,
+          examAssignments: []
+        });
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load question for review');
       console.error('Load question error:', err);
@@ -121,8 +110,7 @@ const ReviewerDashboard: React.FC = () => {
 
   const handleApprove = async (questionId: number) => {
     try {
-      // In production, this would call an API endpoint to update review status
-      console.log(`Approving question ${questionId} with notes:`, reviewNotes);
+      await questionService.updateReviewStatus(questionId, 'approved', reviewNotes);
       
       // Show success message and load next question
       alert('Question approved successfully!');
@@ -141,8 +129,7 @@ const ReviewerDashboard: React.FC = () => {
     }
     
     try {
-      // In production, this would call an API endpoint to update review status
-      console.log(`Marking question ${questionId} as needs work with notes:`, reviewNotes);
+      await questionService.updateReviewStatus(questionId, 'returned', reviewNotes);
       
       // Show success message and load next question
       alert('Question marked as needs work');

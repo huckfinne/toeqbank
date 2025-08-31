@@ -14,6 +14,10 @@ export interface Question {
   correct_answer: string;
   explanation?: string;
   source_folder?: string;
+  review_status?: 'pending' | 'approved' | 'rejected' | 'returned';
+  review_notes?: string;
+  reviewed_by?: number;
+  reviewed_at?: Date;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -149,5 +153,55 @@ export class QuestionModel {
     const sql = 'SELECT COUNT(*) as count FROM questions';
     const result = await query(sql);
     return parseInt(result.rows[0].count);
+  }
+
+  // Review system methods
+  static async getPendingReview(): Promise<Question[]> {
+    const sql = 'SELECT * FROM questions WHERE review_status = $1 ORDER BY created_at ASC';
+    const result = await query(sql, ['pending']);
+    return result.rows;
+  }
+
+  static async getByReviewStatus(status: 'pending' | 'approved' | 'rejected' | 'returned'): Promise<Question[]> {
+    const sql = 'SELECT * FROM questions WHERE review_status = $1 ORDER BY created_at DESC';
+    const result = await query(sql, [status]);
+    return result.rows;
+  }
+
+  static async updateReviewStatus(
+    id: number, 
+    status: 'pending' | 'approved' | 'rejected' | 'returned', 
+    reviewNotes: string, 
+    reviewerId: number
+  ): Promise<Question | null> {
+    const sql = `
+      UPDATE questions 
+      SET review_status = $1, review_notes = $2, reviewed_by = $3, reviewed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $4 
+      RETURNING *
+    `;
+    const result = await query(sql, [status, reviewNotes, reviewerId, id]);
+    return result.rows[0] || null;
+  }
+
+  static async getReviewStats(): Promise<{ total: number, pending: number, approved: number, rejected: number, returned: number }> {
+    const sql = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN review_status = 'pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN review_status = 'approved' THEN 1 END) as approved,
+        COUNT(CASE WHEN review_status = 'rejected' THEN 1 END) as rejected,
+        COUNT(CASE WHEN review_status = 'returned' THEN 1 END) as returned
+      FROM questions
+    `;
+    const result = await query(sql);
+    const stats = result.rows[0];
+    return {
+      total: parseInt(stats.total),
+      pending: parseInt(stats.pending),
+      approved: parseInt(stats.approved),
+      rejected: parseInt(stats.rejected),
+      returned: parseInt(stats.returned)
+    };
   }
 }

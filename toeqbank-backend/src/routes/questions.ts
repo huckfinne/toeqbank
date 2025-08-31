@@ -393,4 +393,95 @@ router.get('/:id/exams', async (req: Request, res: Response) => {
   }
 });
 
+// REVIEW SYSTEM ENDPOINTS
+
+// Get pending questions for review (reviewers only)
+router.get('/review/pending', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_reviewer && !req.user.is_admin) {
+      return res.status(403).json({ error: 'Reviewer access required' });
+    }
+
+    const questions = await QuestionModel.getPendingReview();
+    res.json({ questions });
+  } catch (error) {
+    console.error('Error fetching pending questions:', error);
+    res.status(500).json({ error: 'Failed to fetch pending questions' });
+  }
+});
+
+// Get questions by review status (reviewers only)
+router.get('/review/status/:status', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_reviewer && !req.user.is_admin) {
+      return res.status(403).json({ error: 'Reviewer access required' });
+    }
+
+    const status = req.params.status as 'pending' | 'approved' | 'rejected' | 'returned';
+    if (!['pending', 'approved', 'rejected', 'returned'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid review status' });
+    }
+
+    const questions = await QuestionModel.getByReviewStatus(status);
+    res.json({ questions });
+  } catch (error) {
+    console.error('Error fetching questions by status:', error);
+    res.status(500).json({ error: 'Failed to fetch questions' });
+  }
+});
+
+// Update question review status (reviewers only)
+router.post('/review/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_reviewer && !req.user.is_admin) {
+      return res.status(403).json({ error: 'Reviewer access required' });
+    }
+
+    const questionId = parseInt(req.params.id);
+    const { status, notes } = req.body;
+
+    if (!['approved', 'rejected', 'returned'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid review status. Must be: approved, rejected, or returned' });
+    }
+
+    if ((status === 'rejected' || status === 'returned') && !notes?.trim()) {
+      return res.status(400).json({ error: 'Review notes are required for rejected or returned questions' });
+    }
+
+    const updatedQuestion = await QuestionModel.updateReviewStatus(
+      questionId, 
+      status, 
+      notes || '', 
+      req.user.id
+    );
+
+    if (!updatedQuestion) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    res.json({ 
+      message: `Question ${status} successfully`, 
+      question: updatedQuestion 
+    });
+  } catch (error) {
+    console.error('Error updating review status:', error);
+    res.status(500).json({ error: 'Failed to update review status' });
+  }
+});
+
+// Get review statistics (reviewers only)
+router.get('/review/stats', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_reviewer && !req.user.is_admin) {
+      return res.status(403).json({ error: 'Reviewer access required' });
+    }
+
+    const stats = await QuestionModel.getReviewStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching review stats:', error);
+    res.status(500).json({ error: 'Failed to fetch review statistics' });
+  }
+});
+
 export default router;
