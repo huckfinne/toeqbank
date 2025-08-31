@@ -23,6 +23,10 @@ export interface Question {
   correct_answer: string;
   explanation?: string;
   source_folder?: string;
+  review_status?: 'pending' | 'approved' | 'rejected' | 'returned';
+  review_notes?: string;
+  reviewed_by?: number;
+  reviewed_at?: string;
   created_at?: string;
   updated_at?: string;
   images?: Image[];
@@ -122,6 +126,27 @@ export const questionService = {
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data;
+  },
+
+  // Review system methods
+  getPendingReview: async (): Promise<{ questions: Question[] }> => {
+    const response = await api.get('/questions/review/pending');
+    return response.data;
+  },
+
+  getReviewStats: async (): Promise<{ total: number; pending: number; approved: number; rejected: number; returned: number }> => {
+    const response = await api.get('/questions/review/stats');
+    return response.data;
+  },
+
+  updateReviewStatus: async (questionId: number, status: 'approved' | 'rejected' | 'returned', notes: string): Promise<{ message: string; question: Question }> => {
+    const response = await api.post(`/questions/review/${questionId}`, { status, notes });
+    return response.data;
+  },
+
+  getQuestionsByReviewStatus: async (status: 'pending' | 'approved' | 'rejected' | 'returned'): Promise<{ questions: Question[] }> => {
+    const response = await api.get(`/questions/review/status/${status}`);
     return response.data;
   },
 };
