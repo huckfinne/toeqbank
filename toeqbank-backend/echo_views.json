@@ -1,0 +1,211 @@
+{
+  "echocardiography_views": {
+    "transthoracic_echocardiography": {
+      "parasternal_views": [
+        {
+          "name": "Parasternal Long Axis (PLAX)",
+          "description": "Shows LV, LA, aortic root, mitral valve, and LVOT",
+          "structures_visualized": ["Left ventricle", "Left atrium", "Aortic root", "Mitral valve", "LVOT", "Interventricular septum", "Posterior wall"]
+        },
+        {
+          "name": "Parasternal Short Axis (PSAX)",
+          "description": "Cross-sectional views at different levels",
+          "levels": [
+            {
+              "level": "Aortic valve level",
+              "structures": ["Aortic valve", "Tricuspid valve", "Right atrium", "Pulmonary artery", "Left atrium"]
+            },
+            {
+              "level": "Mitral valve level",
+              "structures": ["Mitral valve", "Left ventricle", "Right ventricle"]
+            },
+            {
+              "level": "Papillary muscle level",
+              "structures": ["Left ventricle", "Right ventricle", "Papillary muscles", "Interventricular septum"]
+            },
+            {
+              "level": "Apical level",
+              "structures": ["Left ventricle", "Right ventricle", "Apex"]
+            }
+          ]
+        },
+        {
+          "name": "Right Ventricular Inflow",
+          "description": "Shows tricuspid valve and right ventricle",
+          "structures_visualized": ["Right ventricle", "Right atrium", "Tricuspid valve"]
+        },
+        {
+          "name": "Right Ventricular Outflow",
+          "description": "Shows pulmonary valve and main pulmonary artery",
+          "structures_visualized": ["Right ventricle", "Pulmonary valve", "Main pulmonary artery"]
+        }
+      ],
+      "apical_views": [
+        {
+          "name": "Apical 4-Chamber",
+          "description": "Shows all four cardiac chambers",
+          "structures_visualized": ["Left ventricle", "Right ventricle", "Left atrium", "Right atrium", "Mitral valve", "Tricuspid valve", "Interventricular septum", "Interatrial septum"]
+        },
+        {
+          "name": "Apical 2-Chamber",
+          "description": "Shows LV and LA in sagittal plane",
+          "structures_visualized": ["Left ventricle", "Left atrium", "Mitral valve", "Inferior wall", "Anterior wall"]
+        },
+        {
+          "name": "Apical 3-Chamber (Long Axis)",
+          "description": "Shows LV, LA, and aortic root",
+          "structures_visualized": ["Left ventricle", "Left atrium", "Aortic root", "Mitral valve", "Aortic valve", "LVOT", "Anteroseptal wall", "Inferolateral wall"]
+        },
+        {
+          "name": "Apical 5-Chamber",
+          "description": "4-chamber view with aortic root",
+          "structures_visualized": ["Left ventricle", "Right ventricle", "Left atrium", "Right atrium", "Aortic root", "Mitral valve", "Tricuspid valve", "Aortic valve"]
+        }
+      ],
+      "subcostal_views": [
+        {
+          "name": "Subcostal 4-Chamber",
+          "description": "Shows all four chambers from below",
+          "structures_visualized": ["Left ventricle", "Right ventricle", "Left atrium", "Right atrium", "Mitral valve", "Tricuspid valve", "Interatrial septum"]
+        },
+        {
+          "name": "Subcostal Short Axis",
+          "description": "Cross-sectional view of ventricles",
+          "structures_visualized": ["Left ventricle", "Right ventricle", "Interventricular septum"]
+        },
+        {
+          "name": "Subcostal IVC",
+          "description": "Shows inferior vena cava",
+          "structures_visualized": ["Inferior vena cava", "Right atrium", "Hepatic veins"]
+        },
+        {
+          "name": "Subcostal Aorta",
+          "description": "Shows abdominal aorta",
+          "structures_visualized": ["Abdominal aorta"]
+        }
+      ],
+      "suprasternal_views": [
+        {
+          "name": "Suprasternal Long Axis",
+          "description": "Shows aortic arch",
+          "structures_visualized": ["Aortic arch", "Ascending aorta", "Descending aorta", "Brachiocephalic vessels"]
+        },
+        {
+          "name": "Suprasternal Short Axis",
+          "description": "Shows pulmonary arteries and right PA",
+          "structures_visualized": ["Main pulmonary artery", "Right pulmonary artery", "Left pulmonary artery", "Left atrium"]
+        }
+      ]
+    },
+    "transesophageal_echocardiography": {
+      "upper_esophageal_views": [
+        {
+          "name": "UE Aortic Arch Long Axis",
+          "angle_range": "0-20°",
+          "structures_visualized": ["Aortic arch", "Ascending aorta", "Descending aorta", "Brachiocephalic vessels"]
+        },
+        {
+          "name": "UE Aortic Arch Short Axis",
+          "angle_range": "90-110°",
+          "structures_visualized": ["Aortic arch", "Main pulmonary artery", "Right pulmonary artery"]
+        }
+      ],
+      "mid_esophageal_views": [
+        {
+          "name": "ME 4-Chamber",
+          "angle_range": "0-20°",
+          "structures_visualized": ["Left ventricle", "Right ventricle", "Left atrium", "Right atrium", "Mitral valve", "Tricuspid valve", "Interatrial septum", "Interventricular septum"]
+        },
+        {
+          "name": "ME 2-Chamber",
+          "angle_range": "80-100°",
+          "structures_visualized": ["Left ventricle", "Left atrium", "Mitral valve", "Left atrial appendage"]
+        },
+        {
+          "name": "ME Long Axis",
+          "angle_range": "120-160°",
+          "structures_visualized": ["Left ventricle", "Left atrium", "Aortic root", "Mitral valve", "Aortic valve", "LVOT"]
+        },
+        {
+          "name": "ME Mitral Commissural",
+          "angle_range": "60-70°",
+          "structures_visualized": ["Mitral valve", "Left atrium", "Left ventricle", "Anterolateral commissure", "Posteromedial commissure"]
+        },
+        {
+          "name": "ME Aortic Valve Short Axis",
+          "angle_range": "30-60°",
+          "structures_visualized": ["Aortic valve", "Tricuspid valve", "Right atrium", "Pulmonary artery", "Left atrium"]
+        },
+        {
+          "name": "ME Aortic Valve Long Axis",
+          "angle_range": "120-160°",
+          "structures_visualized": ["Aortic valve", "LVOT", "Aortic root", "Left atrium"]
+        },
+        {
+          "name": "ME Right Ventricular Inflow-Outflow",
+          "angle_range": "60-90°",
+          "structures_visualized": ["Right ventricle", "Right atrium", "Tricuspid valve", "Pulmonary valve", "Main pulmonary artery"]
+        },
+        {
+          "name": "ME Bicaval",
+          "angle_range": "80-110°",
+          "structures_visualized": ["Superior vena cava", "Inferior vena cava", "Right atrium", "Interatrial septum"]
+        },
+        {
+          "name": "ME Left Atrial Appendage",
+          "angle_range": "45-90°",
+          "structures_visualized": ["Left atrial appendage", "Left upper pulmonary vein", "Mitral valve"]
+        },
+        {
+          "name": "ME Ascending Aorta Short Axis",
+          "angle_range": "0-60°",
+          "structures_visualized": ["Ascending aorta", "Main pulmonary artery", "Right pulmonary artery", "Superior vena cava"]
+        },
+        {
+          "name": "ME Ascending Aorta Long Axis",
+          "angle_range": "100-150°",
+          "structures_visualized": ["Ascending aorta", "Aortic arch"]
+        }
+      ],
+      "transgastric_views": [
+        {
+          "name": "TG Mid Short Axis",
+          "angle_range": "0-20°",
+          "structures_visualized": ["Left ventricle", "Right ventricle", "Interventricular septum", "Papillary muscles"]
+        },
+        {
+          "name": "TG 2-Chamber",
+          "angle_range": "80-100°",
+          "structures_visualized": ["Left ventricle", "Left atrium", "Mitral valve", "Inferior wall", "Anterior wall"]
+        },
+        {
+          "name": "TG Long Axis",
+          "angle_range": "90-120°",
+          "structures_visualized": ["Left ventricle", "Left atrium", "Mitral valve", "Aortic root", "LVOT"]
+        },
+        {
+          "name": "TG Right Ventricular Inflow",
+          "angle_range": "100-120°",
+          "structures_visualized": ["Right ventricle", "Right atrium", "Tricuspid valve"]
+        },
+        {
+          "name": "Deep TG Long Axis",
+          "angle_range": "0-20°",
+          "structures_visualized": ["Left ventricle", "Mitral valve", "Left atrium", "Aortic valve", "LVOT"]
+        }
+      ],
+      "descending_aorta_views": [
+        {
+          "name": "Descending Aorta Short Axis",
+          "angle_range": "0-30°",
+          "structures_visualized": ["Descending thoracic aorta"]
+        },
+        {
+          "name": "Descending Aorta Long Axis",
+          "angle_range": "90-110°",
+          "structures_visualized": ["Descending thoracic aorta"]
+        }
+      ]
+    }
+  }
+}

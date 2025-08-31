@@ -1,0 +1,143 @@
+import { Router, Request, Response } from 'express';
+import { ImageDescriptionModel } from '../models/ImageDescription';
+
+const router = Router();
+
+// Get all image descriptions
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const descriptions = await ImageDescriptionModel.findAll();
+    res.json(descriptions);
+  } catch (error) {
+    console.error('Get all image descriptions error:', error);
+    res.status(500).json({ error: 'Failed to fetch image descriptions' });
+  }
+});
+
+// Get all image descriptions for a question
+router.get('/question/:questionId', async (req: Request, res: Response) => {
+  try {
+    const questionId = parseInt(req.params.questionId);
+    const usageType = req.query.usage_type as 'question' | 'explanation' | undefined;
+    
+    let descriptions;
+    if (usageType) {
+      descriptions = await ImageDescriptionModel.findByQuestionIdAndUsageType(questionId, usageType);
+    } else {
+      descriptions = await ImageDescriptionModel.findByQuestionId(questionId);
+    }
+    
+    res.json(descriptions);
+  } catch (error) {
+    console.error('Get image descriptions error:', error);
+    res.status(500).json({ error: 'Failed to fetch image descriptions' });
+  }
+});
+
+// Get a single image description
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const description = await ImageDescriptionModel.findById(id);
+    
+    res.json(description);
+  } catch (error) {
+    console.error('Get image description error:', error);
+    if (error instanceof Error && error.message.includes('not found')) {
+      res.status(404).json({ error: 'Image description not found' });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch image description' });
+    }
+  }
+});
+
+// Create a new image description
+router.post('/', async (req: Request, res: Response) => {
+  try {
+    const { question_id, description, usage_type } = req.body;
+    
+    if (!question_id || !description || !usage_type) {
+      return res.status(400).json({ 
+        error: 'question_id, description, and usage_type are required' 
+      });
+    }
+    
+    if (!['question', 'explanation'].includes(usage_type)) {
+      return res.status(400).json({ 
+        error: 'usage_type must be either "question" or "explanation"' 
+      });
+    }
+    
+    const imageDescription = await ImageDescriptionModel.create({
+      question_id: parseInt(question_id),
+      description,
+      usage_type
+    });
+    
+    res.status(201).json(imageDescription);
+  } catch (error) {
+    console.error('Create image description error:', error);
+    res.status(500).json({ error: 'Failed to create image description' });
+  }
+});
+
+// Update an image description
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { description, usage_type } = req.body;
+    
+    const updateData: any = {};
+    if (description !== undefined) updateData.description = description;
+    if (usage_type !== undefined) {
+      if (!['question', 'explanation'].includes(usage_type)) {
+        return res.status(400).json({ 
+          error: 'usage_type must be either "question" or "explanation"' 
+        });
+      }
+      updateData.usage_type = usage_type;
+    }
+    
+    const imageDescription = await ImageDescriptionModel.update(id, updateData);
+    res.json(imageDescription);
+  } catch (error) {
+    console.error('Update image description error:', error);
+    if (error instanceof Error && error.message.includes('not found')) {
+      res.status(404).json({ error: 'Image description not found' });
+    } else {
+      res.status(500).json({ error: 'Failed to update image description' });
+    }
+  }
+});
+
+// Delete an image description
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const deleted = await ImageDescriptionModel.delete(id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: 'Image description not found' });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete image description error:', error);
+    res.status(500).json({ error: 'Failed to delete image description' });
+  }
+});
+
+// Delete all image descriptions for a question
+router.delete('/question/:questionId', async (req: Request, res: Response) => {
+  try {
+    const questionId = parseInt(req.params.questionId);
+    const deletedCount = await ImageDescriptionModel.deleteByQuestionId(questionId);
+    
+    res.json({ success: true, deletedCount });
+  } catch (error) {
+    console.error('Delete question image descriptions error:', error);
+    res.status(500).json({ error: 'Failed to delete image descriptions' });
+  }
+});
+
+export default router;
