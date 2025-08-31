@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r src/models/*.sql dist/models/ && cp -r src/migrations/*.sql dist/migrations/",
     "start": "node dist/server.js",
     "postbuild": "echo 'Build completed successfully'",
     "test": "echo \"Error: no test specified\" && exit 1"
