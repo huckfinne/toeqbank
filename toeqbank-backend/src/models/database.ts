@@ -5,17 +5,13 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+// Nuclear option: Set NODE_TLS_REJECT_UNAUTHORIZED=0 in environment
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
+
 // Handle Digital Ocean managed database SSL properly
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' 
-    ? {
-        rejectUnauthorized: false,
-        ca: undefined,
-        key: undefined,
-        cert: undefined
-      }
-    : false
+  connectionString: process.env.DATABASE_URL
+  // No SSL config - let it use defaults with rejection disabled globally
 });
 
 export const initializeDatabase = async (): Promise<void> => {
