@@ -248,7 +248,11 @@ export const echoViewsData: EchoViewData = {
 };
 
 // Helper function to get all views for a modality
-export const getViewsForModality = (modality: 'transthoracic' | 'transesophageal'): Array<{name: string, category: string}> => {
+export const getViewsForModality = (modality: 'transthoracic' | 'transesophageal' | 'non-echo'): Array<{name: string, category: string}> => {
+  if (modality === 'non-echo') {
+    return []; // No echo views for non-echo images
+  }
+  
   const modalityKey = modality === 'transthoracic' ? 'transthoracic_echocardiography' : 'transesophageal_echocardiography';
   const modalityData = echoViewsData[modalityKey];
   const views: Array<{name: string, category: string}> = [];

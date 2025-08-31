@@ -14,7 +14,7 @@ import {
 import { handleImageError, getPlaceholderImage } from '../utils/imageHelpers';
 
 interface QuestionWithStatus extends Question {
-  review_status?: 'pending' | 'approved' | 'needs_work';
+  review_status?: 'pending' | 'approved' | 'rejected' | 'returned';
   review_notes?: string;
   questionImages?: Image[];
   explanationImages?: Image[];
@@ -33,7 +33,7 @@ const ReviewerDashboard: React.FC = () => {
     total: 0,
     pending: 0,
     approved: 0,
-    needs_work: 0
+    rejected_and_returned: 0
   });
 
   useEffect(() => {
@@ -57,7 +57,7 @@ const ReviewerDashboard: React.FC = () => {
         total: statsResponse.total,
         pending: statsResponse.pending,
         approved: statsResponse.approved,
-        needs_work: statsResponse.rejected + statsResponse.returned
+        rejected_and_returned: statsResponse.rejected + statsResponse.returned
       });
       
       if (pendingQuestions.length === 0) {
@@ -187,7 +187,7 @@ const ReviewerDashboard: React.FC = () => {
             <div className="text-sm text-green-600">Approved</div>
           </div>
           <div className="bg-orange-50 rounded-lg shadow-md p-6 border-l-4 border-orange-400">
-            <div className="text-2xl font-bold text-orange-800">{stats.needs_work}</div>
+            <div className="text-2xl font-bold text-orange-800">{stats.rejected_and_returned}</div>
             <div className="text-sm text-orange-600">Needs Work</div>
           </div>
         </div>

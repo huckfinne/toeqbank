@@ -37,7 +37,7 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
     license: 'user-contributed' as LicenseType,
     license_details: '',
     usage_type: initialUsageType,
-    modality: '' as 'transthoracic' | 'transesophageal' | '',
+    modality: '' as 'transthoracic' | 'transesophageal' | 'non-echo' | '',
     echo_view: ''
   });
 
@@ -49,7 +49,7 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
   const availableViews = metadata.modality ? getViewsForModality(metadata.modality) : [];
 
   // Reset view when modality changes
-  const handleModalityChange = (newModality: 'transthoracic' | 'transesophageal') => {
+  const handleModalityChange = (newModality: 'transthoracic' | 'transesophageal' | 'non-echo') => {
     setMetadata(prev => ({
       ...prev,
       modality: newModality,
@@ -169,10 +169,10 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
 
     // Validate required fields
     if (!metadata.modality) {
-      setError('Please select a modality (Transthoracic or Transesophageal).');
+      setError('Please select a modality (Transthoracic, Transesophageal, or Non-echo Image).');
       return;
     }
-    if (!metadata.echo_view) {
+    if (metadata.modality !== 'non-echo' && !metadata.echo_view) {
       setError('Please select an echocardiographic view.');
       return;
     }
@@ -185,7 +185,7 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
         tags: [
           ...metadata.tags.split(',').map(t => t.trim()).filter(t => t.length > 0),
           metadata.modality,
-          metadata.echo_view
+          ...(metadata.echo_view ? [metadata.echo_view] : [])
         ]
       };
 
@@ -295,10 +295,20 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
               />
               Transesophageal Echo (TEE)
             </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                value="non-echo"
+                checked={metadata.modality === 'non-echo'}
+                onChange={(e) => handleModalityChange(e.target.value as 'non-echo')}
+                className="mr-2"
+              />
+              Non-echo Image
+            </label>
           </div>
         </div>
 
-        {metadata.modality && (
+        {metadata.modality && metadata.modality !== 'non-echo' && (
           <div className="mb-4">
             <label htmlFor="echo_view" className="block text-sm font-medium mb-1">
               Echo View <span className="text-red-500">*</span>
@@ -326,6 +336,16 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
             <p className="text-xs text-gray-500 mt-1">
               Select the specific echocardiographic view shown in this image
             </p>
+          </div>
+        )}
+
+        {metadata.modality === 'non-echo' && (
+          <div className="mb-4">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-800">
+                <strong>Non-echo Image:</strong> This image is not an echocardiogram (e.g., X-ray, CT, MRI, diagram, etc.)
+              </p>
+            </div>
           </div>
         )}
         
