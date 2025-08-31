@@ -168,6 +168,10 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
     if (!urlInput.trim() && uploadMode === 'url') return;
 
     // Validate required fields
+    if (!metadata.description.trim()) {
+      setError('Please provide a description of the image.');
+      return;
+    }
     if (!metadata.modality) {
       setError('Please select a modality (Transthoracic, Transesophageal, or Non-echo Image).');
       return;
@@ -255,125 +259,140 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
   return (
     <div className={`image-upload ${className}`}>
       <div className="upload-metadata mb-4">
-        <div className="mb-2">
-          <label htmlFor="description" className="block text-sm font-medium mb-1">
-            Description
-          </label>
-          <textarea
-            id="description"
-            value={metadata.description}
-            onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
-            placeholder="Brief description of the image/video"
-            style={{width: '100%', minHeight: '80px'}}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
-            rows={3}
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">
-            Modality <span className="text-red-500">*</span>
-          </label>
-          <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="transthoracic"
-                checked={metadata.modality === 'transthoracic'}
-                onChange={(e) => handleModalityChange(e.target.value as 'transthoracic')}
-                className="mr-2"
-              />
-              Transthoracic Echo (TTE)
+        {/* Image Description Section */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-lg font-semibold text-blue-900 mb-3">📝 Image Description</h3>
+          
+          <div className="mb-2">
+            <label htmlFor="description" className="block text-sm font-medium mb-1">
+              Description <span className="text-red-500">*</span>
             </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="transesophageal"
-                checked={metadata.modality === 'transesophageal'}
-                onChange={(e) => handleModalityChange(e.target.value as 'transesophageal')}
-                className="mr-2"
-              />
-              Transesophageal Echo (TEE)
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="non-echo"
-                checked={metadata.modality === 'non-echo'}
-                onChange={(e) => handleModalityChange(e.target.value as 'non-echo')}
-                className="mr-2"
-              />
-              Non-echo Image
-            </label>
-          </div>
-        </div>
-
-        {metadata.modality && metadata.modality !== 'non-echo' && (
-          <div className="mb-4">
-            <label htmlFor="echo_view" className="block text-sm font-medium mb-1">
-              Echo View <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="echo_view"
-              value={metadata.echo_view}
-              onChange={(e) => setMetadata({ ...metadata, echo_view: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            <textarea
+              id="description"
+              value={metadata.description}
+              onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
+              placeholder="Detailed description of what is shown in this image (e.g., 'Shows severe mitral regurgitation with eccentric jet', 'Demonstrates normal LV function')"
+              style={{width: '100%', minHeight: '100px'}}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+              rows={4}
               required
-            >
-              <option value="">Select a view...</option>
-              {availableViews.map((view, index) => {
-                const showCategoryHeader = index === 0 || availableViews[index - 1].category !== view.category;
-                return (
-                  <React.Fragment key={view.name}>
-                    {showCategoryHeader && (
-                      <option disabled>──── {view.category} ────</option>
-                    )}
-                    <option value={view.name}>{view.name}</option>
-                  </React.Fragment>
-                );
-              })}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Select the specific echocardiographic view shown in this image
-            </p>
+            />
           </div>
-        )}
 
-        {metadata.modality === 'non-echo' && (
           <div className="mb-4">
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-sm text-blue-800">
-                <strong>Non-echo Image:</strong> This image is not an echocardiogram (e.g., X-ray, CT, MRI, diagram, etc.)
-              </p>
+            <label className="block text-sm font-medium mb-1">
+              Modality <span className="text-red-500">*</span>
+            </label>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="transthoracic"
+                  checked={metadata.modality === 'transthoracic'}
+                  onChange={(e) => handleModalityChange(e.target.value as 'transthoracic')}
+                  className="mr-2"
+                />
+                Transthoracic Echo (TTE)
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="transesophageal"
+                  checked={metadata.modality === 'transesophageal'}
+                  onChange={(e) => handleModalityChange(e.target.value as 'transesophageal')}
+                  className="mr-2"
+                />
+                Transesophageal Echo (TEE/TOE)
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="non-echo"
+                  checked={metadata.modality === 'non-echo'}
+                  onChange={(e) => handleModalityChange(e.target.value as 'non-echo')}
+                  className="mr-2"
+                />
+                Non-echo Image
+              </label>
             </div>
           </div>
-        )}
-        
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Image Type</label>
-          <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="still"
-                checked={metadata.image_type === 'still'}
-                onChange={(e) => setMetadata({ ...metadata, image_type: e.target.value as 'still' })}
-                className="mr-2"
-              />
-              Still Image
+
+          {metadata.modality && metadata.modality !== 'non-echo' && (
+            <div className="mb-4">
+              <label htmlFor="echo_view" className="block text-sm font-medium mb-1">
+                Echo View <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="echo_view"
+                value={metadata.echo_view}
+                onChange={(e) => setMetadata({ ...metadata, echo_view: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select a view...</option>
+                {availableViews.map((view, index) => {
+                  const showCategoryHeader = index === 0 || availableViews[index - 1].category !== view.category;
+                  return (
+                    <React.Fragment key={view.name}>
+                      {showCategoryHeader && (
+                        <option disabled>──── {view.category} ────</option>
+                      )}
+                      <option value={view.name}>{view.name}</option>
+                    </React.Fragment>
+                  );
+                })}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Select the specific echocardiographic view shown in this image
+              </p>
+            </div>
+          )}
+
+          {metadata.modality === 'non-echo' && (
+            <div className="mb-4">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-sm text-amber-800">
+                  <strong>Non-echo Image:</strong> This image is not an echocardiogram (e.g., X-ray, CT, MRI, diagram, etc.)
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">
+              Image Type <span className="text-red-500">*</span>
             </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="cine"
-                checked={metadata.image_type === 'cine'}
-                onChange={(e) => setMetadata({ ...metadata, image_type: e.target.value as 'cine' })}
-                className="mr-2"
-              />
-              Cine Loop
-            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="still"
+                  checked={metadata.image_type === 'still'}
+                  onChange={(e) => setMetadata({ ...metadata, image_type: e.target.value as 'still' })}
+                  className="mr-2"
+                />
+                Still Image
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="cine"
+                  checked={metadata.image_type === 'cine'}
+                  onChange={(e) => setMetadata({ ...metadata, image_type: e.target.value as 'cine' })}
+                  className="mr-2"
+                />
+                Cine Loop (Video)
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Choose "Still Image" for static images or "Cine Loop" for video clips
+            </p>
           </div>
         </div>
+
+        {/* Technical Metadata Section */}
+        <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg"  >
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">⚙️ Technical Metadata</h3>
 
         <div className="mb-2">
           <label htmlFor="license" className="block text-sm font-medium mb-1">
@@ -434,6 +453,7 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
           <p className="text-xs text-gray-500 mt-1">
             Choose whether this image will be used in the question or explanation section
           </p>
+        </div>
         </div>
 
       </div>

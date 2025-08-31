@@ -327,6 +327,9 @@ export interface ImageDescription {
   question_id: number;
   description: string;
   usage_type: 'question' | 'explanation';
+  modality?: 'transthoracic' | 'transesophageal' | 'non-echo';
+  echo_view?: string;
+  image_type?: 'still' | 'cine';
   created_at?: string;
   updated_at?: string;
 }

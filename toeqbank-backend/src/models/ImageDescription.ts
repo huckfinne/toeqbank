@@ -5,6 +5,9 @@ export interface ImageDescription {
   question_id: number;
   description: string;
   usage_type: 'question' | 'explanation';
+  modality?: 'transthoracic' | 'transesophageal' | 'non-echo';
+  echo_view?: string;
+  image_type?: 'still' | 'cine';
   created_at?: string;
   updated_at?: string;
 }
@@ -12,13 +15,16 @@ export interface ImageDescription {
 export class ImageDescriptionModel {
   static async create(imageDescription: Omit<ImageDescription, 'id' | 'created_at' | 'updated_at'>): Promise<ImageDescription> {
     const result = await query(`
-      INSERT INTO image_descriptions (question_id, description, usage_type)
-      VALUES ($1, $2, $3)
+      INSERT INTO image_descriptions (question_id, description, usage_type, modality, echo_view, image_type)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `, [
       imageDescription.question_id,
       imageDescription.description,
-      imageDescription.usage_type
+      imageDescription.usage_type,
+      imageDescription.modality || null,
+      imageDescription.echo_view || null,
+      imageDescription.image_type || 'still'
     ]);
     
     return result.rows[0];
@@ -65,7 +71,7 @@ export class ImageDescriptionModel {
     return result.rows;
   }
 
-  static async update(id: number, data: Partial<Pick<ImageDescription, 'description' | 'usage_type'>>): Promise<ImageDescription> {
+  static async update(id: number, data: Partial<Pick<ImageDescription, 'description' | 'usage_type' | 'modality' | 'echo_view' | 'image_type'>>): Promise<ImageDescription> {
     const updates: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -78,6 +84,21 @@ export class ImageDescriptionModel {
     if (data.usage_type !== undefined) {
       updates.push(`usage_type = $${paramIndex++}`);
       values.push(data.usage_type);
+    }
+    
+    if (data.modality !== undefined) {
+      updates.push(`modality = $${paramIndex++}`);
+      values.push(data.modality);
+    }
+    
+    if (data.echo_view !== undefined) {
+      updates.push(`echo_view = $${paramIndex++}`);
+      values.push(data.echo_view);
+    }
+    
+    if (data.image_type !== undefined) {
+      updates.push(`image_type = $${paramIndex++}`);
+      values.push(data.image_type);
     }
     
     if (updates.length === 0) {
