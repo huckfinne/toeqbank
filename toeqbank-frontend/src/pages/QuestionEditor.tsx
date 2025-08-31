@@ -237,11 +237,8 @@ const QuestionEditor: React.FC = () => {
           <QuestionForm
             mode="create"
             onSuccess={(savedQuestion) => {
-              if (savedQuestion.id) {
-                navigate(`/question/${savedQuestion.id}`);
-              } else {
-                navigate('/');
-              }
+              // After creating a question, redirect to a fresh create-question page
+              navigate('/create-question');
             }}
           />
         </div>
