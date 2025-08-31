@@ -185,6 +185,9 @@ export const imageService = {
     license?: LicenseType;
     license_details?: string;
     source_url?: string;
+    modality?: string;
+    echo_view?: string;
+    usage_type?: 'question' | 'explanation';
   }): Promise<Image> => {
     // If there's a source_url, use URL upload
     if (metadata.source_url) {
@@ -195,7 +198,10 @@ export const imageService = {
         image_type: metadata.image_type,
         license: metadata.license,
         license_details: metadata.license_details,
-        source_url: metadata.source_url
+        source_url: metadata.source_url,
+        modality: metadata.modality,
+        echo_view: metadata.echo_view,
+        usage_type: metadata.usage_type
       });
       return response.data;
     }
@@ -213,6 +219,9 @@ export const imageService = {
     if (metadata.license) formData.append('license', metadata.license);
     if (metadata.license_details) formData.append('license_details', metadata.license_details);
     if (metadata.source_url) formData.append('source_url', metadata.source_url);
+    if (metadata.modality) formData.append('modality', metadata.modality);
+    if (metadata.echo_view) formData.append('echo_view', metadata.echo_view);
+    if (metadata.usage_type) formData.append('usage_type', metadata.usage_type);
     
     const response = await api.post('/images/upload', formData, {
       headers: {

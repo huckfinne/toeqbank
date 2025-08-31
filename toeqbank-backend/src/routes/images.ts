@@ -113,7 +113,10 @@ router.post('/upload-url', async (req: Request, res: Response) => {
       image_type, 
       license, 
       license_details, 
-      source_url 
+      source_url,
+      modality,
+      echo_view,
+      usage_type
     } = req.body;
 
     if (!url) {
@@ -166,7 +169,21 @@ router.post('/upload-url', async (req: Request, res: Response) => {
       });
     };
 
-    const { buffer, filename, mimetype, size } = await downloadImage(url);
+    let downloadResult;
+    try {
+      console.log('Starting download from URL:', url);
+      downloadResult = await downloadImage(url);
+      console.log('Download successful. File size:', downloadResult.size, 'bytes');
+    } catch (downloadError: any) {
+      console.error('Download failed:', downloadError.message);
+      return res.status(400).json({ 
+        error: 'Failed to download image from URL', 
+        details: downloadError.message,
+        url: url 
+      });
+    }
+    
+    const { buffer, filename, mimetype, size } = downloadResult;
 
     // Save the file locally
     const uploadPath = path.join(__dirname, '../../uploads/images');
