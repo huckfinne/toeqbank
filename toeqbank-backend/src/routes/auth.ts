@@ -224,8 +224,12 @@ router.get('/verify', requireAuth, (req: Request, res: Response) => {
       id: req.user.id,
       username: req.user.username,
       email: req.user.email,
+      first_name: req.user.first_name,
+      last_name: req.user.last_name,
       is_admin: req.user.is_admin,
-      is_reviewer: req.user.is_reviewer
+      is_reviewer: req.user.is_reviewer,
+      last_login: req.user.last_login,
+      created_at: req.user.created_at
     }
   });
 });

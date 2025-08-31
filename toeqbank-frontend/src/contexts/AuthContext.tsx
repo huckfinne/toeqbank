@@ -91,9 +91,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             headers: { Authorization: `Bearer ${storedToken}` }
           });
 
-          if (response.data.valid) {
+          if (response.data.valid && response.data.user) {
             setToken(storedToken);
-            setUser(JSON.parse(storedUser));
+            // Use fresh user data from server instead of localStorage
+            const freshUser = response.data.user;
+            setUser(freshUser);
+            // Update localStorage with fresh user data
+            localStorage.setItem('authUser', JSON.stringify(freshUser));
           } else {
             // Invalid token, clear storage
             localStorage.removeItem('authToken');
