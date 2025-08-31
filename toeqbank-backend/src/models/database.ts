@@ -5,14 +5,14 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-// Parse and modify DATABASE_URL to handle SSL properly
+// Parse and modify DATABASE_URL to disable SSL for dev database
 const getDatabaseConfig = () => {
   const connectionString = process.env.DATABASE_URL;
   
-  if (process.env.NODE_ENV === 'production') {
-    // For Digital Ocean managed databases, append SSL params if not present
-    if (connectionString && !connectionString.includes('sslmode')) {
-      return connectionString + '?sslmode=require';
+  if (process.env.NODE_ENV === 'production' && connectionString) {
+    // For development database, disable SSL entirely
+    if (!connectionString.includes('sslmode')) {
+      return connectionString + '?sslmode=disable';
     }
     return connectionString;
   }
@@ -22,9 +22,7 @@ const getDatabaseConfig = () => {
 
 const pool = new Pool({
   connectionString: getDatabaseConfig(),
-  ssl: process.env.NODE_ENV === 'production' ? { 
-    rejectUnauthorized: false 
-  } : false
+  ssl: false  // Completely disable SSL for dev database
 });
 
 export const initializeDatabase = async (): Promise<void> => {
