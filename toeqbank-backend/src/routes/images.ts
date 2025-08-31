@@ -217,10 +217,33 @@ router.post('/upload-url', async (req: Request, res: Response) => {
       source_url: source_url || url // Store the original URL
     };
 
-    console.log('Creating image in database with data:', imageData);
-    const image = await ImageModel.create(imageData);
-    console.log('=== UPLOAD-URL SUCCESS ===');
-    console.log('Saved image:', image.id, image.original_name);
+    console.log('Creating image in database with data:', JSON.stringify(imageData, null, 2));
+    
+    let image;
+    try {
+      image = await ImageModel.create(imageData);
+      console.log('=== UPLOAD-URL SUCCESS ===');
+      console.log('Saved image:', image.id, image.original_name);
+    } catch (dbError: any) {
+      console.error('Database save error:', dbError.message);
+      console.error('Database error detail:', dbError.detail);
+      console.error('Database error code:', dbError.code);
+      
+      // Clean up the file if database save failed
+      try {
+        fs.unlinkSync(savedPath);
+        console.log('Cleaned up file after database error:', savedPath);
+      } catch (cleanupError) {
+        console.error('Failed to clean up file:', cleanupError);
+      }
+      
+      return res.status(500).json({ 
+        error: 'Failed to save image to database', 
+        details: dbError.message,
+        code: dbError.code
+      });
+    }
+    
     res.status(201).json(image);
   } catch (error: any) {
     console.error('=== UPLOAD-URL ERROR ===');

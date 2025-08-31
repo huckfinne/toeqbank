@@ -58,14 +58,14 @@ export class ImageModel {
       imageData.file_size,
       imageData.mime_type,
       imageData.image_type,
-      imageData.width,
-      imageData.height,
-      imageData.duration_seconds,
-      imageData.description,
-      imageData.tags,
+      imageData.width || null,
+      imageData.height || null,
+      imageData.duration_seconds || null,
+      imageData.description || null,
+      imageData.tags || [],  // Ensure tags is always an array
       imageData.license,
-      imageData.license_details,
-      imageData.source_url
+      imageData.license_details || null,
+      imageData.source_url || null
     ];
     
     const result = await query(sql, values);
