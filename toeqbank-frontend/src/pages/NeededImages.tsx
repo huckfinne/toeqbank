@@ -23,6 +23,7 @@ const NeededImages: React.FC = () => {
       setLoading(true);
       
       const descriptions = await imageDescriptionService.getAll();
+      console.log('Loaded image descriptions:', descriptions);
       setImageDescriptions(descriptions);
       setError(null);
     } catch (err) {
@@ -33,6 +34,7 @@ const NeededImages: React.FC = () => {
   };
 
   const handleAddImage = (description: ImageDescriptionWithQuestion) => {
+    console.log('Selected description for image upload:', description);
     setSelectedDescription(description);
     setShowImageUpload(true);
   };
@@ -40,6 +42,8 @@ const NeededImages: React.FC = () => {
   const handleImageUpload = async (uploadedImage: Image, usageType: 'question' | 'explanation' = 'question') => {
     console.log('Image uploaded:', uploadedImage);
     console.log('For description:', selectedDescription?.description);
+    console.log('Selected description object:', selectedDescription);
+    console.log('Question ID:', selectedDescription?.question_id);
     
     // Associate the image with the question
     if (selectedDescription?.question_id && uploadedImage.id) {
@@ -59,6 +63,12 @@ const NeededImages: React.FC = () => {
       } catch (error) {
         console.error('Failed to associate image with question:', error);
       }
+    } else {
+      console.warn('Cannot associate image - missing data:', {
+        hasDescription: !!selectedDescription,
+        questionId: selectedDescription?.question_id,
+        imageId: uploadedImage?.id
+      });
     }
     
     setShowImageUpload(false);
