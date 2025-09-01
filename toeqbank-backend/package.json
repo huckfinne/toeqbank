@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "build": "tsc && mkdir -p dist/models dist/migrations && cp src/models/*.sql dist/models/ && cp src/migrations/*.sql dist/migrations/",
+    "prebuild": "mkdir -p dist/models dist/migrations",
+    "build": "tsc --incremental",
+    "postbuild": "cp src/models/*.sql dist/models/ 2>/dev/null || true && cp src/migrations/*.sql dist/migrations/ 2>/dev/null || true && echo 'Build completed successfully'",
     "start": "node dist/server.js",
-    "postbuild": "echo 'Build completed successfully'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
