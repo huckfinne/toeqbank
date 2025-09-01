@@ -67,8 +67,10 @@ const NeededImages: React.FC = () => {
       console.warn('Cannot associate image - missing data:', {
         hasDescription: !!selectedDescription,
         questionId: selectedDescription?.question_id,
-        imageId: uploadedImage?.id
+        imageId: uploadedImage?.id,
+        fullDescription: selectedDescription
       });
+      alert(`Cannot associate image with question. Missing question_id: ${selectedDescription?.question_id}`);
     }
     
     setShowImageUpload(false);
