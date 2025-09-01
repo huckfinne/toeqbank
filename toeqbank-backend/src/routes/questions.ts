@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { QuestionModel, Question } from '../models/Question';
+import { ImageDescriptionModel } from '../models/ImageDescription';
 import { ImageModel } from '../models/Image';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { query } from '../models/database';
@@ -131,7 +132,9 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    const withImages = req.body.withImages === 'true';
     const questions: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'>[] = [];
+    const imageDescriptions: any[] = [];
     
     // Parse CSV file
     await new Promise<void>((resolve, reject) => {
@@ -153,6 +156,23 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
             source_folder: row.source_folder || ''
           };
           
+          // Handle image descriptions for "with images" mode
+          if (withImages && (row.image_description || row.image_modality || row.image_view)) {
+            const imageDesc = {
+              description: row.image_description || '',
+              modality: row.image_modality || '',
+              echo_view: row.image_view || '',
+              usage_type: row.image_usage || 'question',
+              image_type: row.image_type || 'still',
+              questionIndex: questions.length // Track which question this belongs to
+            };
+            imageDescriptions.push(imageDesc);
+            
+            // Set review status to 'returned' for questions needing images
+            question.review_status = 'returned';
+            question.review_notes = 'Question needs image to be uploaded before review';
+          }
+          
           // Validate required fields
           if (question.question && question.correct_answer && 
               ['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(question.correct_answer)) {
@@ -173,8 +193,29 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
     // Bulk insert questions
     const createdQuestions = await QuestionModel.bulkCreate(questions);
     
+    // If we have image descriptions, create them in the database
+    if (withImages && imageDescriptions.length > 0) {
+      for (let i = 0; i < imageDescriptions.length; i++) {
+        const imageDesc = imageDescriptions[i];
+        const questionIndex = imageDesc.questionIndex;
+        const createdQuestion = createdQuestions[questionIndex];
+        
+        if (createdQuestion && createdQuestion.id) {
+          // Create image description entry
+          await ImageDescriptionModel.create({
+            question_id: createdQuestion.id,
+            description: imageDesc.description,
+            modality: imageDesc.modality,
+            echo_view: imageDesc.echo_view,
+            usage_type: imageDesc.usage_type,
+            image_type: imageDesc.image_type
+          });
+        }
+      }
+    }
+    
     res.status(201).json({
-      message: `Successfully uploaded ${createdQuestions.length} questions`,
+      message: `Successfully uploaded ${createdQuestions.length} questions${withImages ? ' with image descriptions' : ''}`,
       questions: createdQuestions
     });
   } catch (error) {
