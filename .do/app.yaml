@@ -9,7 +9,7 @@ envs:
 - key: CI
   value: "true"
 services:
-- build_command: cd toeqbank-backend && npm ci && npm run build
+- build_command: cd toeqbank-backend && timeout 300 npm install && npm run build
   environment_slug: node-js
   github:
     branch: main
@@ -21,7 +21,7 @@ services:
   name: toeqbank-backend
   run_command: cd toeqbank-backend && npm start
   source_dir: /
-- build_command: cd toeqbank-frontend && npm ci && npm run build
+- build_command: cd toeqbank-frontend && timeout 300 npm install && npm run build
   environment_slug: node-js
   github:
     branch: main
