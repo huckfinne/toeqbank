@@ -133,6 +133,7 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
     }
 
     const withImages = req.body.withImages === 'true';
+    console.log('CSV upload started with withImages:', withImages);
     const questions: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'>[] = [];
     const imageDescriptions: any[] = [];
     
@@ -158,12 +159,21 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
           
           // Handle image descriptions for "with images" mode
           if (withImages && (row.image_description || row.image_modality || row.image_view)) {
+            // Validate and sanitize enum values
+            const validModalities = ['transthoracic', 'transesophageal', 'non-echo'];
+            const validUsageTypes = ['question', 'explanation'];
+            const validImageTypes = ['still', 'cine'];
+            
+            const modality = row.image_modality?.toLowerCase();
+            const usageType = row.image_usage?.toLowerCase();
+            const imageType = row.image_type?.toLowerCase();
+            
             const imageDesc = {
               description: row.image_description || '',
-              modality: row.image_modality || '',
+              modality: validModalities.includes(modality) ? modality : null,
               echo_view: row.image_view || '',
-              usage_type: row.image_usage || 'question',
-              image_type: row.image_type || 'still',
+              usage_type: validUsageTypes.includes(usageType) ? usageType : 'question',
+              image_type: validImageTypes.includes(imageType) ? imageType : 'still',
               questionIndex: questions.length // Track which question this belongs to
             };
             imageDescriptions.push(imageDesc);
@@ -195,21 +205,36 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
     
     // If we have image descriptions, create them in the database
     if (withImages && imageDescriptions.length > 0) {
+      console.log(`Creating ${imageDescriptions.length} image descriptions`);
       for (let i = 0; i < imageDescriptions.length; i++) {
-        const imageDesc = imageDescriptions[i];
-        const questionIndex = imageDesc.questionIndex;
-        const createdQuestion = createdQuestions[questionIndex];
-        
-        if (createdQuestion && createdQuestion.id) {
-          // Create image description entry
-          await ImageDescriptionModel.create({
-            question_id: createdQuestion.id,
-            description: imageDesc.description,
-            modality: imageDesc.modality,
-            echo_view: imageDesc.echo_view,
-            usage_type: imageDesc.usage_type,
-            image_type: imageDesc.image_type
-          });
+        try {
+          const imageDesc = imageDescriptions[i];
+          const questionIndex = imageDesc.questionIndex;
+          const createdQuestion = createdQuestions[questionIndex];
+          
+          if (createdQuestion && createdQuestion.id) {
+            console.log('Creating image description:', {
+              question_id: createdQuestion.id,
+              description: imageDesc.description,
+              modality: imageDesc.modality,
+              echo_view: imageDesc.echo_view,
+              usage_type: imageDesc.usage_type,
+              image_type: imageDesc.image_type
+            });
+            
+            // Create image description entry
+            await ImageDescriptionModel.create({
+              question_id: createdQuestion.id,
+              description: imageDesc.description,
+              modality: imageDesc.modality,
+              echo_view: imageDesc.echo_view,
+              usage_type: imageDesc.usage_type,
+              image_type: imageDesc.image_type
+            });
+          }
+        } catch (imageError) {
+          console.error('Error creating image description:', imageError);
+          throw imageError; // Re-throw to trigger main error handler
         }
       }
     }
