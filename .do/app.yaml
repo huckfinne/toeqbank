@@ -9,7 +9,7 @@ envs:
 - key: CI
   value: "true"
 services:
-- build_command: cd toeqbank-backend && npm install --no-audit --no-fund && npm run build
+- build_command: cd toeqbank-backend && npm install && npm run build
   environment_slug: node-js
   github:
     branch: main
@@ -24,7 +24,7 @@ services:
   health_check:
     http_path: /health
     port: 3001
-- build_command: cd toeqbank-frontend && npm install --no-audit --no-fund && npm run build
+- build_command: cd toeqbank-frontend && npm install && npm run build
   environment_slug: node-js
   github:
     branch: main
