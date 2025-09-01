@@ -21,6 +21,9 @@ services:
   name: toeqbank-backend
   run_command: cd toeqbank-backend && npm start
   source_dir: /
+  health_check:
+    http_path: /health
+    port: 3001
 - build_command: cd toeqbank-frontend && npm install --no-audit --no-fund && npm run build
   environment_slug: node-js
   github:
@@ -33,3 +36,6 @@ services:
   name: toeqbank-frontend
   run_command: cd toeqbank-frontend && npm run start
   source_dir: /
+  health_check:
+    http_path: /
+    port: 3000
