@@ -34,29 +34,54 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 flex items-center justify-center p-4" 
-      style={{
-        zIndex: 99999, 
-        position: 'fixed', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
+    <>
+      <style>
+        {`
+          .image-modal-scroll::-webkit-scrollbar {
+            width: 8px;
+          }
+          .image-modal-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+          }
+          .image-modal-scroll::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+          }
+          .image-modal-scroll::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+          }
+        `}
+      </style>
+      <div 
+        className="fixed inset-0 flex items-center justify-center p-4" 
+        style={{
+          zIndex: 99999, 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+      >
       <div 
         className="rounded-2xl shadow-2xl max-w-6xl w-full mx-4 border-4 border-gray-300 relative flex flex-col"
-        style={{backgroundColor: 'white', maxHeight: '95vh', minHeight: '600px', boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)'}}
+        style={{
+          backgroundColor: 'white', 
+          maxHeight: '95vh', 
+          minHeight: '600px', 
+          boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
+          height: 'auto'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6 rounded-t-2xl flex-shrink-0">
@@ -79,11 +104,13 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         </div>
         
         <div 
-          className="flex-1 overflow-y-scroll p-8" 
+          className="flex-1 overflow-y-auto p-8 image-modal-scroll" 
           style={{
             backgroundColor: 'white',
-            maxHeight: '75vh',
-            minHeight: '500px'
+            maxHeight: 'calc(95vh - 200px)', // Account for header and footer
+            minHeight: '400px',
+            scrollbarWidth: 'thin', // Firefox
+            scrollbarColor: '#94a3b8 #f1f5f9' // Firefox
           }}
         >
           <ImageUpload 
@@ -117,7 +144,8 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
