@@ -117,9 +117,10 @@ export const questionService = {
   },
 
   // Upload CSV file
-  uploadCSV: async (file: File): Promise<{ message: string; questions: Question[] }> => {
+  uploadCSV: async (file: File, withImages: boolean = false): Promise<{ message: string; questions: Question[] }> => {
     const formData = new FormData();
     formData.append('csvFile', file);
+    formData.append('withImages', String(withImages));
     
     const response = await api.post('/questions/upload', formData, {
       headers: {
