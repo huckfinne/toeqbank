@@ -42,7 +42,18 @@ export class ImageDescriptionModel {
 
   static async findAll(): Promise<ImageDescription[]> {
     const result = await query(`
-      SELECT id.*, q.question_number, q.question 
+      SELECT 
+        id.id,
+        id.question_id,
+        id.description,
+        id.usage_type,
+        id.modality,
+        id.echo_view,
+        id.image_type,
+        id.created_at,
+        id.updated_at,
+        q.question_number, 
+        q.question 
       FROM image_descriptions id
       LEFT JOIN questions q ON id.question_id = q.id
       ORDER BY id.created_at DESC

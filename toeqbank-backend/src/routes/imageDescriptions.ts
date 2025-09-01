@@ -7,6 +7,10 @@ const router = Router();
 router.get('/', async (req: Request, res: Response) => {
   try {
     const descriptions = await ImageDescriptionModel.findAll();
+    console.log('Fetched image descriptions:', descriptions.length, 'items');
+    if (descriptions.length > 0) {
+      console.log('First description sample:', descriptions[0]);
+    }
     res.json(descriptions);
   } catch (error) {
     console.error('Get all image descriptions error:', error);

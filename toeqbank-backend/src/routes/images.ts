@@ -438,7 +438,15 @@ router.post('/:id/associate/:questionId', async (req: Request, res: Response) =>
     const displayOrder = parseInt(req.body.display_order) || 1;
     const usageType = req.body.usage_type || 'question';
     
+    console.log('Associating image with question:', {
+      imageId,
+      questionId,
+      displayOrder,
+      usageType
+    });
+    
     const association = await ImageModel.associateWithQuestion(questionId, imageId, displayOrder, usageType);
+    console.log('Association created:', association);
     res.status(201).json(association);
   } catch (error) {
     console.error('Associate image error:', error);
