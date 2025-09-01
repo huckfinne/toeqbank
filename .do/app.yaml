@@ -9,7 +9,7 @@ envs:
 - key: CI
   value: "true"
 services:
-- build_command: cd toeqbank-backend && echo "Starting build..." && npm --version && node --version && npm install --no-audit --no-fund --prefer-offline && npm run build
+- build_command: echo "Minimal build test" && ls -la && echo "Build complete"
   environment_slug: node-js
   github:
     branch: main
@@ -19,7 +19,7 @@ services:
   instance_count: 1
   instance_size_slug: basic-xs
   name: toeqbank-backend
-  run_command: cd toeqbank-backend && npm start
+  run_command: echo "Service starting" && sleep 3600
   source_dir: /
 # Temporarily disabled frontend to test backend-only build
 # - build_command: cd toeqbank-frontend && echo "Starting frontend build..." && npm --version && npm install --no-audit --no-fund --prefer-offline && npm run build
