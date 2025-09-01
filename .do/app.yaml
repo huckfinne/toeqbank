@@ -30,7 +30,7 @@ services:
     branch: main
     deploy_on_push: true
     repo: huckfinne-a/toeqbank
-  http_port: 3000
+  http_port: 8080
   instance_count: 1
   instance_size_slug: basic-xs
   name: toeqbank-frontend
@@ -38,4 +38,4 @@ services:
   source_dir: /
   health_check:
     http_path: /
-    port: 3000
+    port: 8080
