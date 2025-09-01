@@ -9,6 +9,8 @@ const QuestionReview: React.FC = () => {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedQuestions, setSelectedQuestions] = useState<Set<number>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; questionId: number | null; questionText: string }>({ 
     isOpen: false, 
     questionId: null, 
@@ -67,6 +69,55 @@ const QuestionReview: React.FC = () => {
 
   const handleDeleteCancel = () => {
     setDeleteConfirmation({ isOpen: false, questionId: null, questionText: '' });
+  };
+
+  // Bulk selection handlers
+  const handleSelectQuestion = (questionId: number) => {
+    const newSelected = new Set(selectedQuestions);
+    if (newSelected.has(questionId)) {
+      newSelected.delete(questionId);
+    } else {
+      newSelected.add(questionId);
+    }
+    setSelectedQuestions(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedQuestions.size === questions.length) {
+      // If all are selected, deselect all
+      setSelectedQuestions(new Set());
+    } else {
+      // Select all current page questions
+      const allIds = new Set(questions.map(q => q.id!));
+      setSelectedQuestions(allIds);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedQuestions.size > 0) {
+      setShowBulkDeleteConfirm(true);
+    }
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    try {
+      // Delete all selected questions
+      await Promise.all(
+        Array.from(selectedQuestions).map(id => questionService.deleteQuestion(id))
+      );
+      
+      // Clear selections and refresh
+      setSelectedQuestions(new Set());
+      setShowBulkDeleteConfirm(false);
+      fetchQuestions();
+    } catch (error) {
+      console.error('Error deleting questions:', error);
+      alert('Failed to delete some questions. Please try again.');
+    }
+  };
+
+  const handleBulkDeleteCancel = () => {
+    setShowBulkDeleteConfirm(false);
   };
 
   if (loading) {
@@ -128,10 +179,37 @@ const QuestionReview: React.FC = () => {
           </p>
         </div>
 
-        {/* Stats */}
+        {/* Stats and Bulk Actions */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <div className="text-lg font-semibold text-gray-800">
-            {totalQuestions} Total Questions
+          <div className="flex items-center justify-between">
+            <div className="text-lg font-semibold text-gray-800">
+              {totalQuestions} Total Questions
+              {selectedQuestions.size > 0 && (
+                <span className="ml-4 text-sm text-blue-600">
+                  ({selectedQuestions.size} selected)
+                </span>
+              )}
+            </div>
+            
+            {selectedQuestions.size > 0 && (
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setSelectedQuestions(new Set())}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Clear Selection
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete Selected ({selectedQuestions.size})
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -146,6 +224,17 @@ const QuestionReview: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={questions.length > 0 && selectedQuestions.size === questions.length}
+                          onChange={handleSelectAll}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="ml-2">All</span>
+                      </div>
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Question
                     </th>
@@ -160,7 +249,15 @@ const QuestionReview: React.FC = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {questions.map((question) => {
                     return (
-                      <tr key={question.id} className="hover:bg-gray-50">
+                      <tr key={question.id} className={`hover:bg-gray-50 ${selectedQuestions.has(question.id!) ? 'bg-blue-50' : ''}`}>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <input
+                            type="checkbox"
+                            checked={selectedQuestions.has(question.id!)}
+                            onChange={() => handleSelectQuestion(question.id!)}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                        </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
                           <div className="max-w-md">
                             {question.question_number && (
@@ -319,6 +416,88 @@ const QuestionReview: React.FC = () => {
                   className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 font-semibold"
                 >
                   Delete Question
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Delete Confirmation Dialog */}
+        {showBulkDeleteConfirm && (
+          <div 
+            className="fixed inset-0 flex items-center justify-center p-4" 
+            style={{
+              zIndex: 99999, 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                handleBulkDeleteCancel();
+              }
+            }}
+          >
+            <div 
+              className="rounded-2xl shadow-2xl max-w-md w-full mx-4 border-4 border-gray-300 relative"
+              style={{backgroundColor: 'white', boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)'}}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6 rounded-t-2xl">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">🗑️ Delete Multiple Questions</h3>
+                    <p className="text-red-100 mt-1">This action cannot be undone</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleBulkDeleteCancel}
+                    className="text-white hover:text-red-200 rounded-full p-2 hover:bg-red-700 transition-all duration-200"
+                    title="Close Dialog"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-8">
+                <div className="text-center">
+                  <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                    <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                    Are you sure you want to delete {selectedQuestions.size} question{selectedQuestions.size > 1 ? 's' : ''}?
+                  </h4>
+                  <p className="text-sm text-red-600 font-medium">
+                    This will permanently delete all selected questions and their associated data.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end items-center gap-3 px-8 py-6 border-t border-gray-100" style={{backgroundColor: 'white', borderRadius: '0 0 1rem 1rem'}}>
+                <button
+                  type="button"
+                  onClick={handleBulkDeleteCancel}
+                  className="px-6 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkDeleteConfirm}
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 font-semibold"
+                >
+                  Delete {selectedQuestions.size} Question{selectedQuestions.size > 1 ? 's' : ''}
                 </button>
               </div>
             </div>
