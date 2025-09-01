@@ -22,5 +22,5 @@ services:
   instance_count: 1
   instance_size_slug: basic-xxs
   name: toeqbank-frontend
-  run_command: cd toeqbank-frontend && npm start
+  run_command: cd toeqbank-frontend && npm run start
   source_dir: /
