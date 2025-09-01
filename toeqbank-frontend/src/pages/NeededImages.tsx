@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { imageDescriptionService, ImageDescription, Image } from '../services/api';
+import { imageDescriptionService, imageService, ImageDescription, Image } from '../services/api';
 import ImageUploadModal from '../components/ImageUploadModal';
 
 interface ImageDescriptionWithQuestion extends ImageDescription {
@@ -37,13 +37,32 @@ const NeededImages: React.FC = () => {
     setShowImageUpload(true);
   };
 
-  const handleImageUpload = (uploadedImage: Image, usageType: 'question' | 'explanation' = 'question') => {
+  const handleImageUpload = async (uploadedImage: Image, usageType: 'question' | 'explanation' = 'question') => {
     console.log('Image uploaded:', uploadedImage);
     console.log('For description:', selectedDescription?.description);
+    
+    // Associate the image with the question
+    if (selectedDescription?.question_id && uploadedImage.id) {
+      try {
+        // Call API to associate image with question
+        await imageService.associateWithQuestion(uploadedImage.id, selectedDescription.question_id, 1, usageType);
+        console.log('Image associated with question:', selectedDescription.question_id);
+        
+        // Delete the image description since it's now fulfilled
+        if (selectedDescription.id) {
+          await imageDescriptionService.delete(selectedDescription.id);
+          console.log('Deleted fulfilled image description:', selectedDescription.id);
+        }
+        
+        // Reload image descriptions to reflect the change
+        await loadImageDescriptions();
+      } catch (error) {
+        console.error('Failed to associate image with question:', error);
+      }
+    }
+    
     setShowImageUpload(false);
     setSelectedDescription(null);
-    // TODO: Associate the uploaded image with the question if needed
-    // For now, just close the modal
   };
 
   if (loading) {
@@ -88,6 +107,7 @@ const NeededImages: React.FC = () => {
         onUpload={handleImageUpload}
         initialDescription={selectedDescription?.description || ''}
         initialUsageType={selectedDescription?.usage_type || 'question'}
+        questionNumber={selectedDescription?.question_number}
       />
       
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">

@@ -8,6 +8,7 @@ interface ImageUploadModalProps {
   onUpload: (image: Image, usageType: 'question' | 'explanation') => void;
   initialDescription?: string;
   initialUsageType?: 'question' | 'explanation';
+  questionNumber?: string;
 }
 
 const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
@@ -15,7 +16,8 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   onClose,
   onUpload,
   initialDescription,
-  initialUsageType
+  initialUsageType,
+  questionNumber
 }) => {
   const [canSave, setCanSave] = useState(false);
   const imageUploadRef = useRef<any>(null);
@@ -87,7 +89,9 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6 rounded-t-2xl flex-shrink-0">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-2xl font-bold text-white">Upload New Images</h3>
+              <h3 className="text-2xl font-bold text-white">
+                Upload New Images {questionNumber && <span className="text-yellow-200">for Question #{questionNumber}</span>}
+              </h3>
               <p className="text-blue-100 mt-1">Add TOE images and cine clips to your question</p>
             </div>
             <button
