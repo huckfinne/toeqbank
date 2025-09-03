@@ -1,0 +1,11 @@
+{
+  "backup_date": "2025-09-01T18:30:29.831Z",
+  "database_url": "postgresql://toeqbank:****@app-7cb09303-7e3f-4f9f-b588-64d1d97b1bd4-do-user-19953993-0.i.db.ondigitalocean.com:25060/toeqbank?sslmode=require",
+  "tables": {
+    "questions": 2,
+    "users": 2,
+    "images": 1,
+    "question_images": 1,
+    "image_descriptions": 1
+  }
+}

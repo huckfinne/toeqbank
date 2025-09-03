@@ -30,7 +30,7 @@ const AppContent: React.FC = () => {
             <Link to="/upload">Upload Questions</Link>
             <Link to="/images">Image Library</Link>
             <Link to="/needed-images">Needed Images</Link>
-            {isReviewer && <Link to="/reviewer/dashboard">Review Queue</Link>}
+            {(isReviewer || isAdmin) && <Link to="/reviewer/dashboard">Review Queue</Link>}
             {isAdmin && <Link to="/admin/users">Admin Panel</Link>}
           </div>
           <div className="nav-user">

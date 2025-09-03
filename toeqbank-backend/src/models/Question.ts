@@ -157,8 +157,30 @@ export class QuestionModel {
 
   // Review system methods
   static async getPendingReview(): Promise<Question[]> {
-    const sql = 'SELECT * FROM questions WHERE review_status = $1 ORDER BY created_at ASC';
-    const result = await query(sql, ['pending']);
+    const sql = `
+      SELECT DISTINCT q.* 
+      FROM questions q
+      WHERE q.review_status = 'pending'
+      AND (
+        -- Questions with no image descriptions (don't need images)
+        NOT EXISTS (
+          SELECT 1 FROM image_descriptions id WHERE id.question_id = q.id
+        )
+        OR
+        -- Questions where all image descriptions have been fulfilled with actual images
+        NOT EXISTS (
+          SELECT 1 FROM image_descriptions id 
+          WHERE id.question_id = q.id 
+          AND NOT EXISTS (
+            SELECT 1 FROM question_images qi 
+            WHERE qi.question_id = q.id 
+            AND qi.usage_type = id.usage_type
+          )
+        )
+      )
+      ORDER BY q.created_at ASC
+    `;
+    const result = await query(sql);
     return result.rows;
   }
 

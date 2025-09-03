@@ -8,6 +8,8 @@ interface ImageUploadModalProps {
   onUpload: (image: Image, usageType: 'question' | 'explanation') => void;
   initialDescription?: string;
   initialUsageType?: 'question' | 'explanation';
+  initialModality?: 'transthoracic' | 'transesophageal' | 'non-echo';
+  initialEchoView?: string;
   questionNumber?: string;
 }
 
@@ -17,6 +19,8 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   onUpload,
   initialDescription,
   initialUsageType,
+  initialModality,
+  initialEchoView,
   questionNumber
 }) => {
   const [canSave, setCanSave] = useState(false);
@@ -123,6 +127,8 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
             onFileSelected={(hasFile) => setCanSave(hasFile)}
             initialDescription={initialDescription}
             initialUsageType={initialUsageType}
+            initialModality={initialModality}
+            initialEchoView={initialEchoView}
           />
         </div>
         

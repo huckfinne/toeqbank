@@ -1,0 +1,10 @@
+[
+  {
+    "id": 1,
+    "question_id": 2,
+    "image_id": 1,
+    "display_order": 1,
+    "usage_type": "question",
+    "created_at": "2025-09-01T15:39:13.854Z"
+  }
+]

@@ -23,7 +23,7 @@ interface QuestionWithStatus extends Question {
 }
 
 const ReviewerDashboard: React.FC = () => {
-  const { isReviewer } = useAuth();
+  const { isReviewer, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState<QuestionWithStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,10 +37,10 @@ const ReviewerDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    if (isReviewer) {
+    if (isReviewer || isAdmin) {
       loadNextQuestion();
     }
-  }, [isReviewer]);
+  }, [isReviewer, isAdmin]);
 
   const loadNextQuestion = async () => {
     try {
@@ -101,7 +101,18 @@ const ReviewerDashboard: React.FC = () => {
         });
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load question for review');
+      if (err.response?.status === 401) {
+        // Token expired or invalid - redirect to login
+        setError('Your session has expired. Please log in again.');
+        setTimeout(() => {
+          // Clear auth data and redirect
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authUser');
+          window.location.href = '/';
+        }, 2000);
+      } else {
+        setError(err.response?.data?.error || 'Failed to load question for review');
+      }
       console.error('Load question error:', err);
     } finally {
       setLoading(false);
@@ -141,7 +152,7 @@ const ReviewerDashboard: React.FC = () => {
     }
   };
 
-  if (!isReviewer) {
+  if (!isReviewer && !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

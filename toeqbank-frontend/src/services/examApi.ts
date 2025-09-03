@@ -1,12 +1,11 @@
 import { Question, SubtopicWithSection } from './api';
+import { API_BASE_URL } from '../config/api.config';
 
 export interface ApplicableExam {
   examName: string;
   subtopics: SubtopicWithSection[];
   reasoning?: string;
 }
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export class ExamApiService {
   static async assignExams(question: Question): Promise<ApplicableExam[]> {

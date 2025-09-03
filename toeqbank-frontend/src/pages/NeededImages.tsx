@@ -119,6 +119,8 @@ const NeededImages: React.FC = () => {
         onUpload={handleImageUpload}
         initialDescription={selectedDescription?.description || ''}
         initialUsageType={selectedDescription?.usage_type || 'question'}
+        initialModality={selectedDescription?.modality}
+        initialEchoView={selectedDescription?.echo_view}
         questionNumber={selectedDescription?.question_number}
       />
       
@@ -160,6 +162,9 @@ const NeededImages: React.FC = () => {
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                       Type
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">
+                      Modality/View
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                       Action
@@ -204,6 +209,21 @@ const NeededImages: React.FC = () => {
                         }`}>
                           {description.usage_type}
                         </span>
+                      </td>
+                      <td className="px-4 py-6 text-sm text-gray-500">
+                        {description.modality && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-blue-600">
+                              {description.modality === 'transthoracic' ? 'TTE' :
+                               description.modality === 'transesophageal' ? 'TEE' : 'Non-echo'}
+                            </div>
+                            {description.echo_view && (
+                              <div className="text-xs text-gray-500 truncate" title={description.echo_view}>
+                                {description.echo_view}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-6 whitespace-nowrap text-sm">
                         <button

@@ -9,6 +9,7 @@ import imageDescriptionRoutes from './routes/imageDescriptions';
 import questionMetadataRoutes from './routes/questionMetadata';
 import metadataRoutes from './routes/metadata';
 import examRoutes from './routes/exams';
+import debugRoutes from './routes/debug';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use('/api/image-descriptions', imageDescriptionRoutes);
 app.use('/api/question-metadata', questionMetadataRoutes);
 app.use('/api/metadata', metadataRoutes);
 app.use('/api/exams', examRoutes);
+app.use('/api/debug', debugRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

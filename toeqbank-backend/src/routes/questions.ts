@@ -464,11 +464,18 @@ router.get('/:id/exams', async (req: Request, res: Response) => {
 // Get pending questions for review (reviewers only)
 router.get('/review/pending', requireAuth, async (req: Request, res: Response) => {
   try {
+    console.log('=== REVIEW QUEUE REQUEST ===');
+    console.log('User:', req.user?.username, 'Admin:', req.user?.is_admin, 'Reviewer:', req.user?.is_reviewer);
+    
     if (!req.user.is_reviewer && !req.user.is_admin) {
+      console.log('Access denied - user is not reviewer or admin');
       return res.status(403).json({ error: 'Reviewer access required' });
     }
 
     const questions = await QuestionModel.getPendingReview();
+    console.log('Found pending questions:', questions.length);
+    console.log('Questions:', questions.map(q => ({ id: q.id, question: q.question.substring(0, 50) + '...' })));
+    
     res.json({ questions });
   } catch (error) {
     console.error('Error fetching pending questions:', error);

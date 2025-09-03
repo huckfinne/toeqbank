@@ -10,6 +10,8 @@ interface ImageUploadProps {
   className?: string;
   initialDescription?: string;
   initialUsageType?: 'question' | 'explanation';
+  initialModality?: 'transthoracic' | 'transesophageal' | 'non-echo';
+  initialEchoView?: string;
 }
 
 const ImageUpload = forwardRef<any, ImageUploadProps>(({
@@ -19,7 +21,9 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
   maxSize = 100,
   className = "",
   initialDescription = "",
-  initialUsageType = "question"
+  initialUsageType = "question",
+  initialModality,
+  initialEchoView
 }, ref) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +41,8 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
     license: 'user-contributed' as LicenseType,
     license_details: '',
     usage_type: initialUsageType,
-    modality: '' as 'transthoracic' | 'transesophageal' | 'non-echo' | '',
-    echo_view: ''
+    modality: (initialModality || '') as 'transthoracic' | 'transesophageal' | 'non-echo' | '',
+    echo_view: initialEchoView || ''
   });
 
   useImperativeHandle(ref, () => ({
@@ -282,6 +286,11 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">
               Modality <span className="text-red-500">*</span>
+              {initialModality && (
+                <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                  ✓ Auto-filled
+                </span>
+              )}
             </label>
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center">
@@ -321,6 +330,11 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
             <div className="mb-4">
               <label htmlFor="echo_view" className="block text-sm font-medium mb-1">
                 Echo View <span className="text-red-500">*</span>
+                {initialEchoView && (
+                  <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                    ✓ Auto-filled
+                  </span>
+                )}
               </label>
               <select
                 id="echo_view"

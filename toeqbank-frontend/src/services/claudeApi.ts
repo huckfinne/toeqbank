@@ -1,4 +1,5 @@
 import { Question } from './api';
+import { API_BASE_URL } from '../config/api.config';
 
 export interface GeneratedMetadata {
   difficulty: string;
@@ -11,8 +12,6 @@ export interface GeneratedMetadata {
   minorStructures: string[];
   modalities: string[];
 }
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export class ClaudeApiService {
   static async generateMetadata(question: Question): Promise<GeneratedMetadata> {
