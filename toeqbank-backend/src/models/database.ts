@@ -5,23 +5,26 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-// Handle Digital Ocean managed database SSL properly with CA certificate
-const caPath = path.join(__dirname, '../../ca-certificate.crt');
+// Parse DATABASE_URL to handle SSL separately
+const isDevelopment = process.env.NODE_ENV === 'development';
+const isProduction = process.env.NODE_ENV === 'production' || !isDevelopment;
 
-// For Digital Ocean managed databases, use SSL with relaxed verification
-// CA certificate is available for future use when properly configured
-const sslConfig = {
-  ssl: {
-    rejectUnauthorized: false // Required for DO managed databases with current setup
-  }
+// Digital Ocean requires SSL in production
+let poolConfig: any = {
+  connectionString: process.env.DATABASE_URL?.replace('?sslmode=require', '') // Remove query param to avoid conflicts
 };
 
-console.log(`🔒 SSL Configuration: Using relaxed SSL verification for DO managed database`);
+// Only apply SSL config in production or when DATABASE_URL contains Digital Ocean host
+if (isProduction || process.env.DATABASE_URL?.includes('db.ondigitalocean.com')) {
+  poolConfig.ssl = {
+    rejectUnauthorized: false // Required for DO managed databases
+  };
+  console.log(`🔒 SSL Configuration: Using relaxed SSL verification for Digital Ocean database`);
+} else {
+  console.log(`🔓 SSL Configuration: SSL disabled for local development`);
+}
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ...sslConfig
-});
+const pool = new Pool(poolConfig);
 
 export const initializeDatabase = async (): Promise<void> => {
   try {
