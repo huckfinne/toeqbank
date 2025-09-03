@@ -31,17 +31,18 @@ services:
     value: "your-secret-jwt-key-change-this-in-production"
   - key: NODE_ENV
     value: "production"
-  routes:
-  - path: /api
-static_sites:
 - build_command: cd toeqbank-frontend && npm install && npm run build
   environment_slug: node-js
   github:
     branch: main
     deploy_on_push: true
     repo: huckfinne-a/toeqbank
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: basic-xs
   name: toeqbank-frontend
+  run_command: cd toeqbank-frontend && npx serve -s build -l 8080
   source_dir: /
-  output_dir: toeqbank-frontend/build
-  routes:
-  - path: /
+  health_check:
+    http_path: /
+    port: 8080
