@@ -24,18 +24,24 @@ services:
   health_check:
     http_path: /health
     port: 3001
+  envs:
+  - key: DATABASE_URL
+    value: "postgresql://toeqbank:AVNS_wbfh3IuQ6BE0OKhBMs0@app-7cb09303-7e3f-4f9f-b588-64d1d97b1bd4-do-user-19953993-0.i.db.ondigitalocean.com:25060/toeqbank?sslmode=require"
+  - key: JWT_SECRET
+    value: "your-secret-jwt-key-change-this-in-production"
+  - key: NODE_ENV
+    value: "production"
+  routes:
+  - path: /api
+static_sites:
 - build_command: cd toeqbank-frontend && npm install && npm run build
   environment_slug: node-js
   github:
     branch: main
     deploy_on_push: true
     repo: huckfinne-a/toeqbank
-  http_port: 8080
-  instance_count: 1
-  instance_size_slug: basic-xs
   name: toeqbank-frontend
-  run_command: cd toeqbank-frontend && npm run start
   source_dir: /
-  health_check:
-    http_path: /
-    port: 8080
+  output_dir: toeqbank-frontend/build
+  routes:
+  - path: /
