@@ -238,7 +238,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                   return (
                     <td key={colIndex} className="w-1/4 p-4 border border-gray-200">
                       <div
-                        className={`relative transition-transform hover:scale-105 ${
+                        className={`transition-transform hover:scale-105 ${
                           selectedImages.includes(image.id!) ? 'ring-2 ring-blue-500 rounded' : ''
                         }`}
                       >
@@ -278,32 +278,34 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                             </div>
                           )}
 
-                          {/* Selection mode buttons */}
+                          {/* Selection mode buttons - positioned over the image in top-right corner */}
                           {onImageSelect && (
-                            <div className="absolute top-1 right-1 flex gap-1">
+                            <div className="absolute top-2 right-2 flex gap-1" style={{zIndex: 10}}>
                               {!selectedImages.includes(image.id!) ? (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    e.preventDefault();
                                     handleImageClick(image);
                                   }}
-                                  className="bg-green-500 text-white px-1 py-0.5 rounded hover:bg-green-600 text-xs font-bold"
+                                  className="bg-green-500 hover:bg-green-600 text-white w-6 h-6 rounded flex items-center justify-center text-xs font-bold shadow-lg"
                                   title="Add to question"
                                 >
                                   +
                                 </button>
                               ) : (
                                 <>
-                                  <div className="bg-blue-500 text-white px-1 py-0.5 rounded text-xs">
+                                  <div className="bg-blue-500 text-white w-6 h-6 rounded flex items-center justify-center text-xs shadow-lg">
                                     ✓
                                   </div>
                                   {onImageRemove && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
+                                        e.preventDefault();
                                         onImageRemove(image.id!);
                                       }}
-                                      className="bg-red-500 text-white px-1 py-0.5 rounded hover:bg-red-600 text-xs font-bold"
+                                      className="bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded flex items-center justify-center text-xs font-bold shadow-lg"
                                       title="Remove from question"
                                     >
                                       ×
