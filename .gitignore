@@ -33,8 +33,7 @@ Thumbs.db
 *.swp
 *.swo
 
-# Uploads (optional - you may want to include these)
-/toeqbank-backend/uploads/
+# Note: uploads directory is now included in git for production deployment
 
 # Logs
 *.log
