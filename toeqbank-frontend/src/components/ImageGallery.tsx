@@ -3,6 +3,7 @@ import { imageService, Image, LicenseType } from '../services/api';
 
 interface ImageGalleryProps {
   onImageSelect?: (image: Image) => void;
+  onImageRemove?: (imageId: number) => void;
   selectedImages?: number[];
   showQuestionInfo?: boolean;
   filterType?: 'still' | 'cine';
@@ -12,6 +13,7 @@ interface ImageGalleryProps {
 
 const ImageGallery: React.FC<ImageGalleryProps> = ({
   onImageSelect,
+  onImageRemove,
   selectedImages = [],
   showQuestionInfo = false,
   filterType,
@@ -276,28 +278,39 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                             </div>
                           )}
 
-                          {/* Add button for selection mode */}
-                          {onImageSelect && !selectedImages.includes(image.id!) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleImageClick(image);
-                              }}
-                              className="absolute top-1 right-1 bg-green-500 hover:bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-all shadow-lg"
-                              title="Add to question"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                              </svg>
-                            </button>
-                          )}
-                          
-                          {/* Checkmark for already selected images */}
-                          {onImageSelect && selectedImages.includes(image.id!) && (
-                            <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                              </svg>
+                          {/* Selection mode buttons */}
+                          {onImageSelect && (
+                            <div className="absolute top-1 right-1 flex gap-1">
+                              {!selectedImages.includes(image.id!) ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleImageClick(image);
+                                  }}
+                                  className="bg-green-500 text-white px-1 py-0.5 rounded hover:bg-green-600 text-xs font-bold"
+                                  title="Add to question"
+                                >
+                                  +
+                                </button>
+                              ) : (
+                                <>
+                                  <div className="bg-blue-500 text-white px-1 py-0.5 rounded text-xs">
+                                    ✓
+                                  </div>
+                                  {onImageRemove && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onImageRemove(image.id!);
+                                      }}
+                                      className="bg-red-500 text-white px-1 py-0.5 rounded hover:bg-red-600 text-xs font-bold"
+                                      title="Remove from question"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </>
+                              )}
                             </div>
                           )}
                         </div>

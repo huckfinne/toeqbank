@@ -6,6 +6,7 @@ import ImageGallery from './ImageGallery';
 interface ImageManagerProps {
   mode?: 'standalone' | 'selection';
   onImageSelect?: (image: Image) => void;
+  onImageRemove?: (imageId: number) => void;
   selectedImages?: number[];
   questionId?: number;
 }
@@ -13,6 +14,7 @@ interface ImageManagerProps {
 const ImageManager: React.FC<ImageManagerProps> = ({
   mode = 'standalone',
   onImageSelect,
+  onImageRemove,
   selectedImages = [],
   questionId
 }) => {
@@ -161,6 +163,7 @@ const ImageManager: React.FC<ImageManagerProps> = ({
                 <ImageGallery
                   key={refreshKey}
                   onImageSelect={handleImageClick}
+                  onImageRemove={onImageRemove}
                   selectedImages={selectedImages}
                   showQuestionInfo={mode === 'standalone'}
                   filterType={filterType === 'all' ? undefined : filterType}

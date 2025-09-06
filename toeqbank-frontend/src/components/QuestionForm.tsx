@@ -1173,6 +1173,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
                   <ImageManager
                     mode="selection"
                     onImageSelect={handleImageSelect}
+                    onImageRemove={handleImageRemove}
                     selectedImages={selectedImages.map(item => item.image.id!)}
                   />
                 </div>
