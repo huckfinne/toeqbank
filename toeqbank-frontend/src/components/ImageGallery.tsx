@@ -236,10 +236,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                   return (
                     <td key={colIndex} className="w-1/4 p-4 border border-gray-200">
                       <div
-                        className={`cursor-pointer transition-transform hover:scale-105 ${
+                        className={`relative transition-transform hover:scale-105 ${
                           selectedImages.includes(image.id!) ? 'ring-2 ring-blue-500 rounded' : ''
                         }`}
-                        onClick={() => handleImageClick(image)}
                       >
                         <div className="relative bg-gray-100 rounded overflow-hidden mx-auto mb-2" style={{width: '96px', height: '96px', maxWidth: '96px', maxHeight: '96px'}}>
                           {image.mime_type.startsWith('video/') ? (
@@ -274,6 +273,31 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                           {image.duration_seconds && (
                             <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white px-1 text-xs rounded">
                               {image.duration_seconds}s
+                            </div>
+                          )}
+
+                          {/* Add button for selection mode */}
+                          {onImageSelect && !selectedImages.includes(image.id!) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleImageClick(image);
+                              }}
+                              className="absolute top-1 right-1 bg-green-500 hover:bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-all shadow-lg"
+                              title="Add to question"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                              </svg>
+                            </button>
+                          )}
+                          
+                          {/* Checkmark for already selected images */}
+                          {onImageSelect && selectedImages.includes(image.id!) && (
+                            <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                              </svg>
                             </div>
                           )}
                         </div>
