@@ -8,14 +8,18 @@ export interface UploadBatch {
   question_count?: number;
   file_name?: string;
   description?: string;
+  isbn?: string;
+  starting_page?: number;
+  ending_page?: number;
+  chapter?: string;
   uploader_username?: string;
 }
 
 export class UploadBatchModel {
   static async create(batchData: Omit<UploadBatch, 'id' | 'upload_date'>): Promise<UploadBatch> {
     const sql = `
-      INSERT INTO upload_batches (batch_name, uploaded_by, question_count, file_name, description)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO upload_batches (batch_name, uploaded_by, question_count, file_name, description, isbn, starting_page, ending_page, chapter)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
     
@@ -24,7 +28,11 @@ export class UploadBatchModel {
       batchData.uploaded_by,
       batchData.question_count || 0,
       batchData.file_name,
-      batchData.description
+      batchData.description,
+      batchData.isbn,
+      batchData.starting_page,
+      batchData.ending_page,
+      batchData.chapter
     ];
     
     const result = await query(sql, values);

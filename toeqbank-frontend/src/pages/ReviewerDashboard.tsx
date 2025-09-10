@@ -204,8 +204,9 @@ const ReviewerDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-      <div className="container mx-auto px-4 py-8">
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
@@ -450,46 +451,66 @@ const ReviewerDashboard: React.FC = () => {
               )}
             </div>
 
-            {/* Review Actions */}
-            <div className="border-t pt-6">
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Review Notes:
-                </label>
-                <textarea
-                  value={reviewNotes}
-                  onChange={(e) => setReviewNotes(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-                  rows={4}
-                  placeholder="Enter your review notes, suggestions, or feedback (required for 'Needs Work')..."
-                />
-              </div>
-              
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={() => handleApprove(currentQuestion.id!)}
-                  className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-medium"
-                >
-                  ✓ Approve Question
-                </button>
-                <button
-                  onClick={() => handleNeedsWork(currentQuestion.id!)}
-                  className="px-8 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-lg font-medium"
-                >
-                  ⚠ Needs Work
-                </button>
-                <button
-                  onClick={() => navigate(`/edit-question/${currentQuestion.id}?from=review`)}
-                  className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
-                >
-                  ✏️ Edit Question
-                </button>
-              </div>
-            </div>
           </div>
         )}
+        
       </div>
     </div>
+    
+    {/* COMPLETELY SEPARATE FULL-WIDTH SECTION - OUTSIDE ALL CONTAINERS */}
+    {currentQuestion && (
+      <>
+        <div className="bg-white border-t border-gray-200 py-4">
+          <div className="max-w-7xl mx-auto px-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Review Notes:
+            </label>
+          </div>
+        </div>
+        
+        {/* ABSOLUTE FULL-WIDTH TEXTAREA - NO CONTAINER CONSTRAINTS */}
+        <textarea
+          value={reviewNotes}
+          onChange={(e) => setReviewNotes(e.target.value)}
+          className="block w-full px-4 py-3 border-0 border-t border-b border-gray-300 focus:outline-none focus:ring-0 focus:border-blue-500 text-lg bg-white resize-none"
+          rows={4}
+          placeholder="Enter your review notes, suggestions, or feedback (required for 'Needs Work')..."
+          style={{
+            width: '100vw',
+            margin: '0',
+            padding: '12px 16px',
+            boxSizing: 'border-box'
+          }}
+        />
+        
+        {/* Action buttons in container */}
+        <div className="bg-white py-6">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => handleApprove(currentQuestion.id!)}
+                className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-medium"
+              >
+                ✓ Approve Question
+              </button>
+              <button
+                onClick={() => handleNeedsWork(currentQuestion.id!)}
+                className="px-8 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-lg font-medium"
+              >
+                ⚠ Needs Work
+              </button>
+              <button
+                onClick={() => navigate(`/edit-question/${currentQuestion.id}?from=review`)}
+                className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
+              >
+                ✏️ Edit Question
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+    </>
   );
 };
 

@@ -130,10 +130,24 @@ export const questionService = {
   },
 
   // Upload CSV file
-  uploadCSV: async (file: File, withImages: boolean = false): Promise<{ message: string; questions: Question[] }> => {
+  uploadCSV: async (file: File, withImages: boolean = false, sourceInfo?: {
+    description: string;
+    isbn?: string;
+    startingPage?: string;
+    endingPage?: string;
+    chapter?: string;
+  }): Promise<{ message: string; questions: Question[] }> => {
     const formData = new FormData();
     formData.append('csvFile', file);
     formData.append('withImages', String(withImages));
+    
+    if (sourceInfo) {
+      formData.append('description', sourceInfo.description);
+      if (sourceInfo.isbn) formData.append('isbn', sourceInfo.isbn);
+      if (sourceInfo.startingPage) formData.append('startingPage', sourceInfo.startingPage);
+      if (sourceInfo.endingPage) formData.append('endingPage', sourceInfo.endingPage);
+      if (sourceInfo.chapter) formData.append('chapter', sourceInfo.chapter);
+    }
     
     const response = await api.post('/questions/upload', formData, {
       headers: {

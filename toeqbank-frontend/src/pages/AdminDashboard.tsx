@@ -65,6 +65,23 @@ const AdminDashboard: React.FC = () => {
       ]
     },
     {
+      title: 'AI Tools',
+      description: 'AI-powered question analysis and enhancement tools',
+      icon: (
+        <svg className="w-8 h-8 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+      options: [
+        {
+          name: 'AI Manipulation',
+          description: 'AI-powered question enhancement and analysis',
+          path: '/admin/ai',
+          color: 'cyan'
+        }
+      ]
+    },
+    {
       title: 'System Management',
       description: 'System-wide settings and maintenance tools',
       icon: (
@@ -96,6 +113,7 @@ const AdminDashboard: React.FC = () => {
       green: { bg: 'bg-green-50', hover: 'hover:bg-green-100', text: 'text-green-700' },
       purple: { bg: 'bg-purple-50', hover: 'hover:bg-purple-100', text: 'text-purple-700' },
       indigo: { bg: 'bg-indigo-50', hover: 'hover:bg-indigo-100', text: 'text-indigo-700' },
+      cyan: { bg: 'bg-cyan-50', hover: 'hover:bg-cyan-100', text: 'text-cyan-700' },
       yellow: { bg: 'bg-yellow-50', hover: 'hover:bg-yellow-100', text: 'text-yellow-700' },
       gray: { bg: 'bg-gray-50', hover: 'hover:bg-gray-100', text: 'text-gray-700' }
     };

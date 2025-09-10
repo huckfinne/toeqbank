@@ -7,6 +7,11 @@ const FileUpload: React.FC = () => {
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadMode, setUploadMode] = useState<'without-images' | 'with-images' | 'mixed'>('mixed');
+  const [description, setDescription] = useState<string>('');
+  const [isbn, setIsbn] = useState<string>('');
+  const [startingPage, setStartingPage] = useState<string>('');
+  const [endingPage, setEndingPage] = useState<string>('');
+  const [chapter, setChapter] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,12 +35,28 @@ const FileUpload: React.FC = () => {
       return;
     }
 
+    // Validate required fields
+    if (!description.trim()) {
+      setError('Please provide a description');
+      return;
+    }
+
     try {
       setUploading(true);
       setError(null);
       
-      // Pass the upload mode to the service
-      const result = await questionService.uploadCSV(selectedFile, uploadMode === 'with-images' || uploadMode === 'mixed');
+      // Pass all source information to the service
+      const result = await questionService.uploadCSV(
+        selectedFile, 
+        uploadMode === 'with-images' || uploadMode === 'mixed',
+        {
+          description: description.trim(),
+          isbn: isbn.trim() || undefined,
+          startingPage: startingPage.trim() || undefined,
+          endingPage: endingPage.trim() || undefined,
+          chapter: chapter.trim() || undefined
+        }
+      );
       setUploadResult(result);
       setSelectedFile(null);
       
@@ -54,6 +75,11 @@ const FileUpload: React.FC = () => {
     setSelectedFile(null);
     setUploadResult(null);
     setError(null);
+    setDescription('');
+    setIsbn('');
+    setStartingPage('');
+    setEndingPage('');
+    setChapter('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -151,6 +177,183 @@ const FileUpload: React.FC = () => {
               </div>
             </div>
           </label>
+        </div>
+      </div>
+
+      {/* Source Information */}
+      <div className="upload-source-section" style={{ 
+        marginBottom: '30px', 
+        padding: '20px', 
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        border: '1px solid #dee2e6'
+      }}>
+        <h3 style={{ marginBottom: '10px', color: '#495057' }}>Source Information:</h3>
+        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '20px' }}>
+          Please provide details about where these questions came from to help track and cite sources properly.
+        </p>
+
+        {/* Description */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '8px', 
+            fontWeight: '500',
+            color: '#495057'
+          }}>
+            Description: <span style={{ color: '#dc3545' }}>*</span>
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g., Questions from 2024 Board Review Course on Valvular Disease"
+            style={{
+              width: '100%',
+              minHeight: '60px',
+              padding: '12px',
+              border: '2px solid #ced4da',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontFamily: 'inherit',
+              resize: 'vertical'
+            }}
+            maxLength={500}
+            required
+          />
+          <div style={{ 
+            textAlign: 'right', 
+            fontSize: '12px', 
+            color: '#6c757d', 
+            marginTop: '5px' 
+          }}>
+            {description.length}/500 characters
+          </div>
+        </div>
+
+        {/* ISBN */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '8px', 
+            fontWeight: '500',
+            color: '#495057'
+          }}>
+            ISBN: <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#6c757d' }}>(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={isbn}
+            onChange={(e) => setIsbn(e.target.value)}
+            placeholder="e.g., 978-0123456789 or 0123456789"
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '2px solid #ced4da',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontFamily: 'inherit'
+            }}
+            maxLength={17}
+          />
+        </div>
+
+        {/* Page Range and Chapter - Grid Layout */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr 1fr', 
+          gap: '15px',
+          marginBottom: '10px'
+        }}>
+          {/* Starting Page */}
+          <div>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              fontWeight: '500',
+              color: '#495057'
+            }}>
+              Starting Page: <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#6c757d' }}>(optional)</span>
+            </label>
+            <input
+              type="number"
+              value={startingPage}
+              onChange={(e) => setStartingPage(e.target.value)}
+              placeholder="e.g., 45"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #ced4da',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontFamily: 'inherit'
+              }}
+              min="1"
+            />
+          </div>
+
+          {/* Ending Page */}
+          <div>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              fontWeight: '500',
+              color: '#495057'
+            }}>
+              Ending Page: <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#6c757d' }}>(optional)</span>
+            </label>
+            <input
+              type="number"
+              value={endingPage}
+              onChange={(e) => setEndingPage(e.target.value)}
+              placeholder="e.g., 52"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #ced4da',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontFamily: 'inherit'
+              }}
+              min="1"
+            />
+          </div>
+
+          {/* Chapter */}
+          <div>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              fontWeight: '500',
+              color: '#495057'
+            }}>
+              Chapter: <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#6c757d' }}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={chapter}
+              onChange={(e) => setChapter(e.target.value)}
+              placeholder="e.g., Chapter 5 or 5"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #ced4da',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontFamily: 'inherit'
+              }}
+              maxLength={50}
+            />
+          </div>
+        </div>
+
+        {/* Note about required fields */}
+        <div style={{
+          fontSize: '12px',
+          color: '#6c757d',
+          fontStyle: 'italic',
+          marginTop: '10px'
+        }}>
+          <span style={{ color: '#dc3545' }}>*</span> Required field
         </div>
       </div>
       

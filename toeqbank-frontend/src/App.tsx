@@ -17,6 +17,7 @@ import MyReturnedQuestions from './pages/MyReturnedQuestions';
 import BatchManagement from './pages/BatchManagement';
 import BatchDetails from './pages/BatchDetails';
 import AdminDashboard from './pages/AdminDashboard';
+import AIManipulation from './pages/AIManipulation';
 
 const AppContent: React.FC = () => {
   const { user, logout, isAdmin, isReviewer } = useAuth();
@@ -38,19 +39,31 @@ const AppContent: React.FC = () => {
               <div className="nav-dropdown-menu">
                 <Link to="/" className="nav-dropdown-item">
                   <span className="nav-dropdown-icon">📖</span>
-                  Review Questions
+                  <div className="nav-dropdown-content">
+                    <span className="nav-dropdown-title">Review Questions</span>
+                    <span className="nav-dropdown-description">Browse and review existing questions</span>
+                  </div>
                 </Link>
                 <Link to="/create-question" className="nav-dropdown-item">
                   <span className="nav-dropdown-icon">✏️</span>
-                  Create Question
+                  <div className="nav-dropdown-content">
+                    <span className="nav-dropdown-title">Create Question</span>
+                    <span className="nav-dropdown-description">Add new questions to the database</span>
+                  </div>
                 </Link>
                 <Link to="/upload" className="nav-dropdown-item">
                   <span className="nav-dropdown-icon">📤</span>
-                  Upload Questions
+                  <div className="nav-dropdown-content">
+                    <span className="nav-dropdown-title">Upload Questions</span>
+                    <span className="nav-dropdown-description">Bulk import questions via CSV file</span>
+                  </div>
                 </Link>
                 <Link to="/my-returned-questions" className="nav-dropdown-item">
                   <span className="nav-dropdown-icon">↩️</span>
-                  My Returned Questions
+                  <div className="nav-dropdown-content">
+                    <span className="nav-dropdown-title">My Returned Questions</span>
+                    <span className="nav-dropdown-description">Questions needing your attention</span>
+                  </div>
                 </Link>
               </div>
             </div>
@@ -73,19 +86,31 @@ const AppContent: React.FC = () => {
                 <div className="nav-dropdown-menu">
                   <Link to="/admin" className="nav-dropdown-item">
                     <span className="nav-dropdown-icon">🏠</span>
-                    Admin Dashboard
+                    <div className="nav-dropdown-content">
+                      <span className="nav-dropdown-title">Admin Dashboard</span>
+                      <span className="nav-dropdown-description">System overview and administration hub</span>
+                    </div>
                   </Link>
                   <Link to="/admin/users" className="nav-dropdown-item">
                     <span className="nav-dropdown-icon">👥</span>
-                    User Management
-                  </Link>
-                  <Link to="/admin/users?action=create" className="nav-dropdown-item">
-                    <span className="nav-dropdown-icon">➕</span>
-                    Create New User
+                    <div className="nav-dropdown-content">
+                      <span className="nav-dropdown-title">User Management</span>
+                      <span className="nav-dropdown-description">Manage users, roles, and permissions</span>
+                    </div>
                   </Link>
                   <Link to="/admin/batches" className="nav-dropdown-item">
                     <span className="nav-dropdown-icon">📦</span>
-                    Batch Management
+                    <div className="nav-dropdown-content">
+                      <span className="nav-dropdown-title">Batch Management</span>
+                      <span className="nav-dropdown-description">Manage upload batches and bulk operations</span>
+                    </div>
+                  </Link>
+                  <Link to="/admin/ai" className="nav-dropdown-item">
+                    <span className="nav-dropdown-icon">🤖</span>
+                    <div className="nav-dropdown-content">
+                      <span className="nav-dropdown-title">AI Manipulation</span>
+                      <span className="nav-dropdown-description">AI-powered question analysis and enhancement tools</span>
+                    </div>
                   </Link>
                 </div>
               </div>
@@ -117,6 +142,7 @@ const AppContent: React.FC = () => {
           <Route path="/admin/users" element={<AdminUserPanel />} />
           <Route path="/admin/batches" element={<BatchManagement />} />
           <Route path="/admin/batches/:id" element={<BatchDetails />} />
+          <Route path="/admin/ai" element={<AIManipulation />} />
         </Routes>
       </main>
     </div>

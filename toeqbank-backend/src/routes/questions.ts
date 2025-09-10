@@ -134,6 +134,11 @@ router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Reques
     }
 
     const withImages = req.body.withImages === 'true';
+    const userDescription = req.body.description || '';
+    const isbn = req.body.isbn || '';
+    const startingPage = req.body.startingPage ? parseInt(req.body.startingPage) : undefined;
+    const endingPage = req.body.endingPage ? parseInt(req.body.endingPage) : undefined;
+    const chapter = req.body.chapter || '';
     console.log('CSV upload started with withImages:', withImages);
     const questions: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'>[] = [];
     const imageDescriptions: any[] = [];
@@ -213,7 +218,11 @@ router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Reques
       uploaded_by: req.user.id,
       question_count: questions.length,
       file_name: req.file.originalname,
-      description: `Batch upload of ${questions.length} questions`
+      description: userDescription || `Batch upload of ${questions.length} questions`,
+      isbn: isbn || undefined,
+      starting_page: startingPage,
+      ending_page: endingPage,
+      chapter: chapter || undefined
     });
 
     // Associate all questions with this batch
