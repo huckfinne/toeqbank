@@ -5,6 +5,12 @@
 - GitHub Token: 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
 
 ## Database Configuration
+
+🚨 **CRITICAL: NEVER SWITCH TO LOCAL DATABASE** 🚨
+- **ALWAYS use the Digital Ocean production database for ALL development**
+- **DO NOT create or use a local PostgreSQL database**
+- **The .env file should ALWAYS point to the DO database**
+
 - Digital Ocean Database Connection:
   ```
   DATABASE_URL=postgresql://toeqbank:AVNS_wbfh3IuQ6BE0OKhBMs0@app-7cb09303-7e3f-4f9f-b588-64d1d97b1bd4-do-user-19953993-0.i.db.ondigitalocean.com:25060/toeqbank?sslmode=require
@@ -22,7 +28,7 @@
   - Note: Removed `?sslmode=require` from DATABASE_URL to avoid conflicts
 
 ## Development Commands
-- Frontend: `npm start` (port 3000)
+- Frontend: `npm run dev` (port 3000) - **IMPORTANT: Use `npm run dev` NOT `npm start` for development**
 - Backend: `npm run dev` (port 3001)
 - Build frontend: `npm run build`
 - Run tests: `npm test`

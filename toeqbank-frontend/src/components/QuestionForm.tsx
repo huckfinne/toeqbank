@@ -129,8 +129,12 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   };
 
   const handleImageSelect = (image: Image) => {
+    console.log('QuestionForm: handleImageSelect called with image:', image.id, image.description);
     if (!selectedImages.find(item => item.image.id === image.id)) {
+      console.log('QuestionForm: Adding image to selection');
       setSelectedImages(prev => [...prev, { image, usageType: 'question' }]);
+    } else {
+      console.log('QuestionForm: Image already selected');
     }
   };
 
@@ -803,6 +807,13 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
                             </svg>
                           </button>
                         </div>
+                        
+                        {/* Image Description */}
+                        {item.image.description && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700">
+                            <strong>Description:</strong> {item.image.description}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1083,6 +1094,13 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
                             </svg>
                           </button>
                         </div>
+                        
+                        {/* Image Description */}
+                        {item.image.description && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700">
+                            <strong>Description:</strong> {item.image.description}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

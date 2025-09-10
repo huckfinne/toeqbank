@@ -157,8 +157,9 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
             source_folder: row.source_folder || ''
           };
           
-          // Handle image descriptions for "with images" mode
-          if (withImages && (row.image_description || row.image_modality || row.image_view)) {
+          // Handle image descriptions - check for image fields regardless of withImages flag
+          // This allows mixed CSV files with some questions needing images and others not
+          if (row.image_description || row.image_modality || row.image_view) {
             // Validate and sanitize enum values
             const validModalities = ['transthoracic', 'transesophageal', 'non-echo'];
             const validUsageTypes = ['question', 'explanation'];
@@ -181,6 +182,9 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
             // Set review status to 'returned' for questions needing images
             question.review_status = 'returned';
             question.review_notes = 'Question needs image to be uploaded before review';
+          } else {
+            // No image fields provided - question is ready for review
+            question.review_status = 'pending';
           }
           
           // Validate required fields
@@ -204,7 +208,7 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
     const createdQuestions = await QuestionModel.bulkCreate(questions);
     
     // If we have image descriptions, create them in the database
-    if (withImages && imageDescriptions.length > 0) {
+    if (imageDescriptions.length > 0) {
       console.log(`Creating ${imageDescriptions.length} image descriptions`);
       for (let i = 0; i < imageDescriptions.length; i++) {
         try {
@@ -239,8 +243,20 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
       }
     }
     
+    const questionsWithImages = imageDescriptions.length;
+    const questionsWithoutImages = createdQuestions.length - questionsWithImages;
+    
+    let message = `Successfully uploaded ${createdQuestions.length} questions`;
+    if (questionsWithImages > 0 && questionsWithoutImages > 0) {
+      message += ` (${questionsWithImages} need images, ${questionsWithoutImages} ready for review)`;
+    } else if (questionsWithImages > 0) {
+      message += ` with image requirements`;
+    } else {
+      message += ` ready for review`;
+    }
+    
     res.status(201).json({
-      message: `Successfully uploaded ${createdQuestions.length} questions${withImages ? ' with image descriptions' : ''}`,
+      message,
       questions: createdQuestions
     });
   } catch (error) {

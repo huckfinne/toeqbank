@@ -35,9 +35,12 @@ const ImageManager: React.FC<ImageManagerProps> = ({
   };
 
   const handleImageClick = (image: Image) => {
+    console.log('ImageManager: handleImageClick called with image:', image.id, image.description, 'mode:', mode);
     if (mode === 'selection') {
+      console.log('ImageManager: Calling onImageSelect with image:', image.id);
       onImageSelect?.(image);
     } else {
+      console.log('ImageManager: Setting selected image');
       setSelectedImage(image);
     }
   };

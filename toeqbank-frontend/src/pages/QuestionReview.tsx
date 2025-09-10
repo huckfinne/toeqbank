@@ -120,6 +120,46 @@ const QuestionReview: React.FC = () => {
     setShowBulkDeleteConfirm(false);
   };
 
+  const handleOpenQueue = async () => {
+    try {
+      console.log('Opening review queue...');
+      // Check authentication first
+      const token = localStorage.getItem('authToken');
+      const userStr = localStorage.getItem('authUser');
+      console.log('Token exists:', !!token);
+      console.log('User exists:', !!userStr);
+      console.log('Token preview:', token ? token.substring(0, 20) + '...' : 'null');
+      
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        console.log('User data:', { username: user.username, is_admin: user.is_admin, is_reviewer: user.is_reviewer });
+      }
+      
+      if (!token) {
+        alert('You need to be logged in to access the review queue.');
+        return;
+      }
+      
+      // Test the API call directly first
+      console.log('Testing API call...');
+      try {
+        const response = await questionService.getPendingReview();
+        console.log('API test successful:', response);
+      } catch (apiError) {
+        console.error('API test failed:', apiError);
+        alert('Authentication failed. Please try logging in again.');
+        return;
+      }
+      
+      // Navigate to the reviewer dashboard which will automatically load the first question
+      console.log('Navigating to reviewer dashboard...');
+      navigate('/reviewer/dashboard');
+    } catch (error) {
+      console.error('Error opening review queue:', error);
+      alert('Failed to open review queue. Please make sure you have reviewer permissions.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -159,7 +199,7 @@ const QuestionReview: React.FC = () => {
           <div className="flex justify-end">
             <button 
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
-              onClick={() => console.log('Open Queue clicked')}
+              onClick={handleOpenQueue}
             >
               <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />

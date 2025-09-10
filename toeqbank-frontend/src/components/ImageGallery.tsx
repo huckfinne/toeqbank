@@ -34,6 +34,13 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     hasMore: false
   });
 
+  // Debug logging
+  console.log('ImageGallery mounted with props:', {
+    hasOnImageSelect: !!onImageSelect,
+    selectedImages,
+    showQuestionInfo
+  });
+
   const loadImages = async (reset = false) => {
     try {
       setLoading(true);
@@ -80,6 +87,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   };
 
   const handleImageClick = (image: Image) => {
+    console.log('🔥 UPDATED ImageGallery: handleImageClick called with image:', image.id, image.description);
+    console.log('🔥 UPDATED ImageGallery: onImageSelect exists?', !!onImageSelect);
     onImageSelect?.(image);
   };
 
@@ -280,16 +289,30 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
 
                           {/* Selection mode buttons - positioned over the image in top-right corner */}
                           {onImageSelect && (
-                            <div className="absolute top-2 right-2 flex gap-1" style={{zIndex: 10}}>
+                            <div 
+                              className="absolute top-0 right-0 flex gap-1" 
+                              style={{zIndex: 9999, pointerEvents: 'auto'}}
+                              onClick={(e) => {
+                                console.log('DIV CLICKED!');
+                                e.stopPropagation();
+                              }}
+                            >
                               {!selectedImages.includes(image.id!) ? (
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    handleImageClick(image);
+                                  type="button"
+                                  ref={(el) => {
+                                    if (el) {
+                                      el.onclick = (e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        console.log('Adding image to question:', image.id, image.description);
+                                        handleImageClick(image);
+                                      };
+                                    }
                                   }}
-                                  className="bg-green-500 hover:bg-green-600 text-white w-6 h-6 rounded flex items-center justify-center text-xs font-bold shadow-lg"
+                                  className="bg-green-500 hover:bg-green-600 text-white w-8 h-8 rounded flex items-center justify-center text-sm font-bold shadow-lg cursor-pointer"
                                   title="Add to question"
+                                  style={{pointerEvents: 'auto', position: 'relative', zIndex: 10000}}
                                 >
                                   +
                                 </button>
@@ -300,13 +323,20 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                                   </div>
                                   {onImageRemove && (
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        e.preventDefault();
-                                        onImageRemove(image.id!);
+                                      type="button"
+                                      ref={(el) => {
+                                        if (el) {
+                                          el.onclick = (e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            console.log('Removing image from question:', image.id);
+                                            onImageRemove(image.id!);
+                                          };
+                                        }
                                       }}
                                       className="bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded flex items-center justify-center text-xs font-bold shadow-lg"
                                       title="Remove from question"
+                                      style={{pointerEvents: 'auto', position: 'relative', zIndex: 10000}}
                                     >
                                       ×
                                     </button>

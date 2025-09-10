@@ -23,7 +23,7 @@ interface QuestionWithStatus extends Question {
 }
 
 const ReviewerDashboard: React.FC = () => {
-  const { isReviewer, isAdmin } = useAuth();
+  const { isReviewer, isAdmin, isLoading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState<QuestionWithStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,10 +37,28 @@ const ReviewerDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    if (isReviewer || isAdmin) {
-      loadNextQuestion();
+    // Wait for authentication to complete before making API calls
+    if (authLoading) {
+      console.log('Authentication still loading, waiting...');
+      return;
     }
-  }, [isReviewer, isAdmin]);
+    
+    if (!isAuthenticated) {
+      console.log('User not authenticated, cannot load questions');
+      setError('Authentication required');
+      setLoading(false);
+      return;
+    }
+    
+    if (isReviewer || isAdmin) {
+      console.log('User authenticated and has reviewer permissions, loading questions...');
+      loadNextQuestion();
+    } else {
+      console.log('User authenticated but lacks reviewer permissions');
+      setError('Reviewer permissions required');
+      setLoading(false);
+    }
+  }, [isReviewer, isAdmin, authLoading, isAuthenticated]);
 
   const loadNextQuestion = async () => {
     try {
@@ -163,6 +181,17 @@ const ReviewerDashboard: React.FC = () => {
     );
   }
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -272,19 +301,11 @@ const ReviewerDashboard: React.FC = () => {
                         <div key={image.id} className="border rounded-lg p-3 bg-white">
                           <img 
                             src={imageService.getImageUrl(image.filename)}
-                            alt={image.description || image.original_name}
+                            alt="Question image"
                             className="w-full max-w-none rounded"
                             style={{ width: '60%' }}
                             onError={(e) => handleImageError(e, getPlaceholderImage())}
                           />
-                          <div className="mt-2 text-sm text-gray-600">
-                            <p><strong>File:</strong> {image.original_name}</p>
-                            {image.description && <p><strong>Description:</strong> {image.description}</p>}
-                            <p><strong>License:</strong> {imageService.getLicenseInfo(image.license).name}</p>
-                            {image.tags && image.tags.length > 0 && (
-                              <p><strong>Tags:</strong> {image.tags.join(', ')}</p>
-                            )}
-                          </div>
                         </div>
                       ))}
                     </div>
@@ -304,10 +325,17 @@ const ReviewerDashboard: React.FC = () => {
                         ? 'border-green-500 bg-green-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}>
-                      <span className="font-semibold text-lg">{letter}.</span> 
-                      <span className="ml-2">{choiceText as string}</span>
-                      {letter === currentQuestion.correct_answer && (
-                        <span className="ml-2 text-green-600 font-semibold">✓ CORRECT</span>
+                      {letter === currentQuestion.correct_answer ? (
+                        <>
+                          <span className="text-green-600 font-semibold text-lg">✓</span>
+                          <span className="font-semibold text-lg ml-2">{letter}.</span> 
+                          <span className="ml-2 font-bold text-gray-900" style={{fontWeight: 'bold'}}>{choiceText as string}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-semibold text-lg">{letter}.</span> 
+                          <span className="ml-2">{choiceText as string}</span>
+                        </>
                       )}
                     </div>
                   );
@@ -330,19 +358,11 @@ const ReviewerDashboard: React.FC = () => {
                           <div key={image.id} className="border rounded-lg p-3 bg-white">
                             <img 
                               src={imageService.getImageUrl(image.filename)}
-                              alt={image.description || image.original_name}
+                              alt="Explanation image"
                               className="w-full max-w-none rounded"
                               style={{ width: '60%' }}
                               onError={(e) => handleImageError(e, getPlaceholderImage())}
                             />
-                            <div className="mt-2 text-sm text-gray-600">
-                              <p><strong>File:</strong> {image.original_name}</p>
-                              {image.description && <p><strong>Description:</strong> {image.description}</p>}
-                              <p><strong>License:</strong> {imageService.getLicenseInfo(image.license).name}</p>
-                              {image.tags && image.tags.length > 0 && (
-                                <p><strong>Tags:</strong> {image.tags.join(', ')}</p>
-                              )}
-                            </div>
                           </div>
                         ))}
                       </div>
@@ -459,7 +479,7 @@ const ReviewerDashboard: React.FC = () => {
                   ⚠ Needs Work
                 </button>
                 <button
-                  onClick={() => navigate(`/edit-question/${currentQuestion.id}`)}
+                  onClick={() => navigate(`/edit-question/${currentQuestion.id}?from=review`)}
                   className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
                 >
                   ✏️ Edit Question

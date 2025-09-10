@@ -6,7 +6,7 @@ const FileUpload: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [uploadMode, setUploadMode] = useState<'without-images' | 'with-images'>('without-images');
+  const [uploadMode, setUploadMode] = useState<'without-images' | 'with-images' | 'mixed'>('mixed');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,7 +35,7 @@ const FileUpload: React.FC = () => {
       setError(null);
       
       // Pass the upload mode to the service
-      const result = await questionService.uploadCSV(selectedFile, uploadMode === 'with-images');
+      const result = await questionService.uploadCSV(selectedFile, uploadMode === 'with-images' || uploadMode === 'mixed');
       setUploadResult(result);
       setSelectedFile(null);
       
@@ -89,7 +89,7 @@ const FileUpload: React.FC = () => {
               type="radio"
               value="without-images"
               checked={uploadMode === 'without-images'}
-              onChange={(e) => setUploadMode(e.target.value as 'without-images' | 'with-images')}
+              onChange={(e) => setUploadMode(e.target.value as 'without-images' | 'with-images' | 'mixed')}
               style={{ marginRight: '8px' }}
             />
             <div>
@@ -115,13 +115,39 @@ const FileUpload: React.FC = () => {
               type="radio"
               value="with-images"
               checked={uploadMode === 'with-images'}
-              onChange={(e) => setUploadMode(e.target.value as 'without-images' | 'with-images')}
+              onChange={(e) => setUploadMode(e.target.value as 'without-images' | 'with-images' | 'mixed')}
               style={{ marginRight: '8px' }}
             />
             <div>
               <strong>With Images</strong>
               <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
                 Include image metadata fields
+              </div>
+            </div>
+          </label>
+          
+          <label style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            cursor: 'pointer',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            border: '2px solid',
+            borderColor: uploadMode === 'mixed' ? '#007bff' : '#ced4da',
+            backgroundColor: uploadMode === 'mixed' ? '#e7f1ff' : 'white',
+            transition: 'all 0.3s ease'
+          }}>
+            <input
+              type="radio"
+              value="mixed"
+              checked={uploadMode === 'mixed'}
+              onChange={(e) => setUploadMode(e.target.value as 'without-images' | 'with-images' | 'mixed')}
+              style={{ marginRight: '8px' }}
+            />
+            <div>
+              <strong>Mixed (Recommended)</strong>
+              <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
+                Some questions need images, others don't
               </div>
             </div>
           </label>
@@ -144,7 +170,7 @@ const FileUpload: React.FC = () => {
             <li><strong>explanation</strong> (optional) - Explanation of the correct answer</li>
             <li><strong>source_folder</strong> (optional) - Source or category</li>
             
-            {uploadMode === 'with-images' && (
+{(uploadMode === 'with-images' || uploadMode === 'mixed') && (
               <>
                 <li style={{ marginTop: '10px', color: '#0056b3' }}><strong>Image-specific columns:</strong></li>
                 <li><strong>image_description</strong> (optional) - Description of the image</li>
@@ -216,13 +242,18 @@ const FileUpload: React.FC = () => {
   ? `question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,correct_answer,explanation,source_folder
 1,"What is 2+2?",3,4,5,6,7,B,"2+2 equals 4",Math
 2,"What is the capital of France?",London,Paris,Berlin,Madrid,Rome,B,"Paris is the capital of France",Geography`
-  : `question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,correct_answer,explanation,source_folder,image_description,image_modality,image_view,image_usage,image_type,image_url
+  : uploadMode === 'with-images'
+  ? `question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,correct_answer,explanation,source_folder,image_description,image_modality,image_view,image_usage,image_type,image_url
 1,"Identify the cardiac structure shown in this echocardiogram",Mitral valve,Aortic valve,Tricuspid valve,Pulmonary valve,,A,"The image shows the mitral valve in apical 4-chamber view",Cardiology,"Apical 4-chamber view showing mitral valve",TTE,A4C,question,still,https://example.com/image1.jpg
-2,"What abnormality is seen in this TEE image?","Mitral regurgitation","Aortic stenosis","Atrial septal defect","Ventricular septal defect",,C,"The TEE shows an atrial septal defect with color flow",Cardiology,"Mid-esophageal view showing ASD",TEE,"ME 4 Chamber",question,cine,https://example.com/video1.mp4`}
+2,"What abnormality is seen in this TEE image?","Mitral regurgitation","Aortic stenosis","Atrial septal defect","Ventricular septal defect",,C,"The TEE shows an atrial septal defect with color flow",Cardiology,"Mid-esophageal view showing ASD",TEE,"ME 4 Chamber",question,cine,https://example.com/video1.mp4`
+  : `question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,correct_answer,explanation,source_folder,image_description,image_modality,image_view,image_usage,image_type,image_url
+1,"What is 2+2?",3,4,5,6,7,B,"2+2 equals 4",Math,,,,,,
+2,"Identify the cardiac structure shown in this echocardiogram",Mitral valve,Aortic valve,Tricuspid valve,Pulmonary valve,,A,"The image shows the mitral valve in apical 4-chamber view",Cardiology,"Apical 4-chamber view showing mitral valve",TTE,A4C,question,still,https://example.com/image1.jpg
+3,"What is the capital of France?",London,Paris,Berlin,Madrid,Rome,B,"Paris is the capital of France",Geography,,,,,`}
           </pre>
         </div>
         
-        {uploadMode === 'with-images' && (
+{(uploadMode === 'with-images' || uploadMode === 'mixed') && (
           <div style={{ 
             marginTop: '20px', 
             padding: '15px', 
@@ -230,13 +261,22 @@ const FileUpload: React.FC = () => {
             border: '1px solid #ffc107',
             borderRadius: '6px'
           }}>
-            <h4 style={{ color: '#856404', marginBottom: '10px' }}>📝 Image Upload Notes:</h4>
+            <h4 style={{ color: '#856404', marginBottom: '10px' }}>
+              📝 {uploadMode === 'mixed' ? 'Mixed Upload Notes:' : 'Image Upload Notes:'}
+            </h4>
             <ul style={{ color: '#856404', fontSize: '14px', marginLeft: '20px' }}>
               <li><strong>Modality values:</strong> Use "TTE" for transthoracic, "TEE" or "TOE" for transesophageal, "non-echo" for other images</li>
               <li><strong>Usage values:</strong> Use "question" if image appears with question, "explanation" if with answer</li>
               <li><strong>Type values:</strong> Use "still" for static images, "cine" for video loops</li>
               <li><strong>Image URLs:</strong> Must be publicly accessible direct links to image/video files</li>
               <li><strong>Views:</strong> Use standard echo view abbreviations (A4C, A2C, PLAX, PSAX, etc.)</li>
+              {uploadMode === 'mixed' && (
+                <>
+                  <li style={{ marginTop: '8px' }}><strong>Mixed Mode:</strong> Leave image fields blank for questions without images</li>
+                  <li><strong>Questions needing images:</strong> Will be marked for image upload and sent to review after images are added</li>
+                  <li><strong>Questions without images:</strong> Will go directly to reviewer queue</li>
+                </>
+              )}
             </ul>
           </div>
         )}
