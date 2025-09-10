@@ -18,6 +18,7 @@ export interface Question {
   review_notes?: string;
   reviewed_by?: number;
   reviewed_at?: Date;
+  uploaded_by?: number;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -25,8 +26,8 @@ export interface Question {
 export class QuestionModel {
   static async create(questionData: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'>): Promise<Question> {
     const sql = `
-      INSERT INTO questions (question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      INSERT INTO questions (question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder, review_status, review_notes, uploaded_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
     `;
     
@@ -41,7 +42,10 @@ export class QuestionModel {
       questionData.choice_g,
       questionData.correct_answer,
       questionData.explanation,
-      questionData.source_folder
+      questionData.source_folder,
+      questionData.review_status || 'pending',
+      questionData.review_notes || null,
+      questionData.uploaded_by || null
     ];
     
     const result = await query(sql, values);
@@ -112,8 +116,8 @@ export class QuestionModel {
     const placeholders: string[] = [];
     
     questions.forEach((q, index) => {
-      const offset = index * 11;
-      placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11})`);
+      const offset = index * 14;
+      placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14})`);
       values.push(
         q.question,
         q.choice_a,
@@ -125,12 +129,15 @@ export class QuestionModel {
         q.choice_g,
         q.correct_answer,
         q.explanation,
-        q.source_folder
+        q.source_folder,
+        q.review_status || 'pending',
+        q.review_notes || null,
+        q.uploaded_by || null
       );
     });
 
     const sql = `
-      INSERT INTO questions (question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder)
+      INSERT INTO questions (question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder, review_status, review_notes, uploaded_by)
       VALUES ${placeholders.join(', ')}
       RETURNING *
     `;
@@ -204,6 +211,31 @@ export class QuestionModel {
     `;
     const result = await query(sql, [status, reviewNotes, reviewerId, id]);
     return result.rows[0] || null;
+  }
+
+  static async getByUploader(uploaderId: number): Promise<Question[]> {
+    const sql = `
+      SELECT q.*, u.username as uploader_name
+      FROM questions q
+      LEFT JOIN users u ON u.id = q.uploaded_by
+      WHERE q.uploaded_by = $1
+      ORDER BY q.created_at DESC
+    `;
+    const result = await query(sql, [uploaderId]);
+    return result.rows;
+  }
+
+  static async getReturnedForUploader(uploaderId: number): Promise<Question[]> {
+    const sql = `
+      SELECT q.*, u.username as uploader_name, r.username as reviewer_name
+      FROM questions q
+      LEFT JOIN users u ON u.id = q.uploaded_by
+      LEFT JOIN users r ON r.id = q.reviewed_by
+      WHERE q.uploaded_by = $1 AND q.review_status = 'returned'
+      ORDER BY q.reviewed_at DESC
+    `;
+    const result = await query(sql, [uploaderId]);
+    return result.rows;
   }
 
   static async getReviewStats(): Promise<{ total: number, pending: number, approved: number, rejected: number, returned: number }> {

@@ -163,6 +163,18 @@ export const questionService = {
     const response = await api.get(`/questions/review/status/${status}`);
     return response.data;
   },
+
+  // Get questions returned to current user for rework
+  getMyReturnedQuestions: async (): Promise<any[]> => {
+    const response = await api.get('/questions/my-returned');
+    return response.data;
+  },
+
+  // Get all questions uploaded by current user
+  getMyQuestions: async (): Promise<any[]> => {
+    const response = await api.get('/questions/my-questions');
+    return response.data;
+  },
 };
 
 export const imageService = {

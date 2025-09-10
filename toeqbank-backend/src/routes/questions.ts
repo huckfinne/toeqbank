@@ -126,7 +126,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 });
 
 // Batch upload questions from CSV
-router.post('/upload', upload.single('csvFile'), async (req: Request, res: Response) => {
+router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -154,7 +154,8 @@ router.post('/upload', upload.single('csvFile'), async (req: Request, res: Respo
             choice_g: row.choice_g || '',
             correct_answer: row.correct_answer || '',
             explanation: row.explanation || '',
-            source_folder: row.source_folder || ''
+            source_folder: row.source_folder || '',
+            uploaded_by: req.user?.id
           };
           
           // Handle image descriptions - check for image fields regardless of withImages flag
@@ -570,6 +571,28 @@ router.get('/review/stats', requireAuth, async (req: Request, res: Response) => 
   } catch (error) {
     console.error('Error fetching review stats:', error);
     res.status(500).json({ error: 'Failed to fetch review statistics' });
+  }
+});
+
+// Get questions returned to user for rework
+router.get('/my-returned', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const returnedQuestions = await QuestionModel.getReturnedForUploader(req.user.id);
+    res.json(returnedQuestions);
+  } catch (error) {
+    console.error('Error fetching returned questions:', error);
+    res.status(500).json({ error: 'Failed to fetch returned questions' });
+  }
+});
+
+// Get all questions uploaded by current user
+router.get('/my-questions', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userQuestions = await QuestionModel.getByUploader(req.user.id);
+    res.json(userQuestions);
+  } catch (error) {
+    console.error('Error fetching user questions:', error);
+    res.status(500).json({ error: 'Failed to fetch user questions' });
   }
 });
 

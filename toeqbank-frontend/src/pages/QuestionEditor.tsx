@@ -18,6 +18,7 @@ const QuestionEditor: React.FC = () => {
   const { isAdmin, user } = useAuth();
   const isEditMode = !!id;
   const fromReview = searchParams.get('from') === 'review';
+  const fromReturned = searchParams.get('from') === 'returned';
   
   const [question, setQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(isEditMode);
@@ -293,6 +294,17 @@ const QuestionEditor: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                   </svg>
                   Return to Review Queue
+                </button>
+              )}
+              {fromReturned && (
+                <button
+                  onClick={() => navigate('/my-returned-questions')}
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl hover:from-red-700 hover:to-orange-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.99-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  Back to Returned Questions
                 </button>
               )}
               {hasUnsavedChanges && (
