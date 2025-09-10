@@ -27,14 +27,38 @@ const AppContent: React.FC = () => {
         <div className="nav-container">
           <h1>TOE Question Bank</h1>
           <div className="nav-links">
-            <Link to="/">Review Questions</Link>
+            {/* Questions Dropdown */}
+            <div className="nav-dropdown">
+              <span className="nav-dropdown-trigger">
+                Questions
+                <svg className="nav-dropdown-arrow" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M8 10.5L4 6.5h8l-4 4z"/>
+                </svg>
+              </span>
+              <div className="nav-dropdown-menu">
+                <Link to="/" className="nav-dropdown-item">
+                  <span className="nav-dropdown-icon">📖</span>
+                  Review Questions
+                </Link>
+                <Link to="/create-question" className="nav-dropdown-item">
+                  <span className="nav-dropdown-icon">✏️</span>
+                  Create Question
+                </Link>
+                <Link to="/upload" className="nav-dropdown-item">
+                  <span className="nav-dropdown-icon">📤</span>
+                  Upload Questions
+                </Link>
+                <Link to="/my-returned-questions" className="nav-dropdown-item">
+                  <span className="nav-dropdown-icon">↩️</span>
+                  My Returned Questions
+                </Link>
+              </div>
+            </div>
+            
             <Link to="/practice">Practice Test</Link>
             <Link to="/take-exam">Take Exam</Link>
-            <Link to="/create-question">Create Question</Link>
-            <Link to="/upload">Upload Questions</Link>
             <Link to="/images">Image Library</Link>
             <Link to="/needed-images">Needed Images</Link>
-            <Link to="/my-returned-questions">My Returned Questions</Link>
             {(isReviewer || isAdmin) && <Link to="/reviewer/dashboard">Review Queue</Link>}
             {isAdmin && <Link to="/admin">Admin Dashboard</Link>}
           </div>
