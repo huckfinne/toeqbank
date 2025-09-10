@@ -60,7 +60,36 @@ const AppContent: React.FC = () => {
             <Link to="/images">Image Library</Link>
             <Link to="/needed-images">Needed Images</Link>
             {(isReviewer || isAdmin) && <Link to="/reviewer/dashboard">Review Queue</Link>}
-            {isAdmin && <Link to="/admin">Admin Dashboard</Link>}
+            
+            {/* Admin Dropdown */}
+            {isAdmin && (
+              <div className="nav-dropdown">
+                <span className="nav-dropdown-trigger">
+                  Admin
+                  <svg className="nav-dropdown-arrow" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 10.5L4 6.5h8l-4 4z"/>
+                  </svg>
+                </span>
+                <div className="nav-dropdown-menu">
+                  <Link to="/admin" className="nav-dropdown-item">
+                    <span className="nav-dropdown-icon">🏠</span>
+                    Admin Dashboard
+                  </Link>
+                  <Link to="/admin/users" className="nav-dropdown-item">
+                    <span className="nav-dropdown-icon">👥</span>
+                    User Management
+                  </Link>
+                  <Link to="/admin/users?action=create" className="nav-dropdown-item">
+                    <span className="nav-dropdown-icon">➕</span>
+                    Create New User
+                  </Link>
+                  <Link to="/admin/batches" className="nav-dropdown-item">
+                    <span className="nav-dropdown-icon">📦</span>
+                    Batch Management
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
           <div className="nav-user">
             <span className="welcome-text">Welcome, {user?.username}!</span>
