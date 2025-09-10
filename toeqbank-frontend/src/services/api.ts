@@ -177,6 +177,26 @@ export const questionService = {
   },
 };
 
+export const batchService = {
+  // Get all upload batches (admin only)
+  getAllBatches: async (): Promise<any[]> => {
+    const response = await api.get('/questions/batches');
+    return response.data;
+  },
+
+  // Get batch details (admin only)
+  getBatchDetails: async (batchId: number): Promise<any> => {
+    const response = await api.get(`/questions/batches/${batchId}`);
+    return response.data;
+  },
+
+  // Delete entire batch (admin only)
+  deleteBatch: async (batchId: number): Promise<any> => {
+    const response = await api.delete(`/questions/batches/${batchId}`);
+    return response.data;
+  },
+};
+
 export const imageService = {
   // Get all images with pagination and filtering
   getImages: async (params?: {

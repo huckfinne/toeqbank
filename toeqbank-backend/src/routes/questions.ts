@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { QuestionModel, Question } from '../models/Question';
 import { ImageDescriptionModel } from '../models/ImageDescription';
 import { ImageModel } from '../models/Image';
+import { UploadBatchModel } from '../models/UploadBatch';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { query } from '../models/database';
 import multer from 'multer';
@@ -204,6 +205,21 @@ router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Reques
     if (questions.length === 0) {
       return res.status(400).json({ error: 'No valid questions found in CSV file' });
     }
+
+    // Create a new batch for this upload
+    const batchName = `Upload ${new Date().toISOString().slice(0, 19).replace(/T/, ' ')}`;
+    const batch = await UploadBatchModel.create({
+      batch_name: batchName,
+      uploaded_by: req.user.id,
+      question_count: questions.length,
+      file_name: req.file.originalname,
+      description: `Batch upload of ${questions.length} questions`
+    });
+
+    // Associate all questions with this batch
+    questions.forEach(question => {
+      question.batch_id = batch.id;
+    });
 
     // Bulk insert questions
     const createdQuestions = await QuestionModel.bulkCreate(questions);
@@ -593,6 +609,83 @@ router.get('/my-questions', requireAuth, async (req: Request, res: Response) => 
   } catch (error) {
     console.error('Error fetching user questions:', error);
     res.status(500).json({ error: 'Failed to fetch user questions' });
+  }
+});
+
+// Get all upload batches (admin only)
+router.get('/batches', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const batches = await UploadBatchModel.getAll();
+    res.json(batches);
+  } catch (error) {
+    console.error('Error fetching upload batches:', error);
+    res.status(500).json({ error: 'Failed to fetch upload batches' });
+  }
+});
+
+// Get batch details (admin only)
+router.get('/batches/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const batchId = parseInt(req.params.id);
+    const batch = await UploadBatchModel.getById(batchId);
+    
+    if (!batch) {
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+
+    const questions = await UploadBatchModel.getQuestionsByBatchId(batchId);
+    
+    res.json({
+      batch,
+      questions
+    });
+  } catch (error) {
+    console.error('Error fetching batch details:', error);
+    res.status(500).json({ error: 'Failed to fetch batch details' });
+  }
+});
+
+// Delete entire batch (admin only)
+router.delete('/batches/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const batchId = parseInt(req.params.id);
+    const batch = await UploadBatchModel.getById(batchId);
+    
+    if (!batch) {
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+
+    // Get question count before deletion
+    const questions = await UploadBatchModel.getQuestionsByBatchId(batchId);
+    const questionCount = questions.length;
+
+    // Delete the batch (cascade will delete all associated questions and related data)
+    const deleted = await UploadBatchModel.delete(batchId);
+    
+    if (!deleted) {
+      return res.status(500).json({ error: 'Failed to delete batch' });
+    }
+
+    res.json({ 
+      message: `Batch "${batch.batch_name}" deleted successfully`,
+      deletedQuestions: questionCount,
+      batchId: batchId
+    });
+  } catch (error) {
+    console.error('Error deleting batch:', error);
+    res.status(500).json({ error: 'Failed to delete batch' });
   }
 });
 
