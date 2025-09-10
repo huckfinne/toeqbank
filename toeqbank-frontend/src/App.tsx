@@ -16,6 +16,7 @@ import ExamSetup from './pages/ExamSetup';
 import MyReturnedQuestions from './pages/MyReturnedQuestions';
 import BatchManagement from './pages/BatchManagement';
 import BatchDetails from './pages/BatchDetails';
+import AdminDashboard from './pages/AdminDashboard';
 
 const AppContent: React.FC = () => {
   const { user, logout, isAdmin, isReviewer } = useAuth();
@@ -35,8 +36,7 @@ const AppContent: React.FC = () => {
             <Link to="/needed-images">Needed Images</Link>
             <Link to="/my-returned-questions">My Returned Questions</Link>
             {(isReviewer || isAdmin) && <Link to="/reviewer/dashboard">Review Queue</Link>}
-            {isAdmin && <Link to="/admin/users">Admin Panel</Link>}
-            {isAdmin && <Link to="/admin/batches">Batch Management</Link>}
+            {isAdmin && <Link to="/admin">Admin Dashboard</Link>}
           </div>
           <div className="nav-user">
             <span className="welcome-text">Welcome, {user?.username}!</span>
@@ -60,6 +60,7 @@ const AppContent: React.FC = () => {
           <Route path="/needed-images" element={<NeededImages />} />
           <Route path="/my-returned-questions" element={<MyReturnedQuestions />} />
           <Route path="/reviewer/dashboard" element={<ReviewerDashboard />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUserPanel />} />
           <Route path="/admin/batches" element={<BatchManagement />} />
           <Route path="/admin/batches/:id" element={<BatchDetails />} />

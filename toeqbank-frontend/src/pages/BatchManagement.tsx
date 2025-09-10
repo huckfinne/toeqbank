@@ -82,10 +82,10 @@ const BatchManagement: React.FC = () => {
               {batches.length} batch{batches.length !== 1 ? 'es' : ''} total
             </span>
             <button
-              onClick={() => navigate('/admin/users')}
+              onClick={() => navigate('/admin')}
               className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
             >
-              Back to Admin Panel
+              Back to Admin Dashboard
             </button>
           </div>
         </div>

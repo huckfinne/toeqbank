@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { adminService, AdminUser, CreateUserData } from '../services/adminApi';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -8,6 +9,8 @@ interface CreateUserFormData extends CreateUserData {
 
 const AdminUserPanel: React.FC = () => {
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +50,14 @@ const AdminUserPanel: React.FC = () => {
       loadUsers();
     }
   }, [isAdmin]);
+
+  useEffect(() => {
+    // Check if we should auto-open the create form based on URL params
+    const action = searchParams.get('action');
+    if (action === 'create') {
+      setShowCreateForm(true);
+    }
+  }, [searchParams]);
 
   const loadUsers = async () => {
     try {
@@ -195,9 +206,17 @@ const AdminUserPanel: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">👥 User Management</h1>
-          <p className="text-gray-600">Manage system users and their permissions.</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">👥 User Management</h1>
+            <p className="text-gray-600">Manage system users and their permissions.</p>
+          </div>
+          <button
+            onClick={() => navigate('/admin')}
+            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            Back to Admin Dashboard
+          </button>
         </div>
 
         {error && (
