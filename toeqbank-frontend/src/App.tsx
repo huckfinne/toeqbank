@@ -12,7 +12,6 @@ import QuestionEditor from './pages/QuestionEditor';
 import QuestionView from './pages/QuestionView';
 import AdminUserPanel from './components/AdminUserPanel';
 import ReviewerDashboard from './pages/ReviewerDashboard';
-import ExamSetup from './pages/ExamSetup';
 import MyReturnedQuestions from './pages/MyReturnedQuestions';
 import BatchManagement from './pages/BatchManagement';
 import BatchDetails from './pages/BatchDetails';
@@ -68,8 +67,7 @@ const AppContent: React.FC = () => {
               </div>
             </div>
             
-            <Link to="/practice">Practice Test</Link>
-            <Link to="/take-exam">Take Exam</Link>
+            <Link to="/practice">Question Bank</Link>
             <Link to="/images">Image Library</Link>
             <Link to="/needed-images">Needed Images</Link>
             {(isReviewer || isAdmin) && <Link to="/reviewer/dashboard">Review Queue</Link>}
@@ -129,7 +127,6 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/" element={<QuestionReview />} />
           <Route path="/practice" element={<PracticeTest />} />
-          <Route path="/take-exam" element={<ExamSetup />} />
           <Route path="/create-question" element={<QuestionEditor />} />
           <Route path="/edit-question/:id" element={<QuestionEditor />} />
           <Route path="/question/:id" element={<QuestionView />} />

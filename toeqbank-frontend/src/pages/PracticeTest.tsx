@@ -9,22 +9,41 @@ const PracticeTest: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testCompleted, setTestCompleted] = useState(false);
+  const [approvedCount, setApprovedCount] = useState<number>(0);
+  const [checkingQuestions, setCheckingQuestions] = useState(true);
+
+  useEffect(() => {
+    // Check for approved questions on component mount
+    const checkApprovedQuestions = async () => {
+      try {
+        const response = await questionService.getQuestionsByReviewStatus('approved');
+        setApprovedCount(response.questions.length);
+      } catch (err) {
+        console.error('Failed to check approved questions:', err);
+      } finally {
+        setCheckingQuestions(false);
+      }
+    };
+    checkApprovedQuestions();
+  }, []);
 
   const startTest = async (questionCount: number = 20) => {
     try {
       setLoading(true);
       setError(null);
       
-      // Fetch random questions
-      const response = await questionService.getQuestions(questionCount, 0);
+      // Fetch only approved questions
+      const response = await questionService.getQuestionsByReviewStatus('approved');
       
       if (response.questions.length === 0) {
-        setError('No questions available. Please upload some questions first.');
+        setError('No approved questions available yet. Questions must be reviewed and approved before they appear in the Question Bank.');
         return;
       }
 
-      // Shuffle questions
-      const shuffledQuestions = [...response.questions].sort(() => Math.random() - 0.5);
+      // Shuffle and limit to requested count
+      const shuffledQuestions = [...response.questions]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, Math.min(questionCount, response.questions.length));
       
       const newSession: TestSession = {
         id: Date.now().toString(),
@@ -116,25 +135,63 @@ const PracticeTest: React.FC = () => {
   }
 
   if (!testSession) {
+    if (checkingQuestions) {
+      return <div className="loading">Checking available questions...</div>;
+    }
+
     return (
       <div className="practice-test-start">
-        <h2>Practice Test</h2>
-        <p>Test your knowledge with a randomized set of questions.</p>
-        
-        <div className="test-options">
-          <h3>Select Test Length:</h3>
-          <div className="test-buttons">
-            <button onClick={() => startTest(10)} className="test-option">
-              Quick Test (10 questions)
-            </button>
-            <button onClick={() => startTest(20)} className="test-option">
-              Standard Test (20 questions)
-            </button>
-            <button onClick={() => startTest(50)} className="test-option">
-              Long Test (50 questions)
-            </button>
+        <h2>Question Bank</h2>
+        {approvedCount > 0 ? (
+          <>
+            <p>Test your knowledge with approved questions from the question bank.</p>
+            <p style={{ color: '#27ae60', fontWeight: 'bold', marginTop: '0.5rem' }}>
+              {approvedCount} approved questions available
+            </p>
+            
+            <div className="test-options">
+              <h3>Select Test Length:</h3>
+              <div className="test-buttons">
+                {approvedCount >= 10 && (
+                  <button onClick={() => startTest(10)} className="test-option">
+                    Quick Test (10 questions)
+                  </button>
+                )}
+                {approvedCount >= 20 && (
+                  <button onClick={() => startTest(20)} className="test-option">
+                    Standard Test (20 questions)
+                  </button>
+                )}
+                {approvedCount >= 50 && (
+                  <button onClick={() => startTest(50)} className="test-option">
+                    Long Test (50 questions)
+                  </button>
+                )}
+                {approvedCount < 10 && (
+                  <button onClick={() => startTest(approvedCount)} className="test-option">
+                    Practice All ({approvedCount} questions)
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={{ 
+            backgroundColor: '#fff3cd', 
+            border: '1px solid #ffeeba',
+            borderRadius: '8px',
+            padding: '1.5rem',
+            marginTop: '2rem'
+          }}>
+            <h3 style={{ color: '#856404', marginBottom: '1rem' }}>No Approved Questions Available</h3>
+            <p style={{ color: '#856404', marginBottom: '0.5rem' }}>
+              The Question Bank is currently empty because no questions have been approved yet.
+            </p>
+            <p style={{ color: '#856404' }}>
+              Questions must be reviewed and approved by an administrator before they appear here.
+            </p>
           </div>
-        </div>
+        )}
       </div>
     );
   }
