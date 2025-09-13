@@ -19,7 +19,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AIManipulation from './pages/AIManipulation';
 
 const AppContent: React.FC = () => {
-  const { user, logout, isAdmin, isReviewer } = useAuth();
+  const { user, logout, isAdmin, isReviewer, isImageContributor } = useAuth();
 
   return (
     <div className="App">
@@ -27,49 +27,56 @@ const AppContent: React.FC = () => {
         <div className="nav-container">
           <h1>TOE Question Bank</h1>
           <div className="nav-links">
-            {/* Questions Dropdown */}
-            <div className="nav-dropdown">
-              <span className="nav-dropdown-trigger">
-                Questions
-                <svg className="nav-dropdown-arrow" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8 10.5L4 6.5h8l-4 4z"/>
-                </svg>
-              </span>
-              <div className="nav-dropdown-menu">
-                <Link to="/" className="nav-dropdown-item">
-                  <span className="nav-dropdown-icon">📖</span>
-                  <div className="nav-dropdown-content">
-                    <span className="nav-dropdown-title">Review Questions</span>
-                    <span className="nav-dropdown-description">Browse and review existing questions</span>
+            {/* Show Questions dropdown only if not just an image contributor */}
+            {(!user || !user.is_image_contributor || isAdmin || isReviewer) && (
+              <>
+                {/* Questions Dropdown */}
+                <div className="nav-dropdown">
+                  <span className="nav-dropdown-trigger">
+                    Questions
+                    <svg className="nav-dropdown-arrow" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M8 10.5L4 6.5h8l-4 4z"/>
+                    </svg>
+                  </span>
+                  <div className="nav-dropdown-menu">
+                    <Link to="/" className="nav-dropdown-item">
+                      <span className="nav-dropdown-icon">📖</span>
+                      <div className="nav-dropdown-content">
+                        <span className="nav-dropdown-title">Review Questions</span>
+                        <span className="nav-dropdown-description">Browse and review existing questions</span>
+                      </div>
+                    </Link>
+                    <Link to="/create-question" className="nav-dropdown-item">
+                      <span className="nav-dropdown-icon">✏️</span>
+                      <div className="nav-dropdown-content">
+                        <span className="nav-dropdown-title">Create Question</span>
+                        <span className="nav-dropdown-description">Add new questions to the database</span>
+                      </div>
+                    </Link>
+                    <Link to="/upload" className="nav-dropdown-item">
+                      <span className="nav-dropdown-icon">📤</span>
+                      <div className="nav-dropdown-content">
+                        <span className="nav-dropdown-title">Upload Questions</span>
+                        <span className="nav-dropdown-description">Bulk import questions via CSV file</span>
+                      </div>
+                    </Link>
+                    <Link to="/my-returned-questions" className="nav-dropdown-item">
+                      <span className="nav-dropdown-icon">↩️</span>
+                      <div className="nav-dropdown-content">
+                        <span className="nav-dropdown-title">My Returned Questions</span>
+                        <span className="nav-dropdown-description">Questions needing your attention</span>
+                      </div>
+                    </Link>
                   </div>
-                </Link>
-                <Link to="/create-question" className="nav-dropdown-item">
-                  <span className="nav-dropdown-icon">✏️</span>
-                  <div className="nav-dropdown-content">
-                    <span className="nav-dropdown-title">Create Question</span>
-                    <span className="nav-dropdown-description">Add new questions to the database</span>
-                  </div>
-                </Link>
-                <Link to="/upload" className="nav-dropdown-item">
-                  <span className="nav-dropdown-icon">📤</span>
-                  <div className="nav-dropdown-content">
-                    <span className="nav-dropdown-title">Upload Questions</span>
-                    <span className="nav-dropdown-description">Bulk import questions via CSV file</span>
-                  </div>
-                </Link>
-                <Link to="/my-returned-questions" className="nav-dropdown-item">
-                  <span className="nav-dropdown-icon">↩️</span>
-                  <div className="nav-dropdown-content">
-                    <span className="nav-dropdown-title">My Returned Questions</span>
-                    <span className="nav-dropdown-description">Questions needing your attention</span>
-                  </div>
-                </Link>
-              </div>
-            </div>
+                </div>
+                
+                <Link to="/practice">Question Bank</Link>
+              </>
+            )}
             
-            <Link to="/practice">Question Bank</Link>
             <Link to="/images">Image Library</Link>
             <Link to="/needed-images">Needed Images</Link>
+            
             {(isReviewer || isAdmin) && <Link to="/reviewer/dashboard">Review Queue</Link>}
             
             {/* Admin Dropdown */}

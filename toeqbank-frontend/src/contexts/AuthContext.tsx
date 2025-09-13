@@ -12,6 +12,7 @@ interface User {
   created_at?: string;
   is_admin?: boolean;
   is_reviewer?: boolean;
+  is_image_contributor?: boolean;
 }
 
 interface AuthContextType {
@@ -24,6 +25,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isReviewer: boolean;
+  isImageContributor: boolean;
   updateProfile: (userData: Partial<User>) => Promise<void>;
 }
 
@@ -178,6 +180,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   // Check if user is reviewer (has is_reviewer flag) OR is admin (admins have all privileges)
   const isReviewer = !!user && (user.is_reviewer === true || user.is_admin === true);
+  
+  // Check if user is image contributor (has is_image_contributor flag) OR is admin
+  const isImageContributor = !!user && (user.is_image_contributor === true || user.is_admin === true);
 
   const value: AuthContextType = {
     user,
@@ -189,6 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!user,
     isAdmin,
     isReviewer,
+    isImageContributor,
     updateProfile
   };
 

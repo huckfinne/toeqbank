@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface CreateUserFormData extends CreateUserData {
   confirmPassword: string;
+  is_image_contributor: boolean;
 }
 
 const AdminUserPanel: React.FC = () => {
@@ -17,6 +18,8 @@ const AdminUserPanel: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [registrationLink, setRegistrationLink] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
   
   const [createForm, setCreateForm] = useState<CreateUserFormData>({
     username: '',
@@ -26,7 +29,8 @@ const AdminUserPanel: React.FC = () => {
     first_name: '',
     last_name: '',
     is_admin: false,
-    is_reviewer: false
+    is_reviewer: false,
+    is_image_contributor: false
   });
 
   const [editForm, setEditForm] = useState({
@@ -35,7 +39,8 @@ const AdminUserPanel: React.FC = () => {
     first_name: '',
     last_name: '',
     is_admin: false,
-    is_reviewer: false
+    is_reviewer: false,
+    is_image_contributor: false
   });
 
   const [resetPasswordForm, setResetPasswordForm] = useState({
@@ -94,7 +99,8 @@ const AdminUserPanel: React.FC = () => {
         first_name: '',
         last_name: '',
         is_admin: false,
-        is_reviewer: false
+        is_reviewer: false,
+    is_image_contributor: false
       });
       setShowCreateForm(false);
       loadUsers();
@@ -168,7 +174,8 @@ const AdminUserPanel: React.FC = () => {
       first_name: user.first_name || '',
       last_name: user.last_name || '',
       is_admin: user.is_admin,
-      is_reviewer: user.is_reviewer
+      is_reviewer: user.is_reviewer,
+      is_image_contributor: user.is_image_contributor
     });
   };
 
@@ -179,6 +186,30 @@ const AdminUserPanel: React.FC = () => {
       confirmPassword: ''
     });
     setShowPasswordReset(true);
+  };
+
+  const generateRegistrationLink = async () => {
+    try {
+      setGeneratingLink(true);
+      setError(null);
+      const response = await adminService.generateRegistrationToken('image_contributor', 72);
+      setRegistrationLink(response.registrationUrl);
+      setSuccess('Registration link generated successfully! Link expires in 72 hours.');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to generate registration link');
+      console.error('Generate registration link error:', err);
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setSuccess('Registration link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
   };
 
   if (!isAdmin) {
@@ -242,6 +273,65 @@ const AdminUserPanel: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* Registration Link Generation */}
+        <div className="mb-8 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200 p-6">
+          <div className="flex items-center mb-4">
+            <span className="text-2xl mr-3">🔗</span>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Generate Registration Link</h2>
+              <p className="text-sm text-gray-600">Create a secure registration link for new Image Contributors</p>
+            </div>
+          </div>
+          
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <button
+                onClick={generateRegistrationLink}
+                disabled={generatingLink}
+                className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {generatingLink ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <span>🎫</span>
+                    Generate Image Contributor Link
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+          
+          {registrationLink && (
+            <div className="mt-4 bg-white rounded-lg border border-purple-200 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-900">Registration Link Generated</h3>
+                <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full">Expires in 72 hours</span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={registrationLink}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-mono"
+                />
+                <button
+                  onClick={() => copyToClipboard(registrationLink)}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm"
+                >
+                  📋 Copy
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                Send this link to the person you want to invite as an Image Contributor. They can use it to create their account with the appropriate permissions.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Create User Button */}
         <div className="mb-6">
@@ -357,6 +447,15 @@ const AdminUserPanel: React.FC = () => {
                   />
                   <span className="text-sm text-gray-700">Reviewer privileges</span>
                 </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={createForm.is_image_contributor}
+                    onChange={(e) => setCreateForm({...createForm, is_image_contributor: e.target.checked})}
+                    className="mr-2 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-700">Image Contributor</span>
+                </label>
               </div>
 
               <div className="mt-6 flex gap-3">
@@ -440,7 +539,12 @@ const AdminUserPanel: React.FC = () => {
                             Reviewer
                           </span>
                         )}
-                        {!user.is_admin && !user.is_reviewer && (
+                        {user.is_image_contributor && (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            Image Contributor
+                          </span>
+                        )}
+                        {!user.is_admin && !user.is_reviewer && !user.is_image_contributor && (
                           <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                             User
                           </span>
@@ -559,6 +663,15 @@ const AdminUserPanel: React.FC = () => {
                         className="mr-2 text-green-600 focus:ring-green-500"
                       />
                       <span className="text-sm text-gray-700">Reviewer privileges</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={editForm.is_image_contributor}
+                        onChange={(e) => setEditForm({...editForm, is_image_contributor: e.target.checked})}
+                        className="mr-2 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-gray-700">Image Contributor</span>
                     </label>
                   </div>
                 </div>

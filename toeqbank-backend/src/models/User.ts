@@ -11,6 +11,7 @@ export interface User {
   is_active?: boolean;
   is_admin?: boolean;
   is_reviewer?: boolean;
+  is_image_contributor?: boolean;
   created_at?: Date;
   updated_at?: Date;
   last_login?: Date;
@@ -24,6 +25,7 @@ export interface CreateUserRequest {
   last_name?: string;
   is_admin?: boolean;
   is_reviewer?: boolean;
+  is_image_contributor?: boolean;
 }
 
 export interface LoginRequest {
@@ -38,9 +40,9 @@ export class UserModel {
     const password_hash = await bcrypt.hash(userData.password, saltRounds);
     
     const sql = `
-      INSERT INTO users (username, email, password_hash, first_name, last_name, is_admin, is_reviewer)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, created_at, updated_at
+      INSERT INTO users (username, email, password_hash, first_name, last_name, is_admin, is_reviewer, is_image_contributor)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at
     `;
     
     const values = [
@@ -50,7 +52,8 @@ export class UserModel {
       userData.first_name,
       userData.last_name,
       userData.is_admin || false,
-      userData.is_reviewer || false
+      userData.is_reviewer || false,
+      userData.is_image_contributor || false
     ];
     
     const result = await query(sql, values);
@@ -70,7 +73,7 @@ export class UserModel {
   }
 
   static async findById(id: number): Promise<User | null> {
-    const sql = 'SELECT id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, created_at, updated_at, last_login FROM users WHERE id = $1 AND is_active = true';
+    const sql = 'SELECT id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at, last_login FROM users WHERE id = $1 AND is_active = true';
     const result = await query(sql, [id]);
     return result.rows[0] || null;
   }
@@ -100,7 +103,7 @@ export class UserModel {
       UPDATE users 
       SET ${setClause}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $1 AND is_active = true
-      RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, created_at, updated_at, last_login
+      RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at, last_login
     `;
     
     const values = [id, ...fields.map(field => userData[field as keyof User])];
@@ -131,7 +134,7 @@ export class UserModel {
 
   static async findAll(): Promise<User[]> {
     const sql = `
-      SELECT id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, created_at, updated_at, last_login 
+      SELECT id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at, last_login 
       FROM users 
       WHERE is_active = true 
       ORDER BY created_at DESC

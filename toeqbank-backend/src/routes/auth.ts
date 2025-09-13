@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { UserModel, CreateUserRequest, LoginRequest } from '../models/User';
 import { generateToken, requireAuth, requireAdmin } from '../middleware/auth';
+import { RegistrationTokenModel } from '../models/RegistrationToken';
 
 const router = Router();
 
@@ -57,7 +58,8 @@ router.post('/register', async (req: Request, res: Response) => {
         first_name: user.first_name,
         last_name: user.last_name,
         is_admin: user.is_admin,
-        is_reviewer: user.is_reviewer
+        is_reviewer: user.is_reviewer,
+        is_image_contributor: user.is_image_contributor
       },
       token
     });
@@ -96,7 +98,8 @@ router.post('/login', async (req: Request, res: Response) => {
         last_name: user.last_name,
         last_login: user.last_login,
         is_admin: user.is_admin,
-        is_reviewer: user.is_reviewer
+        is_reviewer: user.is_reviewer,
+        is_image_contributor: user.is_image_contributor
       },
       token
     });
@@ -120,7 +123,8 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
         last_login: user.last_login,
         created_at: user.created_at,
         is_admin: user.is_admin,
-        is_reviewer: user.is_reviewer
+        is_reviewer: user.is_reviewer,
+        is_image_contributor: user.is_image_contributor
       }
     });
   } catch (error) {
@@ -432,6 +436,136 @@ router.post('/admin/users/:id/reset-password', requireAdmin, async (req: Request
   } catch (error) {
     console.error('Admin reset password error:', error);
     res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// === REGISTRATION TOKEN ENDPOINTS ===
+
+// Generate registration token (admin only)
+router.post('/admin/registration-tokens', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { role = 'image_contributor', expiresInHours = 72 } = req.body;
+    
+    const token = await RegistrationTokenModel.create(role, expiresInHours);
+    
+    // Generate the full registration URL
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const registrationUrl = `${baseUrl}/register?token=${token.token}`;
+    
+    res.json({
+      message: 'Registration token created successfully',
+      token: token.token,
+      registrationUrl,
+      expiresAt: token.expires_at,
+      role: token.role
+    });
+  } catch (error) {
+    console.error('Create registration token error:', error);
+    res.status(500).json({ error: 'Failed to create registration token' });
+  }
+});
+
+// Get all registration tokens (admin only)
+router.get('/admin/registration-tokens', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const tokens = await RegistrationTokenModel.getActiveTokens();
+    res.json({ tokens });
+  } catch (error) {
+    console.error('Get registration tokens error:', error);
+    res.status(500).json({ error: 'Failed to fetch registration tokens' });
+  }
+});
+
+// Validate registration token (public)
+router.get('/registration-tokens/:token/validate', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    
+    const registrationToken = await RegistrationTokenModel.findByToken(token);
+    
+    if (!registrationToken) {
+      return res.status(404).json({ 
+        valid: false, 
+        error: 'Invalid or expired token' 
+      });
+    }
+    
+    res.json({
+      valid: true,
+      role: registrationToken.role,
+      expiresAt: registrationToken.expires_at
+    });
+  } catch (error) {
+    console.error('Validate token error:', error);
+    res.status(500).json({ error: 'Failed to validate token' });
+  }
+});
+
+// Register with token (public)
+router.post('/register-with-token', async (req: Request, res: Response) => {
+  try {
+    const { token, username, email, password, first_name, last_name } = req.body;
+    
+    // Validate required fields
+    if (!token || !username || !email || !password) {
+      return res.status(400).json({ error: 'Token, username, email, and password are required' });
+    }
+    
+    // Validate token
+    const registrationToken = await RegistrationTokenModel.findByToken(token);
+    if (!registrationToken) {
+      return res.status(400).json({ error: 'Invalid or expired registration token' });
+    }
+    
+    // Check if username already exists
+    const existingUser = await UserModel.findByUsername(username);
+    if (existingUser) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+    
+    // Check if email already exists
+    const existingEmail = await UserModel.findByEmail(email);
+    if (existingEmail) {
+      return res.status(409).json({ error: 'Email already exists' });
+    }
+    
+    // Create user with role based on token
+    const userData: CreateUserRequest = {
+      username,
+      email,
+      password,
+      first_name,
+      last_name,
+      is_admin: false,
+      is_reviewer: false,
+      is_image_contributor: registrationToken.role === 'image_contributor'
+    };
+    
+    const user = await UserModel.create(userData);
+    
+    // Mark token as used
+    await RegistrationTokenModel.markAsUsed(registrationToken.id!, user.id!);
+    
+    // Generate auth token
+    const authToken = generateToken(user);
+    
+    res.status(201).json({
+      message: 'Account created successfully',
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        is_admin: user.is_admin,
+        is_reviewer: user.is_reviewer,
+        is_image_contributor: user.is_image_contributor
+      },
+      token: authToken
+    });
+  } catch (error) {
+    console.error('Register with token error:', error);
+    res.status(500).json({ error: 'Failed to create account' });
   }
 });
 

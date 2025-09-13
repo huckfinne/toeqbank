@@ -9,6 +9,7 @@ export interface AdminUser {
   last_name?: string;
   is_admin: boolean;
   is_reviewer: boolean;
+  is_image_contributor: boolean;
   created_at: string;
   last_login?: string;
 }
@@ -21,6 +22,7 @@ export interface CreateUserData {
   last_name?: string;
   is_admin?: boolean;
   is_reviewer?: boolean;
+  is_image_contributor?: boolean;
 }
 
 export interface UpdateUserData {
@@ -30,6 +32,7 @@ export interface UpdateUserData {
   last_name?: string;
   is_admin?: boolean;
   is_reviewer?: boolean;
+  is_image_contributor?: boolean;
 }
 
 export const adminService = {
@@ -61,5 +64,14 @@ export const adminService = {
     await axios.post(`${API_BASE_URL}/auth/admin/users/${userId}/reset-password`, {
       newPassword
     });
+  },
+
+  // Generate registration token
+  generateRegistrationToken: async (role: string = 'image_contributor', expiresInHours: number = 72): Promise<{ token: string, registrationUrl: string }> => {
+    const response = await axios.post(`${API_BASE_URL}/auth/admin/registration-tokens`, {
+      role,
+      expiresInHours
+    });
+    return response.data;
   }
 };
