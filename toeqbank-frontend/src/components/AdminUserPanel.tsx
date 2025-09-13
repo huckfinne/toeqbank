@@ -477,12 +477,16 @@ const AdminUserPanel: React.FC = () => {
           </div>
         )}
 
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">
-              System Users ({users.length})
-            </h2>
+        {/* Admin Users Section */}
+        <div className="mb-8 bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-purple-100 border-b">
+            <div className="flex items-center">
+              <span className="text-xl mr-2">👑</span>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Administrators ({users.filter(u => u.is_admin).length})
+              </h2>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">Users with full system access and administrative privileges</p>
           </div>
           
           <div className="overflow-x-auto">
@@ -510,7 +514,7 @@ const AdminUserPanel: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
+                {users.filter(user => user.is_admin).map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
@@ -529,11 +533,9 @@ const AdminUserPanel: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex gap-1">
-                        {user.is_admin && (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                            Admin
-                          </span>
-                        )}
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                          Admin
+                        </span>
                         {user.is_reviewer && (
                           <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                             Reviewer
@@ -542,11 +544,6 @@ const AdminUserPanel: React.FC = () => {
                         {user.is_image_contributor && (
                           <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                             Image Contributor
-                          </span>
-                        )}
-                        {!user.is_admin && !user.is_reviewer && !user.is_image_contributor && (
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                            User
                           </span>
                         )}
                       </div>
@@ -581,6 +578,327 @@ const AdminUserPanel: React.FC = () => {
                     </td>
                   </tr>
                 ))}
+                {users.filter(user => user.is_admin).length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                      No administrators found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Reviewer Users Section */}
+        <div className="mb-8 bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b">
+            <div className="flex items-center">
+              <span className="text-xl mr-2">🔍</span>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Reviewers ({users.filter(u => u.is_reviewer && !u.is_admin).length})
+              </h2>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">Users who can review and approve questions</p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Login
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.filter(user => user.is_reviewer && !user.is_admin).map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {user.first_name || user.last_name ? 
+                            `${user.first_name || ''} ${user.last_name || ''}`.trim() : 
+                            user.username}
+                        </div>
+                        {(user.first_name || user.last_name) && (
+                          <div className="text-sm text-gray-500">@{user.username}</div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {user.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex gap-1">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                          Reviewer
+                        </span>
+                        {user.is_image_contributor && (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            Image Contributor
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEditUser(user)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => startPasswordReset(user.id)}
+                          className="text-yellow-600 hover:text-yellow-900"
+                        >
+                          Reset Password
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.username)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.filter(user => user.is_reviewer && !user.is_admin).length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                      No reviewers found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Image Contributors Section */}
+        <div className="mb-8 bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-green-100 border-b">
+            <div className="flex items-center">
+              <span className="text-xl mr-2">🖼️</span>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Image Contributors ({users.filter(u => u.is_image_contributor && !u.is_admin && !u.is_reviewer).length})
+              </h2>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">Users who can access and contribute to the image library</p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Login
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.filter(user => user.is_image_contributor && !user.is_admin && !user.is_reviewer).map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {user.first_name || user.last_name ? 
+                            `${user.first_name || ''} ${user.last_name || ''}`.trim() : 
+                            user.username}
+                        </div>
+                        {(user.first_name || user.last_name) && (
+                          <div className="text-sm text-gray-500">@{user.username}</div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {user.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex gap-1">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          Image Contributor
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEditUser(user)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => startPasswordReset(user.id)}
+                          className="text-yellow-600 hover:text-yellow-900"
+                        >
+                          Reset Password
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.username)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.filter(user => user.is_image_contributor && !user.is_admin && !user.is_reviewer).length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                      No image contributors found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Regular Users Section */}
+        <div className="mb-8 bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+            <div className="flex items-center">
+              <span className="text-xl mr-2">👥</span>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Regular Users ({users.filter(u => !u.is_admin && !u.is_reviewer && !u.is_image_contributor).length})
+              </h2>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">Standard users with basic access to the system</p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Login
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.filter(user => !user.is_admin && !user.is_reviewer && !user.is_image_contributor).map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {user.first_name || user.last_name ? 
+                            `${user.first_name || ''} ${user.last_name || ''}`.trim() : 
+                            user.username}
+                        </div>
+                        {(user.first_name || user.last_name) && (
+                          <div className="text-sm text-gray-500">@{user.username}</div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {user.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex gap-1">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                          User
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEditUser(user)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => startPasswordReset(user.id)}
+                          className="text-yellow-600 hover:text-yellow-900"
+                        >
+                          Reset Password
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.username)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.filter(user => !user.is_admin && !user.is_reviewer && !user.is_image_contributor).length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                      No regular users found
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
