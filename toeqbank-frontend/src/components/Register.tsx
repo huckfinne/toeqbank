@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 
 interface RegisterProps {
   onSwitchToLogin: () => void;
 }
 
 const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
+  const [searchParams] = useSearchParams();
+  const registrationToken = searchParams.get('token');
+  
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -16,8 +20,15 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [tokenInfo, setTokenInfo] = useState<string | null>(null);
 
-  const { register } = useAuth();
+  const { register, registerWithToken } = useAuth();
+
+  useEffect(() => {
+    if (registrationToken) {
+      setTokenInfo('You are registering as an Image Contributor using a special registration link.');
+    }
+  }, [registrationToken]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -56,7 +67,14 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
 
     try {
       const { confirmPassword, ...registerData } = formData;
-      await register(registerData);
+      
+      if (registrationToken) {
+        // Use token-based registration
+        await registerWithToken(registrationToken, registerData);
+      } else {
+        // Use regular registration
+        await register(registerData);
+      }
       // Registration successful, AuthContext will handle redirect
     } catch (err: any) {
       setError(err.message);
@@ -69,6 +87,19 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
     <div className="auth-container">
       <div className="auth-form">
         <h2>Create Your Account</h2>
+        
+        {tokenInfo && (
+          <div className="info-message" style={{ 
+            padding: '12px', 
+            marginBottom: '16px', 
+            backgroundColor: '#e7f3ff', 
+            border: '1px solid #b3d9ff', 
+            borderRadius: '4px', 
+            color: '#0066cc' 
+          }}>
+            ℹ️ {tokenInfo}
+          </div>
+        )}
         
         {error && (
           <div className="error-message">

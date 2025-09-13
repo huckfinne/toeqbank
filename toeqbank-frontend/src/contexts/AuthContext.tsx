@@ -20,6 +20,7 @@ interface AuthContextType {
   token: string | null;
   login: (username: string, password: string) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
+  registerWithToken: (token: string, userData: RegisterData) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -155,6 +156,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const registerWithToken = async (token: string, userData: RegisterData): Promise<void> => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/register-with-token`, {
+        token,
+        ...userData
+      });
+
+      const { user: newUser, token: userToken } = response.data;
+      
+      setUser(newUser);
+      setToken(userToken);
+      
+      // Store in localStorage
+      localStorage.setItem('authToken', userToken);
+      localStorage.setItem('authUser', JSON.stringify(newUser));
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Registration with token failed';
+      throw new Error(errorMessage);
+    }
+  };
+
   const logout = (): void => {
     setUser(null);
     setToken(null);
@@ -189,6 +211,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     token,
     login,
     register,
+    registerWithToken,
     logout,
     isLoading,
     isAuthenticated: !!user,
