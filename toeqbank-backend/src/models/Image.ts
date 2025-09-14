@@ -253,4 +253,50 @@ export class ImageModel {
       remaining
     };
   }
+
+  static async getNextForReview(): Promise<Image | null> {
+    const sql = `
+      SELECT * FROM images 
+      WHERE review_status = 'pending' 
+      ORDER BY created_at ASC 
+      LIMIT 1
+    `;
+    const result = await query(sql);
+    return result.rows[0] || null;
+  }
+
+  static async getReviewStats(): Promise<{
+    total: number;
+    reviewed: number;
+    remaining: number;
+  }> {
+    const totalSql = 'SELECT COUNT(*) as count FROM images';
+    const reviewedSql = 'SELECT COUNT(*) as count FROM images WHERE review_status != \'pending\'';
+    
+    const [totalResult, reviewedResult] = await Promise.all([
+      query(totalSql),
+      query(reviewedSql)
+    ]);
+    
+    const total = parseInt(totalResult.rows[0].count);
+    const reviewed = parseInt(reviewedResult.rows[0].count);
+    const remaining = total - reviewed;
+
+    return {
+      total,
+      reviewed,
+      remaining
+    };
+  }
+
+  static async submitReview(imageId: number, reviewerId: number, rating: number, status: string): Promise<any> {
+    const sql = `
+      UPDATE images 
+      SET review_status = $1, review_rating = $2, reviewed_by = $3, reviewed_at = NOW()
+      WHERE id = $4 AND review_status = 'pending'
+      RETURNING *
+    `;
+    const result = await query(sql, [status, rating, reviewerId, imageId]);
+    return result.rows[0] || null;
+  }
 }

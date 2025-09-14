@@ -399,6 +399,77 @@ router.get('/proxy', (req: Request, res: Response) => {
   }
 });
 
+// Get next image for review (Must come before /:id route)
+router.get('/next-for-review', requireAuth, async (req: Request, res: Response) => {
+  try {
+    // Only admins and reviewers can access this
+    if (!req.user.is_admin && !req.user.is_reviewer) {
+      return res.status(403).json({ error: 'Access denied. Admin or reviewer role required.' });
+    }
+
+    // Get next unreviewed image
+    const nextImage = await ImageModel.getNextForReview();
+    
+    if (!nextImage) {
+      return res.status(404).json({ 
+        message: 'No images pending review',
+        stats: {
+          total: 0,
+          reviewed: 0,
+          remaining: 0
+        }
+      });
+    }
+
+    // Get review statistics
+    const stats = await ImageModel.getReviewStats();
+
+    res.json({
+      image: nextImage,
+      stats: stats
+    });
+  } catch (error) {
+    console.error('Get next image for review error:', error);
+    res.status(500).json({ error: 'Failed to fetch next image for review' });
+  }
+});
+
+// Submit review for an image (Must come before /:id route)
+router.post('/:id/review', requireAuth, async (req: Request, res: Response) => {
+  try {
+    // Only admins and reviewers can access this
+    if (!req.user.is_admin && !req.user.is_reviewer) {
+      return res.status(403).json({ error: 'Access denied. Admin or reviewer role required.' });
+    }
+
+    const imageId = parseInt(req.params.id);
+    const { rating, status } = req.body;
+
+    if (!rating || rating < 0 || rating > 10) {
+      return res.status(400).json({ error: 'Rating must be between 0 and 10' });
+    }
+
+    if (!['approved', 'rejected', 'needs_revision'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be approved, rejected, or needs_revision' });
+    }
+
+    // Submit the review
+    const result = await ImageModel.submitReview(imageId, req.user.id, rating, status);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Image not found or already reviewed' });
+    }
+
+    res.json({ 
+      message: 'Review submitted successfully',
+      review: result
+    });
+  } catch (error) {
+    console.error('Submit review error:', error);
+    res.status(500).json({ error: 'Failed to submit review' });
+  }
+});
+
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);

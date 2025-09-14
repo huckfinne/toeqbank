@@ -19,24 +19,23 @@ interface Image {
   updated_at: string;
 }
 
-interface PaginationInfo {
-  limit: number;
-  offset: number;
+interface ReviewStats {
   total: number;
-  hasMore: boolean;
+  reviewed: number;
+  remaining: number;
 }
 
 const ReviewImages: React.FC = () => {
   const { isReviewer, isAdmin, token } = useAuth();
   const navigate = useNavigate();
-  const [images, setImages] = useState<Image[]>([]);
+  const [currentImage, setCurrentImage] = useState<Image | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<PaginationInfo>({
-    limit: 20,
-    offset: 0,
+  const [submitting, setSubmitting] = useState(false);
+  const [stats, setStats] = useState<ReviewStats>({
     total: 0,
-    hasMore: false
+    reviewed: 0,
+    remaining: 0
   });
 
   // Redirect if not authorized
@@ -47,13 +46,13 @@ const ReviewImages: React.FC = () => {
     }
   }, [isReviewer, isAdmin, navigate]);
 
-  const fetchImages = useCallback(async (offset = 0) => {
+  const fetchNextImageToReview = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
       const response = await fetch(
-        `http://localhost:3001/api/images?limit=${pagination.limit}&offset=${offset}`,
+        `http://localhost:3001/api/images/next-for-review`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -62,24 +61,67 @@ const ReviewImages: React.FC = () => {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch images');
+        if (response.status === 404) {
+          setCurrentImage(null);
+          return;
+        }
+        throw new Error('Failed to fetch next image for review');
       }
 
       const data = await response.json();
-      setImages(data.images);
-      setPagination(data.pagination);
+      setCurrentImage(data.image);
+      setStats(data.stats);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [pagination.limit, token]);
+  }, [token]);
+
+  const submitReview = async (imageId: number, rating: number) => {
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      let status: string;
+      if (rating >= 8) {
+        status = 'approved';
+      } else if (rating <= 5) {
+        status = 'rejected';
+      } else { // 6 or 7
+        status = 'needs_revision';
+      }
+
+      const response = await fetch(
+        `http://localhost:3001/api/images/${imageId}/review`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ rating, status })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to submit review');
+      }
+
+      // Automatically fetch next image
+      await fetchNextImageToReview();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (isReviewer || isAdmin) {
-      fetchImages();
+      fetchNextImageToReview();
     }
-  }, [isReviewer, isAdmin, fetchImages]);
+  }, [isReviewer, isAdmin, fetchNextImageToReview]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -97,19 +139,81 @@ const ReviewImages: React.FC = () => {
     });
   };
 
-  const handlePrevPage = () => {
-    const newOffset = Math.max(0, pagination.offset - pagination.limit);
-    fetchImages(newOffset);
+  const getRatingColor = (rating: number): string => {
+    if (rating >= 8) return 'bg-green-500 hover:bg-green-600 text-white';
+    if (rating <= 5) return 'bg-red-500 hover:bg-red-600 text-white';
+    return 'bg-yellow-500 hover:bg-yellow-600 text-white';
   };
 
-  const handleNextPage = () => {
-    const newOffset = pagination.offset + pagination.limit;
-    fetchImages(newOffset);
+  const getRatingLabel = (rating: number): string => {
+    if (rating >= 8) return 'APPROVE';
+    if (rating <= 5) return 'REJECT';
+    return 'REVISE';
   };
 
   const getImageUrl = (filename: string) => {
     return `http://localhost:3001/api/images/serve/${filename}`;
   };
+
+  if (!isReviewer && !isAdmin) {
+    return null; // Will redirect
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-lg text-gray-600">Loading next image for review...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg max-w-md">
+          <h3 className="font-bold mb-2">Error</h3>
+          <p>{error}</p>
+          <button 
+            onClick={() => fetchNextImageToReview()}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentImage) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🎉</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">All Images Reviewed!</h2>
+          <p className="text-lg text-gray-600 mb-4">Great job! There are no more images pending review.</p>
+          <div className="bg-white rounded-lg shadow-md p-6 inline-block">
+            <div className="grid grid-cols-3 gap-8 text-center">
+              <div>
+                <div className="text-3xl font-bold text-blue-600">{stats.total}</div>
+                <div className="text-sm text-gray-600">Total Images</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-green-600">{stats.reviewed}</div>
+                <div className="text-sm text-gray-600">Reviewed</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-gray-600">{stats.remaining}</div>
+                <div className="text-sm text-gray-600">Remaining</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const isImage = (mimeType: string): boolean => {
     return mimeType.startsWith('image/');
@@ -119,209 +223,171 @@ const ReviewImages: React.FC = () => {
     return mimeType.startsWith('video/');
   };
 
-  if (!isReviewer && !isAdmin) {
-    return null; // Will redirect
-  }
-
-  if (loading && images.length === 0) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center">
-          <div className="text-lg">Loading images...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          Error: {error}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Review Images</h1>
-        <p className="text-gray-600">
-          Review and manage all uploaded images in the system
-        </p>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{pagination.total}</div>
-            <div className="text-sm text-gray-600">Total Images</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {images.filter(img => img.image_type === 'still').length}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header with Progress */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Image Review</h1>
+              <p className="text-gray-600">Rate images from 0-10 to approve, reject, or request revision</p>
             </div>
-            <div className="text-sm text-gray-600">Still Images</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {images.filter(img => img.image_type === 'cine').length}
+            <div className="text-right">
+              <div className="text-sm text-gray-500">Progress</div>
+              <div className="text-xl font-bold text-blue-600">
+                {stats.reviewed} / {stats.total}
+              </div>
+              <div className="w-32 bg-gray-200 rounded-full h-2 mt-1">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(stats.reviewed / stats.total) * 100}%` }}
+                ></div>
+              </div>
             </div>
-            <div className="text-sm text-gray-600">Cine Clips</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">
-              {images.filter(img => !img.description).length}
-            </div>
-            <div className="text-sm text-gray-600">No Description</div>
           </div>
         </div>
       </div>
 
-      {/* Images Grid - Card Layout */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {images.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            No images found
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6">
-              {images.map((image) => (
-                <div key={image.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-                  {/* Image Preview - Fixed Height Container */}
-                  <div className="relative w-full h-48 bg-gray-100 rounded-t-lg overflow-hidden">
-                    {isImage(image.mime_type) ? (
-                      <img
-                        src={getImageUrl(image.filename)}
-                        alt={image.original_name}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        style={{ maxWidth: '100%', maxHeight: '100%' }}
-                      />
-                    ) : isVideo(image.mime_type) ? (
-                      <video
-                        src={getImageUrl(image.filename)}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        style={{ maxWidth: '100%', maxHeight: '100%' }}
-                        muted
-                        controls={false}
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-gray-500 text-sm">File</span>
-                      </div>
-                    )}
-                    
-                    {/* Type Badge */}
-                    <div className="absolute top-2 left-2">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        image.image_type === 'still' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-purple-100 text-purple-800'
-                      }`}>
-                        {image.image_type === 'still' ? 'Still' : 'Cine'}
-                      </span>
-                    </div>
+      {/* Main Review Interface */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            {/* Image Display */}
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <div className="relative aspect-square bg-gray-100">
+                {isImage(currentImage.mime_type) ? (
+                  <img
+                    src={getImageUrl(currentImage.filename)}
+                    alt={currentImage.original_name}
+                    className="w-full h-full object-contain"
+                  />
+                ) : isVideo(currentImage.mime_type) ? (
+                  <video
+                    src={getImageUrl(currentImage.filename)}
+                    className="w-full h-full object-contain"
+                    controls
+                    muted
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-gray-500 text-lg">Unsupported file type</span>
+                  </div>
+                )}
+                
+                {/* Type Badge */}
+                <div className="absolute top-4 left-4">
+                  <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+                    currentImage.image_type === 'still' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-purple-100 text-purple-800'
+                  }`}>
+                    {currentImage.image_type === 'still' ? 'Still Image' : 'Cine Clip'}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-                    {/* License Badge */}
-                    <div className="absolute top-2 right-2">
-                      <span className="inline-block px-2 py-1 text-xs bg-white bg-opacity-90 text-gray-800 rounded">
-                        {image.license}
-                      </span>
+            {/* Image Details & Rating */}
+            <div className="space-y-6">
+              
+              {/* Image Info */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Image Details</h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Filename</label>
+                    <p className="text-gray-900">{currentImage.original_name}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Size</label>
+                      <p className="text-gray-900">{formatFileSize(currentImage.file_size)}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Type</label>
+                      <p className="text-gray-900">{currentImage.mime_type}</p>
                     </div>
                   </div>
-
-                  {/* Card Content */}
-                  <div className="p-4">
-                    {/* Filename & Size */}
-                    <div className="mb-2">
-                      <h3 className="text-sm font-medium text-gray-900 truncate" title={image.original_name}>
-                        {image.original_name}
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        {formatFileSize(image.file_size)} • {image.mime_type}
-                      </p>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">License</label>
+                    <p className="text-gray-900">{currentImage.license}</p>
+                  </div>
+                  
+                  {currentImage.description && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Description</label>
+                      <p className="text-gray-900">{currentImage.description}</p>
                     </div>
-
-                    {/* Description */}
-                    <div className="mb-3">
-                      {image.description ? (
-                        <p 
-                          className="text-xs text-gray-700 leading-relaxed"
-                          style={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            maxHeight: '3.6em'
-                          }}
-                          title={image.description}
-                        >
-                          {image.description}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-gray-400 italic">No description</p>
-                      )}
-                    </div>
-
-                    {/* Tags */}
-                    {image.tags && image.tags.length > 0 && (
-                      <div className="mb-3">
-                        <div className="flex flex-wrap gap-1">
-                          {image.tags.slice(0, 2).map((tag, index) => (
-                            <span
-                              key={index}
-                              className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                          {image.tags.length > 2 && (
-                            <span className="text-xs text-gray-500 py-1">
-                              +{image.tags.length - 2}
-                            </span>
-                          )}
-                        </div>
+                  )}
+                  
+                  {currentImage.tags && currentImage.tags.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Tags</label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {currentImage.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                          >
+                            {tag}
+                          </span>
+                        ))}
                       </div>
-                    )}
-
-                    {/* Upload Date */}
-                    <div className="text-xs text-gray-500 border-t pt-2">
-                      {formatDate(image.created_at)}
                     </div>
+                  )}
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Uploaded</label>
+                    <p className="text-gray-900">{formatDate(currentImage.created_at)}</p>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
 
-            {/* Pagination */}
-            <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-              <div className="flex items-center">
-                <p className="text-sm text-gray-700">
-                  Showing {pagination.offset + 1} to {Math.min(pagination.offset + pagination.limit, pagination.total)} of {pagination.total} images
+              {/* Rating Scale */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Rate This Image</h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  • <span className="font-medium text-red-600">0-5: Reject</span> (Poor quality, inappropriate, or violates guidelines)<br/>
+                  • <span className="font-medium text-yellow-600">6-7: Needs Revision</span> (Good potential but needs improvement)<br/>
+                  • <span className="font-medium text-green-600">8-10: Approve</span> (Excellent quality and appropriate for use)
                 </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={pagination.offset === 0}
-                  className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={handleNextPage}
-                  disabled={!pagination.hasMore}
-                  className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
+                
+                <div className="grid grid-cols-11 gap-2">
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
+                    <button
+                      key={rating}
+                      onClick={() => submitReview(currentImage.id, rating)}
+                      disabled={submitting}
+                      className={`
+                        relative h-12 rounded-lg font-bold transition-all duration-200
+                        ${getRatingColor(rating)}
+                        ${submitting ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg'}
+                        disabled:hover:scale-100 disabled:hover:shadow-none
+                      `}
+                    >
+                      <div className="text-lg">{rating}</div>
+                      <div className="text-xs opacity-90">{getRatingLabel(rating)}</div>
+                    </button>
+                  ))}
+                </div>
+                
+                {submitting && (
+                  <div className="mt-4 text-center">
+                    <div className="inline-flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      <span className="text-sm text-gray-600">Submitting review...</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   );
