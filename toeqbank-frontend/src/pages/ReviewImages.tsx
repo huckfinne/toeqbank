@@ -254,19 +254,41 @@ const ReviewImages: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Image Display */}
+            {/* Image Display - Perfect Size Container */}
             <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <div className="relative aspect-square bg-gray-100">
+              <div 
+                className="relative bg-gray-100 flex items-center justify-center"
+                style={{
+                  width: '100%',
+                  maxWidth: '600px',
+                  height: '500px',
+                  margin: '0 auto'
+                }}
+              >
                 {isImage(currentImage.mime_type) ? (
                   <img
                     src={getImageUrl(currentImage.filename)}
                     alt={currentImage.original_name}
-                    className="w-full h-full object-contain"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      width: 'auto',
+                      height: 'auto',
+                      objectFit: 'contain'
+                    }}
+                    className="rounded"
                   />
                 ) : isVideo(currentImage.mime_type) ? (
                   <video
                     src={getImageUrl(currentImage.filename)}
-                    className="w-full h-full object-contain"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      width: 'auto',
+                      height: 'auto',
+                      objectFit: 'contain'
+                    }}
+                    className="rounded"
                     controls
                     muted
                   />
