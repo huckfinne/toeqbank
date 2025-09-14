@@ -216,21 +216,21 @@ const ReviewImages: React.FC = () => {
                   {images.map((image) => (
                     <tr key={image.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex-shrink-0 h-20 w-20">
+                        <div className="flex-shrink-0 h-12 w-12">
                           {isImage(image.mime_type) ? (
                             <img
                               src={getImageUrl(image.filename)}
                               alt={image.original_name}
-                              className="h-20 w-20 object-cover rounded-md border"
+                              className="h-12 w-12 object-cover rounded border"
                             />
                           ) : isVideo(image.mime_type) ? (
                             <video
                               src={getImageUrl(image.filename)}
-                              className="h-20 w-20 object-cover rounded-md border"
+                              className="h-12 w-12 object-cover rounded border"
                               muted
                             />
                           ) : (
-                            <div className="h-20 w-20 bg-gray-200 rounded-md border flex items-center justify-center">
+                            <div className="h-12 w-12 bg-gray-200 rounded border flex items-center justify-center">
                               <span className="text-xs text-gray-500">File</span>
                             </div>
                           )}
