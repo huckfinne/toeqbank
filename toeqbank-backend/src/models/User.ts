@@ -35,29 +35,36 @@ export interface LoginRequest {
 
 export class UserModel {
   static async create(userData: CreateUserRequest): Promise<User> {
-    // Hash password
-    const saltRounds = 12;
-    const password_hash = await bcrypt.hash(userData.password, saltRounds);
-    
-    const sql = `
-      INSERT INTO users (username, email, password_hash, first_name, last_name, is_admin, is_reviewer, is_image_contributor)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at
-    `;
-    
-    const values = [
-      userData.username,
-      userData.email,
-      password_hash,
-      userData.first_name,
-      userData.last_name,
-      userData.is_admin || false,
-      userData.is_reviewer || false,
-      userData.is_image_contributor || false
-    ];
-    
-    const result = await query(sql, values);
-    return result.rows[0];
+    try {
+      // Hash password
+      const saltRounds = 12;
+      const password_hash = await bcrypt.hash(userData.password, saltRounds);
+      
+      const sql = `
+        INSERT INTO users (username, email, password_hash, first_name, last_name, is_admin, is_reviewer, is_image_contributor)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at
+      `;
+      
+      const values = [
+        userData.username,
+        userData.email,
+        password_hash,
+        userData.first_name || null,
+        userData.last_name || null,
+        userData.is_admin === true,
+        userData.is_reviewer === true,
+        userData.is_image_contributor === true
+      ];
+      
+      console.log('Creating user with values:', values.map((v, i) => i === 2 ? '[PASSWORD]' : v));
+      
+      const result = await query(sql, values);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   }
 
   static async findByUsername(username: string): Promise<User | null> {

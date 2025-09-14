@@ -30,6 +30,7 @@ export interface Image {
   license: LicenseType;
   license_details?: string;
   source_url?: string;
+  uploaded_by?: number;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -46,8 +47,8 @@ export interface QuestionImage {
 export class ImageModel {
   static async create(imageData: Omit<Image, 'id' | 'created_at' | 'updated_at'>): Promise<Image> {
     const sql = `
-      INSERT INTO images (filename, original_name, file_path, file_size, mime_type, image_type, width, height, duration_seconds, description, tags, license, license_details, source_url)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      INSERT INTO images (filename, original_name, file_path, file_size, mime_type, image_type, width, height, duration_seconds, description, tags, license, license_details, source_url, uploaded_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *
     `;
     
@@ -65,7 +66,8 @@ export class ImageModel {
       imageData.tags || [],  // Ensure tags is always an array
       imageData.license,
       imageData.license_details || null,
-      imageData.source_url || null
+      imageData.source_url || null,
+      imageData.uploaded_by || null
     ];
     
     const result = await query(sql, values);
@@ -206,5 +208,49 @@ export class ImageModel {
       'user-contributed': { name: 'User Contributed', requiresAttribution: false }
     };
     return licenses[license];
+  }
+
+  static async countByUser(userId: number): Promise<number> {
+    const sql = 'SELECT COUNT(*) as count FROM images WHERE uploaded_by = $1';
+    const result = await query(sql, [userId]);
+    return parseInt(result.rows[0].count);
+  }
+
+  static async findByUser(userId: number, limit = 50, offset = 0): Promise<Image[]> {
+    const sql = `
+      SELECT * FROM images 
+      WHERE uploaded_by = $1
+      ORDER BY created_at DESC 
+      LIMIT $2 OFFSET $3
+    `;
+    const result = await query(sql, [userId, limit, offset]);
+    return result.rows;
+  }
+
+  static async getContributorStats(userId: number): Promise<{
+    total_images: number;
+    total_descriptions: number;
+    total_contributions: number;
+    permitted_limit: number;
+    remaining: number;
+  }> {
+    const imageCountSql = 'SELECT COUNT(*) as count FROM images WHERE uploaded_by = $1';
+    const imageResult = await query(imageCountSql, [userId]);
+    const imageCount = parseInt(imageResult.rows[0].count);
+
+    const { ImageDescriptionModel } = require('./ImageDescription');
+    const descriptionCount = await ImageDescriptionModel.countByUser(userId);
+    
+    const totalContributions = imageCount + descriptionCount;
+    const limit = 20;
+    const remaining = Math.max(0, limit - totalContributions);
+
+    return {
+      total_images: imageCount,
+      total_descriptions: descriptionCount,
+      total_contributions: totalContributions,
+      permitted_limit: limit,
+      remaining
+    };
   }
 }

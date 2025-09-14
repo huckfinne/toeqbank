@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { ImageDescriptionModel } from '../models/ImageDescription';
+import { ImageModel } from '../models/Image';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -56,8 +58,26 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // Create a new image description
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requireAuth, async (req: Request, res: Response) => {
   try {
+    // Check if user is an image contributor and has reached the limit
+    if (req.user.is_image_contributor && !req.user.is_admin && !req.user.is_reviewer) {
+      const imageCount = await ImageModel.countByUser(req.user.id);
+      const descriptionCount = await ImageDescriptionModel.countByUser(req.user.id);
+      const totalContributions = imageCount + descriptionCount;
+      
+      if (totalContributions >= 20) {
+        return res.status(403).json({ 
+          error: 'Contribution limit reached', 
+          message: 'Image contributors are limited to 20 total contributions (images + descriptions). Please contact an administrator if you need to contribute more.',
+          currentImages: imageCount,
+          currentDescriptions: descriptionCount,
+          totalContributions,
+          limit: 20
+        });
+      }
+    }
+
     const { question_id, description, usage_type } = req.body;
     
     if (!question_id || !description || !usage_type) {
@@ -75,7 +95,8 @@ router.post('/', async (req: Request, res: Response) => {
     const imageDescription = await ImageDescriptionModel.create({
       question_id: parseInt(question_id),
       description,
-      usage_type
+      usage_type,
+      created_by: req.user.id
     });
     
     res.status(201).json(imageDescription);

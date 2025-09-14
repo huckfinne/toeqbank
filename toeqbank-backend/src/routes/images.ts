@@ -5,6 +5,7 @@ import fs from 'fs';
 import https from 'https';
 import http from 'http';
 import { ImageModel } from '../models/Image';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -53,14 +54,34 @@ const upload = multer({
   }
 });
 
-router.post('/upload', upload.single('image'), async (req: Request, res: Response) => {
+router.post('/upload', requireAuth, upload.single('image'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    // Check if user is an image contributor and has reached the limit
+    if (req.user.is_image_contributor && !req.user.is_admin && !req.user.is_reviewer) {
+      const uploadCount = await ImageModel.countByUser(req.user.id);
+      if (uploadCount >= 20) {
+        // Delete the uploaded file since we won't use it
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.warn('Failed to delete uploaded file after limit reached:', req.file.path);
+        }
+        return res.status(403).json({ 
+          error: 'Upload limit reached', 
+          message: 'Image contributors are limited to 20 image uploads. Please contact an administrator if you need to upload more images.',
+          currentCount: uploadCount,
+          limit: 20
+        });
+      }
+    }
+
     console.log('Upload request received. File:', req.file.originalname);
     console.log('Request body:', req.body);
+    console.log('User:', req.user.username, 'ID:', req.user.id);
 
     const { description, tags, image_type, license, license_details } = req.body;
     
@@ -80,7 +101,8 @@ router.post('/upload', upload.single('image'), async (req: Request, res: Respons
       width: undefined,  // Use undefined instead of null for optional fields
       height: undefined,
       duration_seconds: undefined,
-      source_url: undefined
+      source_url: undefined,
+      uploaded_by: req.user.id
     };
 
     console.log('Image data to save:', imageData);
@@ -101,10 +123,24 @@ router.post('/upload', upload.single('image'), async (req: Request, res: Respons
 });
 
 // URL upload endpoint
-router.post('/upload-url', async (req: Request, res: Response) => {
+router.post('/upload-url', requireAuth, async (req: Request, res: Response) => {
   try {
+    // Check if user is an image contributor and has reached the limit
+    if (req.user.is_image_contributor && !req.user.is_admin && !req.user.is_reviewer) {
+      const uploadCount = await ImageModel.countByUser(req.user.id);
+      if (uploadCount >= 20) {
+        return res.status(403).json({ 
+          error: 'Upload limit reached', 
+          message: 'Image contributors are limited to 20 image uploads. Please contact an administrator if you need to upload more images.',
+          currentCount: uploadCount,
+          limit: 20
+        });
+      }
+    }
+
     console.log('=== UPLOAD-URL REQUEST START ===');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('User:', req.user.username, 'ID:', req.user.id);
     
     const { 
       url, 
@@ -214,7 +250,8 @@ router.post('/upload-url', async (req: Request, res: Response) => {
       width: undefined,
       height: undefined,
       duration_seconds: undefined,
-      source_url: source_url || url // Store the original URL
+      source_url: source_url || url, // Store the original URL
+      uploaded_by: req.user.id
     };
 
     console.log('Creating image in database with data:', JSON.stringify(imageData, null, 2));
@@ -520,6 +557,46 @@ router.get('/serve/:filename', (req: Request, res: Response) => {
   } catch (error) {
     console.error('Serve file error:', error);
     res.status(500).json({ error: 'Failed to serve file' });
+  }
+});
+
+// Get user's contribution stats
+router.get('/user/stats', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user.id;
+    const imageCount = await ImageModel.countByUser(userId);
+    
+    // Import ImageDescriptionModel here to avoid circular dependencies
+    const { ImageDescriptionModel } = require('../models/ImageDescription');
+    const descriptionCount = await ImageDescriptionModel.countByUser(userId);
+    
+    const totalContributions = imageCount + descriptionCount;
+    const limit = 20;
+    const remaining = Math.max(0, limit - totalContributions);
+    
+    const isLimited = req.user.is_image_contributor && !req.user.is_admin && !req.user.is_reviewer;
+    
+    res.json({
+      user: {
+        id: userId,
+        username: req.user.username,
+        is_image_contributor: req.user.is_image_contributor,
+        is_admin: req.user.is_admin,
+        is_reviewer: req.user.is_reviewer
+      },
+      stats: {
+        images_uploaded: imageCount,
+        descriptions_created: descriptionCount,
+        total_contributions: totalContributions,
+        limit: isLimited ? limit : null,
+        remaining: isLimited ? remaining : null,
+        is_limited: isLimited,
+        at_limit: isLimited && totalContributions >= limit
+      }
+    });
+  } catch (error) {
+    console.error('Get user stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch user statistics' });
   }
 });
 

@@ -8,6 +8,7 @@ export interface ImageDescription {
   modality?: 'transthoracic' | 'transesophageal' | 'non-echo';
   echo_view?: string;
   image_type?: 'still' | 'cine';
+  created_by?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -15,8 +16,8 @@ export interface ImageDescription {
 export class ImageDescriptionModel {
   static async create(imageDescription: Omit<ImageDescription, 'id' | 'created_at' | 'updated_at'>): Promise<ImageDescription> {
     const result = await query(`
-      INSERT INTO image_descriptions (question_id, description, usage_type, modality, echo_view, image_type)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO image_descriptions (question_id, description, usage_type, modality, echo_view, image_type, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `, [
       imageDescription.question_id,
@@ -24,7 +25,8 @@ export class ImageDescriptionModel {
       imageDescription.usage_type,
       imageDescription.modality || null,
       imageDescription.echo_view || null,
-      imageDescription.image_type || 'still'
+      imageDescription.image_type || 'still',
+      imageDescription.created_by || null
     ]);
     
     return result.rows[0];
@@ -142,5 +144,22 @@ export class ImageDescriptionModel {
   static async getCount(): Promise<number> {
     const result = await query('SELECT COUNT(*) as count FROM image_descriptions');
     return parseInt(result.rows[0].count);
+  }
+
+  static async countByUser(userId: number): Promise<number> {
+    const sql = 'SELECT COUNT(*) as count FROM image_descriptions WHERE created_by = $1';
+    const result = await query(sql, [userId]);
+    return parseInt(result.rows[0].count);
+  }
+
+  static async findByUser(userId: number, limit = 50, offset = 0): Promise<ImageDescription[]> {
+    const sql = `
+      SELECT * FROM image_descriptions 
+      WHERE created_by = $1
+      ORDER BY created_at DESC 
+      LIMIT $2 OFFSET $3
+    `;
+    const result = await query(sql, [userId, limit, offset]);
+    return result.rows;
   }
 }

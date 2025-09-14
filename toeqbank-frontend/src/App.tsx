@@ -12,6 +12,7 @@ import QuestionEditor from './pages/QuestionEditor';
 import QuestionView from './pages/QuestionView';
 import AdminUserPanel from './components/AdminUserPanel';
 import ReviewerDashboard from './pages/ReviewerDashboard';
+import ReviewImages from './pages/ReviewImages';
 import MyReturnedQuestions from './pages/MyReturnedQuestions';
 import BatchManagement from './pages/BatchManagement';
 import BatchDetails from './pages/BatchDetails';
@@ -19,7 +20,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AIManipulation from './pages/AIManipulation';
 
 const AppContent: React.FC = () => {
-  const { user, logout, isAdmin, isReviewer, isImageContributor } = useAuth();
+  const { user, logout, isAdmin, isReviewer } = useAuth();
 
   return (
     <div className="App">
@@ -77,7 +78,33 @@ const AppContent: React.FC = () => {
             <Link to="/images">Image Library</Link>
             <Link to="/needed-images">Needed Images</Link>
             
-            {(isReviewer || isAdmin) && <Link to="/reviewer/dashboard">Review Queue</Link>}
+            {/* Review Dropdown for Reviewers */}
+            {(isReviewer || isAdmin) && (
+              <div className="nav-dropdown">
+                <span className="nav-dropdown-trigger">
+                  Review
+                  <svg className="nav-dropdown-arrow" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 10.5L4 6.5h8l-4 4z"/>
+                  </svg>
+                </span>
+                <div className="nav-dropdown-menu">
+                  <Link to="/reviewer/dashboard" className="nav-dropdown-item">
+                    <span className="nav-dropdown-icon">📝</span>
+                    <div className="nav-dropdown-content">
+                      <span className="nav-dropdown-title">Review Questions</span>
+                      <span className="nav-dropdown-description">Review and approve submitted questions</span>
+                    </div>
+                  </Link>
+                  <Link to="/reviewer/images" className="nav-dropdown-item">
+                    <span className="nav-dropdown-icon">🖼️</span>
+                    <div className="nav-dropdown-content">
+                      <span className="nav-dropdown-title">Review Images</span>
+                      <span className="nav-dropdown-description">Review and manage uploaded images</span>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            )}
             
             {/* Admin Dropdown */}
             {isAdmin && (
@@ -142,6 +169,7 @@ const AppContent: React.FC = () => {
           <Route path="/needed-images" element={<NeededImages />} />
           <Route path="/my-returned-questions" element={<MyReturnedQuestions />} />
           <Route path="/reviewer/dashboard" element={<ReviewerDashboard />} />
+          <Route path="/reviewer/images" element={<ReviewImages />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUserPanel />} />
           <Route path="/admin/batches" element={<BatchManagement />} />

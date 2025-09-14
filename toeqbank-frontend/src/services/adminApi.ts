@@ -12,6 +12,13 @@ export interface AdminUser {
   is_image_contributor: boolean;
   created_at: string;
   last_login?: string;
+  contribution_stats?: {
+    total_images: number;
+    total_descriptions: number;
+    total_contributions: number;
+    permitted_limit: number;
+    remaining: number;
+  };
 }
 
 export interface CreateUserData {

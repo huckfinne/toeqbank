@@ -44,7 +44,19 @@ router.post('/register', async (req: Request, res: Response) => {
     }
     
     // Create user
-    const user = await UserModel.create(userData);
+    let user;
+    try {
+      user = await UserModel.create(userData);
+    } catch (createError: any) {
+      if (createError.code === '23505') { // Unique constraint violation
+        if (createError.constraint === 'users_username_key') {
+          return res.status(409).json({ error: 'Username already exists' });
+        } else if (createError.constraint === 'users_email_key') {
+          return res.status(409).json({ error: 'Email already exists' });
+        }
+      }
+      throw createError; // Re-throw other errors
+    }
     
     // Generate token
     const token = generateToken(user);
@@ -244,8 +256,11 @@ router.get('/verify', requireAuth, (req: Request, res: Response) => {
 router.get('/admin/users', requireAdmin, async (req: Request, res: Response) => {
   try {
     const users = await UserModel.findAll();
-    res.json({
-      users: users.map(user => ({
+    const { ImageModel } = require('../models/Image');
+    
+    // Get statistics for image contributors
+    const usersWithStats = await Promise.all(users.map(async (user) => {
+      const baseUser = {
         id: user.id,
         username: user.username,
         email: user.email,
@@ -253,9 +268,31 @@ router.get('/admin/users', requireAdmin, async (req: Request, res: Response) => 
         last_name: user.last_name,
         is_admin: user.is_admin,
         is_reviewer: user.is_reviewer,
+        is_image_contributor: user.is_image_contributor,
         created_at: user.created_at,
         last_login: user.last_login
-      }))
+      };
+
+      // Add statistics for image contributors
+      if (user.is_image_contributor) {
+        const stats = await ImageModel.getContributorStats(user.id);
+        return {
+          ...baseUser,
+          contribution_stats: {
+            total_images: stats.total_images,
+            total_descriptions: stats.total_descriptions,
+            total_contributions: stats.total_contributions,
+            permitted_limit: stats.permitted_limit,
+            remaining: stats.remaining
+          }
+        };
+      }
+      
+      return baseUser;
+    }));
+
+    res.json({
+      users: usersWithStats
     });
   } catch (error) {
     console.error('Admin get users error:', error);
@@ -541,7 +578,19 @@ router.post('/register-with-token', async (req: Request, res: Response) => {
       is_image_contributor: registrationToken.role === 'image_contributor'
     };
     
-    const user = await UserModel.create(userData);
+    let user;
+    try {
+      user = await UserModel.create(userData);
+    } catch (createError: any) {
+      if (createError.code === '23505') { // Unique constraint violation
+        if (createError.constraint === 'users_username_key') {
+          return res.status(409).json({ error: 'Username already exists' });
+        } else if (createError.constraint === 'users_email_key') {
+          return res.status(409).json({ error: 'Email already exists' });
+        }
+      }
+      throw createError; // Re-throw other errors
+    }
     
     // Mark token as used
     await RegistrationTokenModel.markAsUsed(registrationToken.id!, user.id!);
