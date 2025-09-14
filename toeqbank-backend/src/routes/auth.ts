@@ -486,7 +486,13 @@ router.post('/admin/registration-tokens', requireAdmin, async (req: Request, res
     const token = await RegistrationTokenModel.create(role, expiresInHours);
     
     // Generate the full registration URL
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // In production, always use the production URL
+    let baseUrl: string;
+    if (process.env.NODE_ENV === 'production') {
+      baseUrl = 'https://toeqbank-wxhxl.ondigitalocean.app';
+    } else {
+      baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    }
     const registrationUrl = `${baseUrl}/register?token=${token.token}`;
     
     res.json({
