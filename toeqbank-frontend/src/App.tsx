@@ -21,6 +21,9 @@ import AIManipulation from './pages/AIManipulation';
 
 const AppContent: React.FC = () => {
   const { user, logout, isAdmin, isReviewer } = useAuth();
+  
+  // Check if user is ONLY an image contributor (no admin or reviewer privileges)
+  const isOnlyImageContributor = user && user.is_image_contributor === true && !user.is_admin && !user.is_reviewer;
 
   return (
     <div className="App">
@@ -28,8 +31,8 @@ const AppContent: React.FC = () => {
         <div className="nav-container">
           <h1>TOE Question Bank</h1>
           <div className="nav-links">
-            {/* Show Questions dropdown only if not ONLY an image contributor */}
-            {(!user || isAdmin || isReviewer || (user && !user.is_image_contributor)) && (
+            {/* Hide Questions dropdown and Question Bank for users who are ONLY image contributors */}
+            {!isOnlyImageContributor && (
               <>
                 {/* Questions Dropdown */}
                 <div className="nav-dropdown">
