@@ -260,8 +260,8 @@ const ReviewImages: React.FC = () => {
                 className="relative bg-gray-100 flex items-center justify-center"
                 style={{
                   width: '100%',
-                  maxWidth: '600px',
-                  height: '500px',
+                  maxWidth: '1200px',
+                  height: '1000px',
                   margin: '0 auto'
                 }}
               >
