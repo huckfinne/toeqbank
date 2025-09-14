@@ -28,8 +28,8 @@ const AppContent: React.FC = () => {
         <div className="nav-container">
           <h1>TOE Question Bank</h1>
           <div className="nav-links">
-            {/* Show Questions dropdown only if not just an image contributor */}
-            {(!user || !user.is_image_contributor || isAdmin || isReviewer) && (
+            {/* Show Questions dropdown only if not ONLY an image contributor */}
+            {(!user || isAdmin || isReviewer || (user && !user.is_image_contributor)) && (
               <>
                 {/* Questions Dropdown */}
                 <div className="nav-dropdown">
