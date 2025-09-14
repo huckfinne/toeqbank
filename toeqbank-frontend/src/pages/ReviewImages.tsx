@@ -180,7 +180,7 @@ const ReviewImages: React.FC = () => {
         </div>
       </div>
 
-      {/* Images Grid */}
+      {/* Images Grid - Card Layout */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         {images.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
@@ -188,111 +188,112 @@ const ReviewImages: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Preview
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      License
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Upload Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {images.map((image) => (
-                    <tr key={image.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex-shrink-0 h-12 w-12">
-                          {isImage(image.mime_type) ? (
-                            <img
-                              src={getImageUrl(image.filename)}
-                              alt={image.original_name}
-                              className="h-12 w-12 object-cover rounded border"
-                            />
-                          ) : isVideo(image.mime_type) ? (
-                            <video
-                              src={getImageUrl(image.filename)}
-                              className="h-12 w-12 object-cover rounded border"
-                              muted
-                            />
-                          ) : (
-                            <div className="h-12 w-12 bg-gray-200 rounded border flex items-center justify-center">
-                              <span className="text-xs text-gray-500">File</span>
-                            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6">
+              {images.map((image) => (
+                <div key={image.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                  {/* Image Preview - Fixed Height Container */}
+                  <div className="relative w-full h-48 bg-gray-100 rounded-t-lg overflow-hidden">
+                    {isImage(image.mime_type) ? (
+                      <img
+                        src={getImageUrl(image.filename)}
+                        alt={image.original_name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{ maxWidth: '100%', maxHeight: '100%' }}
+                      />
+                    ) : isVideo(image.mime_type) ? (
+                      <video
+                        src={getImageUrl(image.filename)}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{ maxWidth: '100%', maxHeight: '100%' }}
+                        muted
+                        controls={false}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-gray-500 text-sm">File</span>
+                      </div>
+                    )}
+                    
+                    {/* Type Badge */}
+                    <div className="absolute top-2 left-2">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        image.image_type === 'still' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {image.image_type === 'still' ? 'Still' : 'Cine'}
+                      </span>
+                    </div>
+
+                    {/* License Badge */}
+                    <div className="absolute top-2 right-2">
+                      <span className="inline-block px-2 py-1 text-xs bg-white bg-opacity-90 text-gray-800 rounded">
+                        {image.license}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-4">
+                    {/* Filename & Size */}
+                    <div className="mb-2">
+                      <h3 className="text-sm font-medium text-gray-900 truncate" title={image.original_name}>
+                        {image.original_name}
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {formatFileSize(image.file_size)} • {image.mime_type}
+                      </p>
+                    </div>
+
+                    {/* Description */}
+                    <div className="mb-3">
+                      {image.description ? (
+                        <p 
+                          className="text-xs text-gray-700 leading-relaxed"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            maxHeight: '3.6em'
+                          }}
+                          title={image.description}
+                        >
+                          {image.description}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">No description</p>
+                      )}
+                    </div>
+
+                    {/* Tags */}
+                    {image.tags && image.tags.length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex flex-wrap gap-1">
+                          {image.tags.slice(0, 2).map((tag, index) => (
+                            <span
+                              key={index}
+                              className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {image.tags.length > 2 && (
+                            <span className="text-xs text-gray-500 py-1">
+                              +{image.tags.length - 2}
+                            </span>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900 truncate max-w-xs">
-                            {image.original_name}
-                          </div>
-                          <div className="text-gray-500">
-                            {formatFileSize(image.file_size)} • {image.mime_type}
-                          </div>
-                          {image.tags && image.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {image.tags.slice(0, 3).map((tag, index) => (
-                                <span
-                                  key={index}
-                                  className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                              {image.tags.length > 3 && (
-                                <span className="text-xs text-gray-500">
-                                  +{image.tags.length - 3} more
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          image.image_type === 'still' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {image.image_type === 'still' ? 'Still' : 'Cine'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs">
-                          {image.description ? (
-                            <p className="truncate">{image.description}</p>
-                          ) : (
-                            <span className="text-gray-400 italic">No description</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">
-                          {image.license}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(image.created_at)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    )}
+
+                    {/* Upload Date */}
+                    <div className="text-xs text-gray-500 border-t pt-2">
+                      {formatDate(image.created_at)}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Pagination */}
