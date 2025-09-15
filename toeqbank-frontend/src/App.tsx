@@ -18,6 +18,7 @@ import BatchManagement from './pages/BatchManagement';
 import BatchDetails from './pages/BatchDetails';
 import AdminDashboard from './pages/AdminDashboard';
 import AIManipulation from './pages/AIManipulation';
+import AIGenerateQuestions from './pages/AIGenerateQuestions';
 
 const AppContent: React.FC = () => {
   const { user, logout, isAdmin, isReviewer } = useAuth();
@@ -71,6 +72,15 @@ const AppContent: React.FC = () => {
                         <span className="nav-dropdown-description">Questions needing your attention</span>
                       </div>
                     </Link>
+                    {isAdmin && (
+                      <Link to="/ai-generate-questions" className="nav-dropdown-item">
+                        <span className="nav-dropdown-icon">🤖</span>
+                        <div className="nav-dropdown-content">
+                          <span className="nav-dropdown-title">AI Generate Questions from Images</span>
+                          <span className="nav-dropdown-description">Generate questions using AI from uploaded images</span>
+                        </div>
+                      </Link>
+                    )}
                   </div>
                 </div>
                 
@@ -178,6 +188,7 @@ const AppContent: React.FC = () => {
           <Route path="/admin/batches" element={<BatchManagement />} />
           <Route path="/admin/batches/:id" element={<BatchDetails />} />
           <Route path="/admin/ai" element={<AIManipulation />} />
+          <Route path="/ai-generate-questions" element={<AIGenerateQuestions />} />
         </Routes>
       </main>
     </div>
