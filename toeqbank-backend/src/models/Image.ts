@@ -74,15 +74,18 @@ export class ImageModel {
     return result.rows[0];
   }
 
-  static async findAll(limit = 50, offset = 0, imageType?: 'still' | 'cine', license?: LicenseType): Promise<Image[]> {
+  static async findAll(limit = 50, offset = 0, imageType?: 'still' | 'cine', license?: LicenseType, uploadedBy?: number): Promise<Image[]> {
     let sql = `
-      SELECT * FROM images 
+      SELECT i.*, u.username as uploader_username 
+      FROM images i
+      LEFT JOIN users u ON i.uploaded_by = u.id
       WHERE ($3::text IS NULL OR image_type = $3::text)
       AND ($4::text IS NULL OR license = $4::text)
+      AND ($5::integer IS NULL OR uploaded_by = $5::integer)
       ORDER BY created_at DESC 
       LIMIT $1 OFFSET $2
     `;
-    const result = await query(sql, [limit, offset, imageType, license]);
+    const result = await query(sql, [limit, offset, imageType, license, uploadedBy]);
     return result.rows;
   }
 
@@ -129,13 +132,14 @@ export class ImageModel {
     return result.rowCount > 0;
   }
 
-  static async getCount(imageType?: 'still' | 'cine', license?: LicenseType): Promise<number> {
+  static async getCount(imageType?: 'still' | 'cine', license?: LicenseType, uploadedBy?: number): Promise<number> {
     const sql = `
       SELECT COUNT(*) as count FROM images 
       WHERE ($1::text IS NULL OR image_type = $1::text)
       AND ($2::text IS NULL OR license = $2::text)
+      AND ($3::integer IS NULL OR uploaded_by = $3::integer)
     `;
-    const result = await query(sql, [imageType, license]);
+    const result = await query(sql, [imageType, license, uploadedBy]);
     return parseInt(result.rows[0].count);
   }
 
@@ -298,5 +302,21 @@ export class ImageModel {
     `;
     const result = await query(sql, [status, rating, reviewerId, imageId]);
     return result.rows[0] || null;
+  }
+
+  static async getImageUploaders(): Promise<{ id: number; username: string; image_count: number }[]> {
+    const sql = `
+      SELECT u.id, u.username, COUNT(i.id) as image_count
+      FROM users u
+      INNER JOIN images i ON u.id = i.uploaded_by
+      GROUP BY u.id, u.username
+      HAVING COUNT(i.id) > 0
+      ORDER BY u.username ASC
+    `;
+    const result = await query(sql, []);
+    return result.rows.map((row: any) => ({
+      ...row,
+      image_count: parseInt(row.image_count)
+    }));
   }
 }

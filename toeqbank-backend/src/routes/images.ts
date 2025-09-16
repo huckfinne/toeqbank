@@ -365,16 +365,17 @@ router.get('/', async (req: Request, res: Response) => {
     const imageType = req.query.type as 'still' | 'cine' | undefined;
     const license = req.query.license as any;
     const tags = req.query.tags as string;
+    const uploadedBy = req.query.uploaded_by ? parseInt(req.query.uploaded_by as string) : undefined;
 
     let images;
     if (tags) {
       const tagArray = tags.split(',').map(t => t.trim());
       images = await ImageModel.findByTags(tagArray, limit, offset);
     } else {
-      images = await ImageModel.findAll(limit, offset, imageType, license);
+      images = await ImageModel.findAll(limit, offset, imageType, license, uploadedBy);
     }
 
-    const totalCount = await ImageModel.getCount(imageType, license);
+    const totalCount = await ImageModel.getCount(imageType, license, uploadedBy);
     
     res.json({
       images,
@@ -534,6 +535,22 @@ router.post('/:id/review', requireAuth, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Submit review error:', error);
     res.status(500).json({ error: 'Failed to submit review' });
+  }
+});
+
+// Get users who have uploaded images (for admin filtering)
+router.get('/uploaders', requireAuth, async (req: Request, res: Response) => {
+  try {
+    // Only allow admins to access this endpoint
+    if (!req.user.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const uploaders = await ImageModel.getImageUploaders();
+    res.json(uploaders);
+  } catch (error) {
+    console.error('Get image uploaders error:', error);
+    res.status(500).json({ error: 'Failed to fetch image uploaders' });
   }
 });
 

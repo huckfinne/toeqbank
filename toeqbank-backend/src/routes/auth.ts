@@ -11,8 +11,8 @@ router.post('/register', async (req: Request, res: Response) => {
     const userData: CreateUserRequest = req.body;
     
     // Validate required fields
-    if (!userData.username || !userData.email || !userData.password) {
-      return res.status(400).json({ error: 'Username, email, and password are required' });
+    if (!userData.username || !userData.email || !userData.password || !userData.exam_category || !userData.exam_type) {
+      return res.status(400).json({ error: 'Username, email, password, exam category, and exam type are required' });
     }
     
     // Validate username format
@@ -306,8 +306,8 @@ router.post('/admin/users', requireAdmin, async (req: Request, res: Response) =>
     const userData: CreateUserRequest & { is_admin?: boolean; is_reviewer?: boolean } = req.body;
     
     // Validate required fields
-    if (!userData.username || !userData.email || !userData.password) {
-      return res.status(400).json({ error: 'Username, email, and password are required' });
+    if (!userData.username || !userData.email || !userData.password || !userData.exam_category || !userData.exam_type) {
+      return res.status(400).json({ error: 'Username, email, password, exam category, and exam type are required' });
     }
     
     // Validate username format
@@ -547,11 +547,11 @@ router.get('/registration-tokens/:token/validate', async (req: Request, res: Res
 // Register with token (public)
 router.post('/register-with-token', async (req: Request, res: Response) => {
   try {
-    const { token, username, email, password, first_name, last_name } = req.body;
+    const { token, username, email, password, first_name, last_name, exam_category, exam_type } = req.body;
     
     // Validate required fields
-    if (!token || !username || !email || !password) {
-      return res.status(400).json({ error: 'Token, username, email, and password are required' });
+    if (!token || !username || !email || !password || !exam_category || !exam_type) {
+      return res.status(400).json({ error: 'Token, username, email, password, exam category, and exam type are required' });
     }
     
     // Validate token
@@ -581,7 +581,9 @@ router.post('/register-with-token', async (req: Request, res: Response) => {
       last_name,
       is_admin: false,
       is_reviewer: false,
-      is_image_contributor: registrationToken.role === 'image_contributor'
+      is_image_contributor: registrationToken.role === 'image_contributor',
+      exam_category,
+      exam_type
     };
     
     let user;

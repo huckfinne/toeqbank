@@ -1,6 +1,24 @@
 import { query } from './database';
 import bcrypt from 'bcryptjs';
 
+export const EXAM_CATEGORIES = {
+  ECHOCARDIOGRAPHY: 'echocardiography',
+  USMLE: 'usmle'
+} as const;
+
+export const EXAM_TYPES = {
+  EACVI_TOE: 'eacvi_toe',
+  TTE: 'tte',
+  STEP_1: 'step1',
+  STEP_2: 'step2',
+  STEP_3: 'step3'
+} as const;
+
+export const EXAM_CATEGORY_TYPES = {
+  [EXAM_CATEGORIES.ECHOCARDIOGRAPHY]: [EXAM_TYPES.EACVI_TOE, EXAM_TYPES.TTE],
+  [EXAM_CATEGORIES.USMLE]: [EXAM_TYPES.STEP_1, EXAM_TYPES.STEP_2, EXAM_TYPES.STEP_3]
+} as const;
+
 export interface User {
   id?: number;
   username: string;
@@ -12,6 +30,8 @@ export interface User {
   is_admin?: boolean;
   is_reviewer?: boolean;
   is_image_contributor?: boolean;
+  exam_category?: string;
+  exam_type?: string;
   created_at?: Date;
   updated_at?: Date;
   last_login?: Date;
@@ -26,6 +46,8 @@ export interface CreateUserRequest {
   is_admin?: boolean;
   is_reviewer?: boolean;
   is_image_contributor?: boolean;
+  exam_category: string;
+  exam_type: string;
 }
 
 export interface LoginRequest {
@@ -34,16 +56,41 @@ export interface LoginRequest {
 }
 
 export class UserModel {
+  static validateExamSelection(examCategory: string, examType: string): boolean {
+    const validCategories = Object.values(EXAM_CATEGORIES) as string[];
+    const validTypes = Object.values(EXAM_TYPES) as string[];
+    
+    if (!validCategories.includes(examCategory)) {
+      return false;
+    }
+    
+    if (!validTypes.includes(examType)) {
+      return false;
+    }
+    
+    const allowedTypesForCategory = EXAM_CATEGORY_TYPES[examCategory as keyof typeof EXAM_CATEGORY_TYPES];
+    if (!allowedTypesForCategory) {
+      return false;
+    }
+    
+    return (allowedTypesForCategory as readonly string[]).includes(examType);
+  }
+
   static async create(userData: CreateUserRequest): Promise<User> {
     try {
+      // Validate exam selection
+      if (!this.validateExamSelection(userData.exam_category, userData.exam_type)) {
+        throw new Error('Invalid exam category and type combination');
+      }
+
       // Hash password
       const saltRounds = 12;
       const password_hash = await bcrypt.hash(userData.password, saltRounds);
       
       const sql = `
-        INSERT INTO users (username, email, password_hash, first_name, last_name, is_admin, is_reviewer, is_image_contributor)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at
+        INSERT INTO users (username, email, password_hash, first_name, last_name, is_admin, is_reviewer, is_image_contributor, exam_category, exam_type)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, exam_category, exam_type, created_at, updated_at
       `;
       
       const values = [
@@ -54,7 +101,9 @@ export class UserModel {
         userData.last_name || null,
         userData.is_admin === true,
         userData.is_reviewer === true,
-        userData.is_image_contributor === true
+        userData.is_image_contributor === true,
+        userData.exam_category,
+        userData.exam_type
       ];
       
       console.log('Creating user with values:', values.map((v, i) => i === 2 ? '[PASSWORD]' : v));
@@ -80,7 +129,7 @@ export class UserModel {
   }
 
   static async findById(id: number): Promise<User | null> {
-    const sql = 'SELECT id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at, last_login FROM users WHERE id = $1 AND is_active = true';
+    const sql = 'SELECT id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, exam_category, exam_type, created_at, updated_at, last_login FROM users WHERE id = $1 AND is_active = true';
     const result = await query(sql, [id]);
     return result.rows[0] || null;
   }
@@ -110,7 +159,7 @@ export class UserModel {
       UPDATE users 
       SET ${setClause}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $1 AND is_active = true
-      RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at, last_login
+      RETURNING id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, exam_category, exam_type, created_at, updated_at, last_login
     `;
     
     const values = [id, ...fields.map(field => userData[field as keyof User])];
@@ -141,7 +190,7 @@ export class UserModel {
 
   static async findAll(): Promise<User[]> {
     const sql = `
-      SELECT id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, created_at, updated_at, last_login 
+      SELECT id, username, email, first_name, last_name, is_active, is_admin, is_reviewer, is_image_contributor, exam_category, exam_type, created_at, updated_at, last_login 
       FROM users 
       WHERE is_active = true 
       ORDER BY created_at DESC
