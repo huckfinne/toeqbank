@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { imageService, Image, LicenseType } from '../services/api';
 
 interface ImageGalleryProps {
@@ -8,6 +9,7 @@ interface ImageGalleryProps {
   showQuestionInfo?: boolean;
   filterType?: 'still' | 'cine';
   filterLicense?: LicenseType;
+  filterUser?: number;
   searchTags?: string;
 }
 
@@ -18,8 +20,10 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   showQuestionInfo = false,
   filterType,
   filterLicense,
+  filterUser,
   searchTags
 }) => {
+  const navigate = useNavigate();
   const [images, setImages] = useState<Image[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +56,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
         offset,
         type: filterType,
         license: filterLicense,
+        uploaded_by: filterUser,
         tags: searchTags
       });
 
@@ -78,7 +83,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
 
   useEffect(() => {
     loadImages(true);
-  }, [filterType, filterLicense, searchTags]);
+  }, [filterType, filterLicense, filterUser, searchTags]);
 
   const loadMore = () => {
     if (!loading && pagination.hasMore) {
@@ -89,7 +94,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   const handleImageClick = (image: Image) => {
     console.log('🔥 UPDATED ImageGallery: handleImageClick called with image:', image.id, image.description);
     console.log('🔥 UPDATED ImageGallery: onImageSelect exists?', !!onImageSelect);
-    onImageSelect?.(image);
+    
+    if (onImageSelect) {
+      // In selection mode - call the provided handler
+      onImageSelect(image);
+    } else {
+      // Not in selection mode - navigate to detail view
+      navigate(`/image/${image.id}`);
+    }
   };
 
   const startEditing = (image: Image) => {
@@ -251,10 +263,20 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                           selectedImages.includes(image.id!) ? 'ring-2 ring-blue-500 rounded' : ''
                         }`}
                       >
-                        <div className="relative bg-gray-100 rounded overflow-hidden mx-auto mb-2" style={{width: '96px', height: '96px', maxWidth: '96px', maxHeight: '96px'}}>
+                        {/* Image ID above the image */}
+                        <div className="text-center mb-1">
+                          <span className="px-2 py-1 text-sm font-bold rounded bg-blue-500 text-white">
+                            ID: {image.id}
+                          </span>
+                        </div>
+                        <div 
+                          className={`relative bg-gray-100 rounded overflow-hidden mx-auto mb-2 ${!onImageSelect ? 'cursor-pointer' : ''}`} 
+                          style={{width: '96px', height: '96px', maxWidth: '96px', maxHeight: '96px'}}
+                          onClick={() => !onImageSelect && handleImageClick(image)}
+                        >
                           {image.mime_type.startsWith('video/') ? (
                             <video
-                              src={imageService.getImageUrl(image.filename)}
+                              src={imageService.getImageUrl(image.file_path || image.filename)}
                               className="w-full h-full object-cover"
                               style={{width: '96px', height: '96px', maxWidth: '96px', maxHeight: '96px'}}
                               muted
@@ -264,7 +286,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                             />
                           ) : (
                             <img
-                              src={imageService.getImageUrl(image.filename)}
+                              src={imageService.getImageUrl(image.file_path || image.filename)}
                               alt={image.description || image.original_name}
                               className="w-full h-full object-cover"
                               style={{width: '96px', height: '96px', maxWidth: '96px', maxHeight: '96px'}}

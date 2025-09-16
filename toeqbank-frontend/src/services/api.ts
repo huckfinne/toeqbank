@@ -227,6 +227,7 @@ export const imageService = {
     type?: 'still' | 'cine';
     license?: LicenseType;
     tags?: string;
+    uploaded_by?: number;
   }): Promise<ImagesResponse> => {
     const searchParams = new URLSearchParams();
     if (params?.limit) searchParams.set('limit', params.limit.toString());
@@ -234,6 +235,7 @@ export const imageService = {
     if (params?.type) searchParams.set('type', params.type);
     if (params?.license) searchParams.set('license', params.license);
     if (params?.tags) searchParams.set('tags', params.tags);
+    if (params?.uploaded_by) searchParams.set('uploaded_by', params.uploaded_by.toString());
     
     const response = await api.get(`/images?${searchParams.toString()}`);
     return response.data;
@@ -401,6 +403,12 @@ export const imageService = {
     { value: 'copyright-borrowed', label: 'Copyright Borrowed', category: 'Special' },
     { value: 'user-contributed', label: 'User Contributed', category: 'Special' },
   ],
+
+  // Get users who have uploaded images (admin only)
+  getImageUploaders: async (): Promise<{ id: number; username: string; image_count: number }[]> => {
+    const response = await api.get('/images/uploaders');
+    return response.data;
+  },
 };
 
 export interface ImageDescription {

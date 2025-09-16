@@ -17,14 +17,19 @@ router.use(optionalAuth);
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// Get all questions with pagination
+// Get all questions with pagination (filtered by user's exam)
 router.get('/', async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
     
-    const questions = await QuestionModel.findAll(limit, offset);
-    const total = await QuestionModel.getCount();
+    // Get user's exam category and type from req.user
+    const user = (req as any).user;
+    const examCategory = user?.exam_category;
+    const examType = user?.exam_type;
+    
+    const questions = await QuestionModel.findAll(limit, offset, examCategory, examType);
+    const total = await QuestionModel.getCount(examCategory, examType);
     
     res.json({
       questions,
@@ -75,6 +80,13 @@ router.post('/', async (req: Request, res: Response) => {
     
     if (!['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(questionData.correct_answer)) {
       return res.status(400).json({ error: 'correct_answer must be A, B, C, D, E, F, or G' });
+    }
+    
+    // Set exam category and type from user
+    const user = (req as any).user;
+    if (user) {
+      questionData.exam_category = user.exam_category;
+      questionData.exam_type = user.exam_type;
     }
     
     const question = await QuestionModel.create(questionData);

@@ -14,6 +14,8 @@ export interface Question {
   correct_answer: string;
   explanation?: string;
   source_folder?: string;
+  exam_category?: string;
+  exam_type?: string;
   review_status?: 'pending' | 'approved' | 'rejected' | 'returned';
   review_notes?: string;
   reviewed_by?: number;
@@ -27,8 +29,8 @@ export interface Question {
 export class QuestionModel {
   static async create(questionData: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'>): Promise<Question> {
     const sql = `
-      INSERT INTO questions (question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder, review_status, review_notes, uploaded_by, batch_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      INSERT INTO questions (question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder, exam_category, exam_type, review_status, review_notes, uploaded_by, batch_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `;
     
@@ -44,6 +46,8 @@ export class QuestionModel {
       questionData.correct_answer,
       questionData.explanation,
       questionData.source_folder,
+      questionData.exam_category || 'echocardiography',
+      questionData.exam_type || 'eacvi_toe',
       questionData.review_status || 'pending',
       questionData.review_notes || null,
       questionData.uploaded_by || null,
@@ -63,13 +67,22 @@ export class QuestionModel {
     return updateResult.rows[0];
   }
 
-  static async findAll(limit = 50, offset = 0): Promise<Question[]> {
-    const sql = `
+  static async findAll(limit = 50, offset = 0, examCategory?: string, examType?: string): Promise<Question[]> {
+    let sql = `
       SELECT * FROM questions 
-      ORDER BY created_at DESC 
-      LIMIT $1 OFFSET $2
     `;
-    const result = await query(sql, [limit, offset]);
+    const values: any[] = [];
+    let paramCounter = 1;
+    
+    if (examCategory && examType) {
+      sql += ` WHERE exam_category = $${paramCounter++} AND exam_type = $${paramCounter++} `;
+      values.push(examCategory, examType);
+    }
+    
+    sql += ` ORDER BY created_at DESC LIMIT $${paramCounter++} OFFSET $${paramCounter}`;
+    values.push(limit, offset);
+    
+    const result = await query(sql, values);
     return result.rows;
   }
 
@@ -159,9 +172,16 @@ export class QuestionModel {
     return Promise.all(updatePromises);
   }
 
-  static async getCount(): Promise<number> {
-    const sql = 'SELECT COUNT(*) as count FROM questions';
-    const result = await query(sql);
+  static async getCount(examCategory?: string, examType?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM questions';
+    const values: any[] = [];
+    
+    if (examCategory && examType) {
+      sql += ' WHERE exam_category = $1 AND exam_type = $2';
+      values.push(examCategory, examType);
+    }
+    
+    const result = await query(sql, values);
     return parseInt(result.rows[0].count);
   }
 

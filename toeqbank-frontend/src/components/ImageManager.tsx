@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { imageService, Image, Question, LicenseType } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import ImageUpload from './ImageUpload';
 import ImageGallery from './ImageGallery';
 
@@ -18,12 +19,33 @@ const ImageManager: React.FC<ImageManagerProps> = ({
   selectedImages = [],
   questionId
 }) => {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'gallery' | 'upload'>('gallery');
   const [filterType, setFilterType] = useState<'all' | 'still' | 'cine'>('all');
   const [filterLicense, setFilterLicense] = useState<'all' | LicenseType>('all');
+  const [filterUser, setFilterUser] = useState<'all' | number>('all');
   const [searchTags, setSearchTags] = useState('');
   const [selectedImage, setSelectedImage] = useState<Image | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [imageUploaders, setImageUploaders] = useState<{ id: number; username: string; image_count: number }[]>([]);
+
+  // Load image uploaders for admin users
+  useEffect(() => {
+    const loadImageUploaders = async () => {
+      console.log('Loading image uploaders, isAdmin:', isAdmin);
+      if (isAdmin) {
+        try {
+          const uploaders = await imageService.getImageUploaders();
+          console.log('Loaded uploaders:', uploaders);
+          setImageUploaders(uploaders);
+        } catch (error) {
+          console.error('Failed to load image uploaders:', error);
+        }
+      }
+    };
+
+    loadImageUploaders();
+  }, [isAdmin]);
 
   const handleUpload = (image: Image) => {
     setRefreshKey(prev => prev + 1);
@@ -33,6 +55,9 @@ const ImageManager: React.FC<ImageManagerProps> = ({
       onImageSelect?.(image);
     }
   };
+
+  // Debug logging
+  console.log('ImageManager render - isAdmin:', isAdmin, 'uploaders count:', imageUploaders.length);
 
   const handleImageClick = (image: Image) => {
     console.log('ImageManager: handleImageClick called with image:', image.id, image.description, 'mode:', mode);
@@ -156,6 +181,24 @@ const ImageManager: React.FC<ImageManagerProps> = ({
                           ))}
                         </select>
                       </div>
+
+                      {isAdmin && imageUploaders.length > 0 && (
+                        <div className="flex items-center space-x-3">
+                          <label className="text-sm font-semibold text-gray-700">Uploaded by:</label>
+                          <select
+                            value={filterUser}
+                            onChange={(e) => setFilterUser(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                            className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                          >
+                            <option value="all">All Users</option>
+                            {imageUploaders.map((uploader) => (
+                              <option key={uploader.id} value={uploader.id}>
+                                {uploader.username} ({uploader.image_count})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -165,12 +208,13 @@ const ImageManager: React.FC<ImageManagerProps> = ({
               {activeTab === 'gallery' ? (
                 <ImageGallery
                   key={refreshKey}
-                  onImageSelect={handleImageClick}
+                  onImageSelect={mode === 'selection' ? handleImageClick : undefined}
                   onImageRemove={onImageRemove}
                   selectedImages={selectedImages}
                   showQuestionInfo={mode === 'standalone'}
                   filterType={filterType === 'all' ? undefined : filterType}
                   filterLicense={filterLicense === 'all' ? undefined : filterLicense}
+                  filterUser={filterUser === 'all' ? undefined : filterUser}
                   searchTags={searchTags}
                 />
               ) : (
@@ -288,13 +332,13 @@ const ImageDetails: React.FC<{
       <div className="aspect-square mb-4 bg-gray-100 rounded-lg overflow-hidden">
         {image.mime_type.startsWith('video/') ? (
           <video
-            src={imageService.getImageUrl(image.filename)}
+            src={imageService.getImageUrl(image.file_path || image.filename)}
             className="w-full h-full object-cover"
             controls
           />
         ) : (
           <img
-            src={imageService.getImageUrl(image.filename)}
+            src={imageService.getImageUrl(image.file_path || image.filename)}
             alt={image.description || image.original_name}
             className="w-full h-full object-cover"
           />

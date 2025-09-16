@@ -19,6 +19,8 @@ import BatchDetails from './pages/BatchDetails';
 import AdminDashboard from './pages/AdminDashboard';
 import AIManipulation from './pages/AIManipulation';
 import AIGenerateQuestions from './pages/AIGenerateQuestions';
+import ImageView from './pages/ImageView';
+import UserSettings from './pages/UserSettings';
 
 const AppContent: React.FC = () => {
   const { user, logout, isAdmin, isReviewer } = useAuth();
@@ -163,6 +165,7 @@ const AppContent: React.FC = () => {
           </div>
           <div className="nav-user">
             <span className="welcome-text">Welcome, {user?.username}!</span>
+            <Link to="/settings" className="settings-link">Settings</Link>
             <button onClick={logout} className="logout-button">
               Logout
             </button>
@@ -189,6 +192,8 @@ const AppContent: React.FC = () => {
           <Route path="/admin/batches/:id" element={<BatchDetails />} />
           <Route path="/admin/ai" element={<AIManipulation />} />
           <Route path="/ai-generate-questions" element={<AIGenerateQuestions />} />
+          <Route path="/image/:id" element={<ImageView />} />
+          <Route path="/settings" element={<UserSettings />} />
         </Routes>
       </main>
     </div>

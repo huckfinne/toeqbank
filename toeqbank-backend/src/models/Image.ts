@@ -30,6 +30,8 @@ export interface Image {
   license: LicenseType;
   license_details?: string;
   source_url?: string;
+  exam_category?: string;
+  exam_type?: string;
   uploaded_by?: number;
   created_at?: Date;
   updated_at?: Date;
@@ -47,8 +49,8 @@ export interface QuestionImage {
 export class ImageModel {
   static async create(imageData: Omit<Image, 'id' | 'created_at' | 'updated_at'>): Promise<Image> {
     const sql = `
-      INSERT INTO images (filename, original_name, file_path, file_size, mime_type, image_type, width, height, duration_seconds, description, tags, license, license_details, source_url, uploaded_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      INSERT INTO images (filename, original_name, file_path, file_size, mime_type, image_type, width, height, duration_seconds, description, tags, license, license_details, source_url, exam_category, exam_type, uploaded_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `;
     
@@ -67,6 +69,8 @@ export class ImageModel {
       imageData.license,
       imageData.license_details || null,
       imageData.source_url || null,
+      imageData.exam_category || 'echocardiography',
+      imageData.exam_type || 'eacvi_toe',
       imageData.uploaded_by || null
     ];
     
@@ -74,7 +78,7 @@ export class ImageModel {
     return result.rows[0];
   }
 
-  static async findAll(limit = 50, offset = 0, imageType?: 'still' | 'cine', license?: LicenseType, uploadedBy?: number): Promise<Image[]> {
+  static async findAll(limit = 50, offset = 0, imageType?: 'still' | 'cine', license?: LicenseType, uploadedBy?: number, examCategory?: string, examType?: string): Promise<Image[]> {
     let sql = `
       SELECT i.*, u.username as uploader_username 
       FROM images i
@@ -82,10 +86,12 @@ export class ImageModel {
       WHERE ($3::text IS NULL OR image_type = $3::text)
       AND ($4::text IS NULL OR license = $4::text)
       AND ($5::integer IS NULL OR uploaded_by = $5::integer)
+      AND ($6::text IS NULL OR exam_category = $6::text)
+      AND ($7::text IS NULL OR exam_type = $7::text)
       ORDER BY created_at DESC 
       LIMIT $1 OFFSET $2
     `;
-    const result = await query(sql, [limit, offset, imageType, license, uploadedBy]);
+    const result = await query(sql, [limit, offset, imageType, license, uploadedBy, examCategory, examType]);
     return result.rows;
   }
 
@@ -132,14 +138,16 @@ export class ImageModel {
     return result.rowCount > 0;
   }
 
-  static async getCount(imageType?: 'still' | 'cine', license?: LicenseType, uploadedBy?: number): Promise<number> {
+  static async getCount(imageType?: 'still' | 'cine', license?: LicenseType, uploadedBy?: number, examCategory?: string, examType?: string): Promise<number> {
     const sql = `
       SELECT COUNT(*) as count FROM images 
       WHERE ($1::text IS NULL OR image_type = $1::text)
       AND ($2::text IS NULL OR license = $2::text)
       AND ($3::integer IS NULL OR uploaded_by = $3::integer)
+      AND ($4::text IS NULL OR exam_category = $4::text)
+      AND ($5::text IS NULL OR exam_type = $5::text)
     `;
-    const result = await query(sql, [imageType, license, uploadedBy]);
+    const result = await query(sql, [imageType, license, uploadedBy, examCategory, examType]);
     return parseInt(result.rows[0].count);
   }
 

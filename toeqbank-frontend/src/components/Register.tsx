@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
+import ExamSelector, { ExamSelection } from './ExamSelector';
 
 interface RegisterProps {
   onSwitchToLogin: () => void;
@@ -18,6 +19,11 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
     first_name: '',
     last_name: ''
   });
+  const [examSelection, setExamSelection] = useState<ExamSelection>({
+    examCategory: 'echocardiography',
+    examType: 'eacvi_toe'
+  });
+  const [examError, setExamError] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tokenInfo, setTokenInfo] = useState<string | null>(null);
@@ -40,6 +46,7 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setExamError('');
 
     // Validate form
     if (formData.password !== formData.confirmPassword) {
@@ -63,17 +70,28 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
       return;
     }
 
+    // Validate exam selection
+    if (!examSelection.examCategory || !examSelection.examType) {
+      setExamError('Please select both an exam category and specific exam type');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const { confirmPassword, ...registerData } = formData;
+      const fullRegisterData = {
+        ...registerData,
+        exam_category: examSelection.examCategory,
+        exam_type: examSelection.examType
+      };
       
       if (registrationToken) {
         // Use token-based registration
-        await registerWithToken(registrationToken, registerData);
+        await registerWithToken(registrationToken, fullRegisterData);
       } else {
         // Use regular registration
-        await register(registerData);
+        await register(fullRegisterData);
       }
       // Registration successful, AuthContext will handle redirect
     } catch (err: any) {
@@ -189,6 +207,16 @@ const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
               required
               disabled={isLoading}
               placeholder="Confirm your password"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-section-label">Exam Selection *</label>
+            <p className="form-help-text">Choose your exam category and specific exam type</p>
+            <ExamSelector
+              value={examSelection}
+              onChange={setExamSelection}
+              error={examError}
             />
           </div>
 

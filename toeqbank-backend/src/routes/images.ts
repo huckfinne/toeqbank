@@ -136,7 +136,9 @@ router.post('/upload', requireAuth, upload.single('image'), async (req: Request,
       height: undefined,
       duration_seconds: undefined,
       source_url: undefined,
-      uploaded_by: req.user.id
+      uploaded_by: req.user.id,
+      exam_category: req.user.exam_category,
+      exam_type: req.user.exam_type
     };
 
     console.log('Image data to save:', imageData);
@@ -316,7 +318,9 @@ router.post('/upload-url', requireAuth, async (req: Request, res: Response) => {
       height: undefined,
       duration_seconds: undefined,
       source_url: source_url || url, // Store the original URL
-      uploaded_by: req.user.id
+      uploaded_by: req.user.id,
+      exam_category: req.user.exam_category,
+      exam_type: req.user.exam_type
     };
 
     console.log('Creating image in database with data:', JSON.stringify(imageData, null, 2));
@@ -367,15 +371,20 @@ router.get('/', async (req: Request, res: Response) => {
     const tags = req.query.tags as string;
     const uploadedBy = req.query.uploaded_by ? parseInt(req.query.uploaded_by as string) : undefined;
 
+    // Get user's exam category and type from req.user
+    const user = (req as any).user;
+    const examCategory = user?.exam_category;
+    const examType = user?.exam_type;
+
     let images;
     if (tags) {
       const tagArray = tags.split(',').map(t => t.trim());
       images = await ImageModel.findByTags(tagArray, limit, offset);
     } else {
-      images = await ImageModel.findAll(limit, offset, imageType, license, uploadedBy);
+      images = await ImageModel.findAll(limit, offset, imageType, license, uploadedBy, examCategory, examType);
     }
 
-    const totalCount = await ImageModel.getCount(imageType, license, uploadedBy);
+    const totalCount = await ImageModel.getCount(imageType, license, uploadedBy, examCategory, examType);
     
     res.json({
       images,

@@ -13,6 +13,8 @@ interface User {
   is_admin?: boolean;
   is_reviewer?: boolean;
   is_image_contributor?: boolean;
+  exam_category?: string;
+  exam_type?: string;
 }
 
 interface AuthContextType {
@@ -36,6 +38,8 @@ interface RegisterData {
   password: string;
   first_name?: string;
   last_name?: string;
+  exam_category: string;
+  exam_type: string;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
