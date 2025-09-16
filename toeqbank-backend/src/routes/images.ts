@@ -331,12 +331,14 @@ router.post('/upload-url', requireAuth, async (req: Request, res: Response) => {
       console.error('Database error detail:', dbError.detail);
       console.error('Database error code:', dbError.code);
       
-      // Clean up the file if database save failed
-      try {
-        fs.unlinkSync(savedPath);
-        console.log('Cleaned up file after database error:', savedPath);
-      } catch (cleanupError) {
-        console.error('Failed to clean up file:', cleanupError);
+      // Clean up the file if database save failed (only if local file exists)
+      if (!finalFilePath.startsWith('http')) {
+        try {
+          fs.unlinkSync(finalFilePath);
+          console.log('Cleaned up file after database error:', finalFilePath);
+        } catch (cleanupError) {
+          console.error('Failed to clean up file:', cleanupError);
+        }
       }
       
       return res.status(500).json({ 
