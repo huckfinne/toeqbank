@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api.config';
 
+console.log('🔧 API service - baseURL:', API_BASE_URL);
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -12,8 +14,14 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
+    console.log('🔑 Request interceptor - token exists:', !!token);
+    console.log('🌐 Request URL:', config.url);
+    console.log('🏠 Request baseURL:', config.baseURL);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('✅ Added auth header');
+    } else {
+      console.log('❌ No auth token found');
     }
     return config;
   },
@@ -341,9 +349,13 @@ export const imageService = {
 
   // Get image file URL
   getImageUrl: (filename: string): string => {
-    // Check if this is an external URL that needs proxying
+    // Check if this is already a full URL (from DigitalOcean Spaces)
     if (filename.startsWith('http://') || filename.startsWith('https://')) {
-      // Use proxy for external images to avoid CORS issues
+      // If it's a Spaces URL, return it directly (no proxy needed)
+      if (filename.includes('digitaloceanspaces.com')) {
+        return filename;
+      }
+      // For other external URLs, use proxy to avoid CORS issues
       return `${API_BASE_URL}/images/proxy?url=${encodeURIComponent(filename)}`;
     }
     // Local images use direct serving

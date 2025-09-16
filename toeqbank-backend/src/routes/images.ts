@@ -6,6 +6,7 @@ import https from 'https';
 import http from 'http';
 import { ImageModel } from '../models/Image';
 import { requireAuth } from '../middleware/auth';
+import { StorageService } from '../utils/storage';
 
 const router = Router();
 
@@ -84,13 +85,46 @@ router.post('/upload', requireAuth, upload.single('image'), async (req: Request,
     console.log('User:', req.user.username, 'ID:', req.user.id);
 
     const { description, tags, image_type, license, license_details } = req.body;
-    
     const imageType = image_type || (req.file.mimetype.startsWith('video/') ? 'cine' : 'still');
     
+    let finalFilename = req.file.filename;
+    let finalFilePath = req.file.path;
+    let publicUrl = '';
+
+    // Use DigitalOcean Spaces if configured
+    if (StorageService.isConfigured()) {
+      try {
+        console.log('Uploading to DigitalOcean Spaces...');
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const uploadResult = await StorageService.uploadFile(
+          fileBuffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+        
+        finalFilename = uploadResult.filename;
+        finalFilePath = uploadResult.url; // Store the Spaces URL as file_path
+        publicUrl = uploadResult.url;
+        
+        // Clean up local file after uploading to Spaces
+        try {
+          fs.unlinkSync(req.file.path);
+          console.log('Cleaned up local file after Spaces upload');
+        } catch (cleanupErr) {
+          console.warn('Failed to clean up local file:', cleanupErr);
+        }
+        
+        console.log('Spaces upload successful:', publicUrl);
+      } catch (spacesError) {
+        console.error('Spaces upload failed, falling back to local storage:', spacesError);
+        // Keep using local storage as fallback
+      }
+    }
+
     const imageData = {
-      filename: req.file.filename,
+      filename: finalFilename,
       original_name: req.file.originalname,
-      file_path: req.file.path,
+      file_path: finalFilePath,
       file_size: req.file.size,
       mime_type: req.file.mimetype,
       image_type: imageType as 'still' | 'cine',
@@ -220,26 +254,57 @@ router.post('/upload-url', requireAuth, async (req: Request, res: Response) => {
     }
     
     const { buffer, filename, mimetype, size } = downloadResult;
-
-    // Save the file locally
-    const uploadPath = path.join(__dirname, '../../uploads/images');
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const extension = path.extname(filename) || '.jpg';
-    const savedFilename = `toe_${uniqueSuffix}${extension}`;
-    const savedPath = path.join(uploadPath, savedFilename);
-
-    fs.writeFileSync(savedPath, buffer);
-
     const imageType = image_type || (mimetype.startsWith('video/') ? 'cine' : 'still');
+
+    let finalFilename: string;
+    let finalFilePath: string;
+    let publicUrl = '';
+
+    // Use DigitalOcean Spaces if configured
+    if (StorageService.isConfigured()) {
+      try {
+        console.log('Uploading downloaded image to DigitalOcean Spaces...');
+        const uploadResult = await StorageService.uploadFile(buffer, filename, mimetype);
+        
+        finalFilename = uploadResult.filename;
+        finalFilePath = uploadResult.url; // Store the Spaces URL as file_path
+        publicUrl = uploadResult.url;
+        
+        console.log('Spaces upload successful:', publicUrl);
+      } catch (spacesError) {
+        console.error('Spaces upload failed, falling back to local storage:', spacesError);
+        // Fall back to local storage
+        const uploadPath = path.join(__dirname, '../../uploads/images');
+        if (!fs.existsSync(uploadPath)) {
+          fs.mkdirSync(uploadPath, { recursive: true });
+        }
+
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const extension = path.extname(filename) || '.jpg';
+        finalFilename = `toe_${uniqueSuffix}${extension}`;
+        finalFilePath = path.join(uploadPath, finalFilename);
+
+        fs.writeFileSync(finalFilePath, buffer);
+      }
+    } else {
+      // Use local storage when Spaces is not configured
+      const uploadPath = path.join(__dirname, '../../uploads/images');
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const extension = path.extname(filename) || '.jpg';
+      finalFilename = `toe_${uniqueSuffix}${extension}`;
+      finalFilePath = path.join(uploadPath, finalFilename);
+
+      fs.writeFileSync(finalFilePath, buffer);
+    }
     
     const imageData = {
-      filename: savedFilename,
+      filename: finalFilename,
       original_name: filename,
-      file_path: savedPath,
+      file_path: finalFilePath,
       file_size: size,
       mime_type: mimetype,
       image_type: imageType as 'still' | 'cine',
