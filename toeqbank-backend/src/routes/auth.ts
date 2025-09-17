@@ -158,7 +158,7 @@ router.put('/profile', requireAuth, async (req: Request, res: Response) => {
     const updates = req.body;
     
     // Remove fields that shouldn't be updated via this endpoint
-    const allowedFields = ['first_name', 'last_name', 'email'];
+    const allowedFields = ['first_name', 'last_name', 'email', 'exam_category', 'exam_type'];
     const filteredUpdates: any = {};
     
     Object.keys(updates).forEach(key => {
@@ -195,7 +195,9 @@ router.put('/profile', requireAuth, async (req: Request, res: Response) => {
         first_name: updatedUser.first_name,
         last_name: updatedUser.last_name,
         is_admin: updatedUser.is_admin,
-        is_reviewer: updatedUser.is_reviewer
+        is_reviewer: updatedUser.is_reviewer,
+        exam_category: updatedUser.exam_category,
+        exam_type: updatedUser.exam_type
       }
     });
   } catch (error) {
