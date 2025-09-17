@@ -68,14 +68,13 @@ export class QuestionModel {
   }
 
   static async findAll(limit = 50, offset = 0, examCategory?: string, examType?: string): Promise<Question[]> {
-    let sql = `
-      SELECT * FROM questions 
-    `;
+    let sql = `SELECT * FROM questions WHERE 1=1`;
     const values: any[] = [];
     let paramCounter = 1;
     
+    // Add exam filtering if both parameters provided
     if (examCategory && examType) {
-      sql += ` WHERE exam_category = $${paramCounter++} AND exam_type = $${paramCounter++} `;
+      sql += ` AND exam_category = $${paramCounter++} AND exam_type = $${paramCounter++}`;
       values.push(examCategory, examType);
     }
     
@@ -173,11 +172,12 @@ export class QuestionModel {
   }
 
   static async getCount(examCategory?: string, examType?: string): Promise<number> {
-    let sql = 'SELECT COUNT(*) as count FROM questions';
+    let sql = 'SELECT COUNT(*) as count FROM questions WHERE 1=1';
     const values: any[] = [];
     
+    // Add exam filtering if both parameters provided
     if (examCategory && examType) {
-      sql += ' WHERE exam_category = $1 AND exam_type = $2';
+      sql += ' AND exam_category = $1 AND exam_type = $2';
       values.push(examCategory, examType);
     }
     

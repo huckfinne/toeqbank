@@ -362,7 +362,7 @@ router.post('/upload-url', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
@@ -375,6 +375,7 @@ router.get('/', async (req: Request, res: Response) => {
     const user = (req as any).user;
     const examCategory = user?.exam_category;
     const examType = user?.exam_type;
+
 
     let images;
     if (tags) {

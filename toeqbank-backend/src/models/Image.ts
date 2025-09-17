@@ -83,15 +83,37 @@ export class ImageModel {
       SELECT i.*, u.username as uploader_username 
       FROM images i
       LEFT JOIN users u ON i.uploaded_by = u.id
-      WHERE ($3::text IS NULL OR image_type = $3::text)
-      AND ($4::text IS NULL OR license = $4::text)
-      AND ($5::integer IS NULL OR uploaded_by = $5::integer)
-      AND ($6::text IS NULL OR exam_category = $6::text)
-      AND ($7::text IS NULL OR exam_type = $7::text)
-      ORDER BY created_at DESC 
-      LIMIT $1 OFFSET $2
+      WHERE 1=1
     `;
-    const result = await query(sql, [limit, offset, imageType, license, uploadedBy, examCategory, examType]);
+    const values: any[] = [];
+    let paramCounter = 1;
+    
+    // Add exam filtering if provided
+    if (examCategory && examType) {
+      sql += ` AND i.exam_category = $${paramCounter++} AND i.exam_type = $${paramCounter++}`;
+      values.push(examCategory, examType);
+    }
+    
+    // Add other filters
+    if (imageType) {
+      sql += ` AND i.image_type = $${paramCounter++}`;
+      values.push(imageType);
+    }
+    
+    if (license) {
+      sql += ` AND i.license = $${paramCounter++}`;
+      values.push(license);
+    }
+    
+    if (uploadedBy !== undefined) {
+      sql += ` AND i.uploaded_by = $${paramCounter++}`;
+      values.push(uploadedBy);
+    }
+    
+    sql += ` ORDER BY i.created_at DESC LIMIT $${paramCounter++} OFFSET $${paramCounter}`;
+    values.push(limit, offset);
+    
+    const result = await query(sql, values);
     return result.rows;
   }
 
@@ -139,15 +161,33 @@ export class ImageModel {
   }
 
   static async getCount(imageType?: 'still' | 'cine', license?: LicenseType, uploadedBy?: number, examCategory?: string, examType?: string): Promise<number> {
-    const sql = `
-      SELECT COUNT(*) as count FROM images 
-      WHERE ($1::text IS NULL OR image_type = $1::text)
-      AND ($2::text IS NULL OR license = $2::text)
-      AND ($3::integer IS NULL OR uploaded_by = $3::integer)
-      AND ($4::text IS NULL OR exam_category = $4::text)
-      AND ($5::text IS NULL OR exam_type = $5::text)
-    `;
-    const result = await query(sql, [imageType, license, uploadedBy, examCategory, examType]);
+    let sql = `SELECT COUNT(*) as count FROM images WHERE 1=1`;
+    const values: any[] = [];
+    let paramCounter = 1;
+    
+    // Add exam filtering if provided
+    if (examCategory && examType) {
+      sql += ` AND exam_category = $${paramCounter++} AND exam_type = $${paramCounter++}`;
+      values.push(examCategory, examType);
+    }
+    
+    // Add other filters
+    if (imageType) {
+      sql += ` AND image_type = $${paramCounter++}`;
+      values.push(imageType);
+    }
+    
+    if (license) {
+      sql += ` AND license = $${paramCounter++}`;
+      values.push(license);
+    }
+    
+    if (uploadedBy !== undefined) {
+      sql += ` AND uploaded_by = $${paramCounter++}`;
+      values.push(uploadedBy);
+    }
+    
+    const result = await query(sql, values);
     return parseInt(result.rows[0].count);
   }
 

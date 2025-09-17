@@ -34,10 +34,6 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-    
-    console.log('=== AUTH DEBUG ===');
-    console.log('Authorization header:', authHeader);
-    console.log('Extracted token:', token ? token.substring(0, 20) + '...' : 'null');
 
     if (!token) {
       console.log('No token provided');
@@ -51,6 +47,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     if (!user) {
       return res.status(401).json({ error: 'Invalid token - user not found' });
     }
+
 
     req.user = user;
     next();
