@@ -71,7 +71,9 @@ router.post('/register', async (req: Request, res: Response) => {
         last_name: user.last_name,
         is_admin: user.is_admin,
         is_reviewer: user.is_reviewer,
-        is_image_contributor: user.is_image_contributor
+        is_image_contributor: user.is_image_contributor,
+        exam_category: user.exam_category,
+        exam_type: user.exam_type
       },
       token
     });
@@ -111,7 +113,9 @@ router.post('/login', async (req: Request, res: Response) => {
         last_login: user.last_login,
         is_admin: user.is_admin,
         is_reviewer: user.is_reviewer,
-        is_image_contributor: user.is_image_contributor
+        is_image_contributor: user.is_image_contributor,
+        exam_category: user.exam_category,
+        exam_type: user.exam_type
       },
       token
     });
@@ -136,7 +140,9 @@ router.get('/profile', requireAuth, async (req: Request, res: Response) => {
         created_at: user.created_at,
         is_admin: user.is_admin,
         is_reviewer: user.is_reviewer,
-        is_image_contributor: user.is_image_contributor
+        is_image_contributor: user.is_image_contributor,
+        exam_category: user.exam_category,
+        exam_type: user.exam_type
       }
     });
   } catch (error) {
@@ -245,7 +251,9 @@ router.get('/verify', requireAuth, (req: Request, res: Response) => {
       is_admin: req.user.is_admin,
       is_reviewer: req.user.is_reviewer,
       last_login: req.user.last_login,
-      created_at: req.user.created_at
+      created_at: req.user.created_at,
+      exam_category: req.user.exam_category,
+      exam_type: req.user.exam_type
     }
   });
 });
@@ -616,7 +624,9 @@ router.post('/register-with-token', async (req: Request, res: Response) => {
         last_name: user.last_name,
         is_admin: user.is_admin,
         is_reviewer: user.is_reviewer,
-        is_image_contributor: user.is_image_contributor
+        is_image_contributor: user.is_image_contributor,
+        exam_category: user.exam_category,
+        exam_type: user.exam_type
       },
       token: authToken
     });
