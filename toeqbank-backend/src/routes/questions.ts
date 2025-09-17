@@ -28,6 +28,16 @@ router.get('/', async (req: Request, res: Response) => {
     const examCategory = user?.exam_category;
     const examType = user?.exam_type;
     
+    // User MUST have exam settings for content filtering
+    if (!examCategory || !examType) {
+      console.error('User missing exam settings:', { userId: user?.id, username: user?.username });
+      return res.status(400).json({ 
+        error: 'User exam settings not configured',
+        message: 'Please configure your exam preferences in settings'
+      });
+    }
+    
+    // ALWAYS filter by exam - critical for content segregation
     const questions = await QuestionModel.findAll(limit, offset, examCategory, examType);
     const total = await QuestionModel.getCount(examCategory, examType);
     

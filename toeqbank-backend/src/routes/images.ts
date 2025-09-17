@@ -7,6 +7,7 @@ import http from 'http';
 import { ImageModel } from '../models/Image';
 import { requireAuth } from '../middleware/auth';
 import { StorageService } from '../utils/storage';
+import { query } from '../models/database';
 
 const router = Router();
 
@@ -376,11 +377,30 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     const examCategory = user?.exam_category;
     const examType = user?.exam_type;
 
+    // User MUST have exam settings for content filtering
+    if (!examCategory || !examType) {
+      console.error('User missing exam settings:', { userId: user?.id, username: user?.username });
+      return res.status(400).json({ 
+        error: 'User exam settings not configured',
+        message: 'Please configure your exam preferences in settings'
+      });
+    }
 
+    // ALWAYS filter by exam - this is critical for content segregation
     let images;
     if (tags) {
       const tagArray = tags.split(',').map(t => t.trim());
-      images = await ImageModel.findByTags(tagArray, limit, offset);
+      // Need to update findByTags to support exam filtering
+      const sql = `
+        SELECT * FROM images 
+        WHERE tags && $1::text[]
+        AND exam_category = $2
+        AND exam_type = $3
+        ORDER BY created_at DESC 
+        LIMIT $4 OFFSET $5
+      `;
+      const result = await query(sql, [tagArray, examCategory, examType, limit, offset]);
+      images = result.rows;
     } else {
       images = await ImageModel.findAll(limit, offset, imageType, license, uploadedBy, examCategory, examType);
     }
