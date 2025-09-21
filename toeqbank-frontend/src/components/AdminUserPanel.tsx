@@ -858,7 +858,7 @@ const AdminUserPanel: React.FC = () => {
                 Regular Users ({users.filter(u => !u.is_admin && !u.is_reviewer && !u.is_image_contributor).length})
               </h2>
             </div>
-            <p className="text-sm text-gray-600 mt-1">Standard users with basic access to the system</p>
+            <p className="text-sm text-gray-600 mt-1">Standard users with basic access to the system and their contribution statistics</p>
           </div>
           
           <div className="overflow-x-auto">
@@ -871,8 +871,14 @@ const AdminUserPanel: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Images
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Descriptions
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created
@@ -903,12 +909,20 @@ const AdminUserPanel: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {user.email}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex gap-1">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                          User
-                        </span>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                      <span className="font-medium text-green-600">
+                        {user.contribution_stats?.total_images || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                      <span className="font-medium text-blue-600">
+                        {user.contribution_stats?.total_descriptions || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      <span className="font-bold text-gray-900">
+                        {user.contribution_stats?.total_contributions || 0}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(user.created_at).toLocaleDateString()}
@@ -946,7 +960,7 @@ const AdminUserPanel: React.FC = () => {
                 ))}
                 {users.filter(user => !user.is_admin && !user.is_reviewer && !user.is_image_contributor).length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                       No regular users found
                     </td>
                   </tr>

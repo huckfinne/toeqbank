@@ -31,6 +31,10 @@ const QuestionEditor: React.FC = () => {
   const [applicableExams, setApplicableExams] = useState<ApplicableExam[] | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [csvInput, setCsvInput] = useState('');
+  const [csvError, setCsvError] = useState<string | null>(null);
+  const [csvSuccess, setCsvSuccess] = useState<string | null>(null);
+  const [parsedCsvData, setParsedCsvData] = useState<any>(null);
 
   useEffect(() => {
     if (isEditMode && id) {
@@ -174,6 +178,79 @@ const QuestionEditor: React.FC = () => {
     setIsApplicableExamsDialogOpen(false);
   };
 
+  const parseCsvData = () => {
+    try {
+      setCsvError(null);
+      
+      if (!csvInput.trim()) {
+        setCsvError('Please enter CSV data');
+        return;
+      }
+
+      // Parse CSV - handle quoted values with commas
+      const line = csvInput.trim();
+      const values = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      // Push the last value
+      if (current) {
+        values.push(current.trim());
+      }
+      
+      // Remove surrounding quotes from values
+      const cleanValues = values.map(v => v.replace(/^"(.*)"$/, '$1'));
+      
+      if (cleanValues.length < 12) {
+        setCsvError('CSV must have at least 12 columns: question_number, question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder');
+        return;
+      }
+
+      const parsed = {
+        question_number: cleanValues[0],
+        question: cleanValues[1],
+        choice_a: cleanValues[2],
+        choice_b: cleanValues[3],
+        choice_c: cleanValues[4],
+        choice_d: cleanValues[5],
+        choice_e: cleanValues[6] || '',
+        choice_f: cleanValues[7] || '',
+        choice_g: cleanValues[8] || '',
+        correct_answer: cleanValues[9],
+        explanation: cleanValues[10],
+        source_folder: cleanValues[11]
+      };
+
+      setParsedCsvData(parsed);
+      setCsvSuccess('CSV data parsed successfully! The form below has been filled with this data.');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setCsvSuccess(''), 3000);
+    } catch (error) {
+      setCsvError('Error parsing CSV data. Please check the format.');
+      console.error('CSV parsing error:', error);
+    }
+  };
+
+  const clearCsvData = () => {
+    setCsvInput('');
+    setCsvError(null);
+    setCsvSuccess(null);
+    setParsedCsvData(null);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -237,8 +314,105 @@ const QuestionEditor: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="w-full px-0 py-4">
+          {/* CSV Template Section - Admin Only */}
+          {isAdmin && (
+            <div className="max-w-6xl mx-auto px-4 mb-6">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg shadow-sm border border-green-200 p-6">
+                <div className="flex items-center mb-4">
+                  <div className="p-2 bg-green-100 rounded-lg mr-3">
+                    <span className="text-2xl">📋</span>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">CSV Template</h2>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-lg border border-green-200 p-4">
+                  <div className="bg-gray-50 rounded p-3 font-mono text-sm">
+                    <code className="text-green-600">
+                      question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,choice_f,choice_g,correct_answer,explanation,source_folder
+                    </code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CSV Import Section - Admin Only */}
+          {isAdmin && (
+            <div className="max-w-6xl mx-auto px-4 mb-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center mb-4">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                    <span className="text-2xl">📊</span>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">CSV Import</h2>
+                    <p className="text-sm text-gray-600">Paste a single question in CSV format for quick import</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="csv-input" className="block text-sm font-medium text-gray-700 mb-2">
+                      CSV Question Data
+                    </label>
+                    <textarea
+                      id="csv-input"
+                      rows={5}
+                      value={csvInput}
+                      onChange={(e) => setCsvInput(e.target.value)}
+                      className="px-3 py-2 text-base border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-vertical font-mono"
+                      style={{width: '100%', minHeight: '120px'}}
+                      placeholder="question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,choice_f,choice_g,correct_answer,explanation,source_folder"
+                    />
+                  </div>
+                  
+                  {csvError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <p className="text-sm text-red-800">{csvError}</p>
+                    </div>
+                  )}
+                  
+                  {csvSuccess && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-sm text-green-800">
+                        ✅ {csvSuccess}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={parseCsvData}
+                      disabled={!csvInput.trim()}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Parse & Fill Form
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearCsvData}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors text-sm"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-800">
+                      <strong>Format:</strong> Paste CSV data with columns: question_number, question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <QuestionForm
             mode="create"
+            initialData={parsedCsvData || {}}
             onSuccess={(savedQuestion) => {
               // After creating a question, redirect to a fresh create-question page
               navigate('/create-question');
@@ -439,14 +613,12 @@ const QuestionEditor: React.FC = () => {
                   <p className="text-gray-900">{questionMetadata.keywords.join(', ')}</p>
                 </div>
                 <div className="text-center space-x-4">
-                  {isAdmin && (
-                    <button 
-                      onClick={() => setIsMetadataDialogOpen(true)}
-                      className="px-6 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors font-medium"
-                    >
-                      Regenerate Metadata
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => setIsMetadataDialogOpen(true)}
+                    className="px-6 py-2 text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors font-medium"
+                  >
+                    Regenerate Metadata
+                  </button>
                   <button 
                     onClick={() => setIsEditMetadataModalOpen(true)}
                     className="px-6 py-2 text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors font-medium"
@@ -459,14 +631,12 @@ const QuestionEditor: React.FC = () => {
               <div className="text-center py-12">
                 <p className="text-gray-600 mb-6">No metadata has been added to this question yet.</p>
                 <div className="space-x-4">
-                  {isAdmin && (
-                    <button 
-                      onClick={() => setIsMetadataDialogOpen(true)}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-                    >
-                      Generate with AI
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => setIsMetadataDialogOpen(true)}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                  >
+                    Generate with AI
+                  </button>
                   <button 
                     onClick={() => setIsEditMetadataModalOpen(true)}
                     className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
@@ -474,9 +644,6 @@ const QuestionEditor: React.FC = () => {
                     Add Manually
                   </button>
                 </div>
-                {!isAdmin && (
-                  <p className="text-sm text-gray-500 mt-4">AI generation is admin-only. Use manual editing to add metadata.</p>
-                )}
               </div>
             )}
           </div>
@@ -517,14 +684,12 @@ const QuestionEditor: React.FC = () => {
                   </div>
                 ))}
                 <div className="text-center space-x-4">
-                  {isAdmin && (
-                    <button 
-                      onClick={() => setIsApplicableExamsDialogOpen(true)}
-                      className="px-6 py-2 text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors font-medium"
-                    >
-                      Regenerate with AI
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => setIsApplicableExamsDialogOpen(true)}
+                    className="px-6 py-2 text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors font-medium"
+                  >
+                    Regenerate with AI
+                  </button>
                   <button 
                     onClick={() => setIsManualExamModalOpen(true)}
                     className="px-6 py-2 text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors font-medium"
@@ -537,14 +702,12 @@ const QuestionEditor: React.FC = () => {
               <div className="text-center py-12">
                 <p className="text-gray-600 mb-6">No applicable exams have been assigned to this question yet.</p>
                 <div className="space-x-4">
-                  {isAdmin && (
-                    <button 
-                      onClick={() => setIsApplicableExamsDialogOpen(true)}
-                      className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
-                    >
-                      Generate with AI
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => setIsApplicableExamsDialogOpen(true)}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                  >
+                    Generate with AI
+                  </button>
                   <button 
                     className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold"
                     onClick={() => setIsManualExamModalOpen(true)}

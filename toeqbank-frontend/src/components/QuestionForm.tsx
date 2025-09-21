@@ -52,6 +52,26 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   const [editingMetadata, setEditingMetadata] = useState<{[key: string]: boolean}>({});
   const [editingExams, setEditingExams] = useState<{[key: string]: boolean}>({});
 
+  // Update form data when initialData changes (for CSV import)
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      setFormData({
+        question_number: initialData.question_number || '',
+        question: initialData.question || '',
+        choice_a: initialData.choice_a || '',
+        choice_b: initialData.choice_b || '',
+        choice_c: initialData.choice_c || '',
+        choice_d: initialData.choice_d || '',
+        choice_e: initialData.choice_e || '',
+        choice_f: initialData.choice_f || '',
+        choice_g: initialData.choice_g || '',
+        correct_answer: initialData.correct_answer || '',
+        explanation: initialData.explanation || '',
+        source_folder: initialData.source_folder || ''
+      });
+    }
+  }, [initialData]);
+
   // Load existing image descriptions and metadata from database in edit mode
   useEffect(() => {
     const loadImageDescriptions = async () => {
@@ -1108,6 +1128,21 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
               )}
             </div>
 
+            {/* Source Folder / Notes */}
+            <div className="w-full">
+              <label htmlFor="source_folder" className="block text-sm font-medium text-gray-700 mb-1">
+                Source / Notes
+              </label>
+              <textarea
+                id="source_folder"
+                value={formData.source_folder}
+                onChange={(e) => setFormData({...formData, source_folder: e.target.value})}
+                placeholder="Enter source reference or notes (e.g., 'Cardiology-2024', 'ASE Guidelines', 'Clinical Case #123')"
+                style={{width: '100%', minHeight: '168px'}}
+                className="px-3 py-2 text-base border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-vertical"
+                rows={7}
+              />
+            </div>
 
             {/* Associated Images */}
             <div className="bg-indigo-50 rounded-xl p-6 border-l-4 border-indigo-500">
