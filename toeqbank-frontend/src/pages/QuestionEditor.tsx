@@ -414,8 +414,10 @@ const QuestionEditor: React.FC = () => {
             mode="create"
             initialData={parsedCsvData || {}}
             onSuccess={(savedQuestion) => {
+              // Show success message
+              alert(`✅ Question #${savedQuestion.question_number || savedQuestion.id} created successfully!`);
               // After creating a question, redirect to a fresh create-question page
-              navigate('/create-question');
+              window.location.href = '/create-question';
             }}
           />
         </div>
@@ -715,9 +717,6 @@ const QuestionEditor: React.FC = () => {
                     Add Manually
                   </button>
                 </div>
-                {!isAdmin && (
-                  <p className="text-sm text-gray-500 mt-4">AI assignment is admin-only. Use manual editing to assign exams.</p>
-                )}
               </div>
             )}
           </div>
@@ -725,7 +724,7 @@ const QuestionEditor: React.FC = () => {
 
         {/* Dialogs */}
         <>
-          {isAdmin && question && (
+          {question && (
             <>
               <MetadataGenerationDialog 
                 isOpen={isMetadataDialogOpen}

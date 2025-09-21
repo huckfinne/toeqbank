@@ -65,7 +65,13 @@ const MetadataGenerationDialog: React.FC<MetadataGenerationDialogProps> = ({
   };
 
   React.useEffect(() => {
-    if (isOpen && !generatedMetadata && !isGenerating) {
+    if (isOpen) {
+      // Reset state when dialog opens
+      setGeneratedMetadata(null);
+      setEditableMetadata(null);
+      setProgress(0);
+      setStatusText('Initializing...');
+      // Start generation
       generateMetadata();
     }
   }, [isOpen]);
@@ -169,10 +175,10 @@ const MetadataGenerationDialog: React.FC<MetadataGenerationDialogProps> = ({
         </div>
         
         <div className="p-8">
-          {isGenerating && (
+          {(isGenerating || (!generatedMetadata && !editableMetadata)) && (
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">{statusText}</span>
+                <span className="text-sm font-medium text-gray-700">{statusText || 'Preparing to generate metadata...'}</span>
                 <span className="text-sm font-medium text-gray-500">{progress}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
@@ -181,6 +187,12 @@ const MetadataGenerationDialog: React.FC<MetadataGenerationDialogProps> = ({
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
+              {!statusText && (
+                <div className="mt-4 text-center">
+                  <div className="animate-spin inline-block w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                  <p className="text-gray-600 mt-2">Initializing AI analysis...</p>
+                </div>
+              )}
             </div>
           )}
 

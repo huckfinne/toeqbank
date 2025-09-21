@@ -51,6 +51,8 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   const [editingMetadata, setEditingMetadata] = useState<{[key: string]: boolean}>({});
   const [editingExams, setEditingExams] = useState<{[key: string]: boolean}>({});
+  const [isMetadataDialogOpen, setIsMetadataDialogOpen] = useState(false);
+  const [isExamsDialogOpen, setIsExamsDialogOpen] = useState(false);
 
   // Update form data when initialData changes (for CSV import)
   useEffect(() => {
@@ -402,43 +404,13 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   };
 
   const handleAddMetadata = () => {
-    console.log('QuestionForm: handleAddMetadata called');
-    const timestamp = Date.now();
-    const newMetadataId = `metadata_${timestamp}`;
-    const newMetadata = {
-      id: newMetadataId,
-      data: {
-        difficulty: '',
-        category: '',
-        topic: '',
-        keywords: [],
-        question_type: '',
-        view_type: '',
-        major_structures: [],
-        minor_structures: [],
-        modalities: []
-      }
-    };
-    setGeneratedMetadata(prev => [...prev, newMetadata]);
-    // Automatically set new items to edit mode
-    setEditingMetadata(prev => ({ ...prev, [newMetadataId]: true }));
+    console.log('QuestionForm: handleAddMetadata called - opening AI dialog');
+    setIsMetadataDialogOpen(true);
   };
 
   const handleAddExams = () => {
-    console.log('QuestionForm: handleAddExams called');
-    const timestamp = Date.now();
-    const newExamId = `exams_${timestamp}`;
-    const newExams = {
-      id: newExamId,
-      data: [{
-        examName: '',
-        subtopics: [],
-        reasoning: ''
-      }]
-    };
-    setGeneratedExams(prev => [...prev, newExams]);
-    // Automatically set new items to edit mode
-    setEditingExams(prev => ({ ...prev, [newExamId]: true }));
+    console.log('QuestionForm: handleAddExams called - opening AI dialog');
+    setIsExamsDialogOpen(true);
   };
 
   const toggleMetadataEdit = (id: string) => {
@@ -1454,7 +1426,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
                   onClick={handleAddMetadata}
                   className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
                 >
-                  + Add Metadata
+                  + Generate Metadata with AI
                 </button>
               </div>
 
@@ -1588,7 +1560,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
                   onClick={handleAddExams}
                   className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
                 >
-                  + Add Exam Associations
+                  + Generate Exam Associations with AI
                 </button>
               </div>
             </div>
@@ -1622,6 +1594,61 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
         </div>
       </div>
       </div>
+      
+      {/* AI Generation Dialogs */}
+      <MetadataGenerationDialog 
+        isOpen={isMetadataDialogOpen}
+        onClose={() => setIsMetadataDialogOpen(false)}
+        onAccept={(metadata) => {
+          const timestamp = Date.now();
+          const newMetadataId = `metadata_${timestamp}`;
+          const newMetadata = {
+            id: newMetadataId,
+            data: metadata
+          };
+          setGeneratedMetadata(prev => [...prev, newMetadata]);
+          setIsMetadataDialogOpen(false);
+        }}
+        question={{
+          question: formData.question,
+          choice_a: formData.choice_a,
+          choice_b: formData.choice_b,
+          choice_c: formData.choice_c,
+          choice_d: formData.choice_d,
+          choice_e: formData.choice_e,
+          choice_f: formData.choice_f,
+          choice_g: formData.choice_g,
+          correct_answer: formData.correct_answer,
+          explanation: formData.explanation
+        }}
+      />
+
+      <ApplicableExamsDialog 
+        isOpen={isExamsDialogOpen}
+        onClose={() => setIsExamsDialogOpen(false)}
+        onAccept={(exams) => {
+          const timestamp = Date.now();
+          const newExamId = `exams_${timestamp}`;
+          const newExams = {
+            id: newExamId,
+            data: exams
+          };
+          setGeneratedExams(prev => [...prev, newExams]);
+          setIsExamsDialogOpen(false);
+        }}
+        question={{
+          question: formData.question,
+          choice_a: formData.choice_a,
+          choice_b: formData.choice_b,
+          choice_c: formData.choice_c,
+          choice_d: formData.choice_d,
+          choice_e: formData.choice_e,
+          choice_f: formData.choice_f,
+          choice_g: formData.choice_g,
+          correct_answer: formData.correct_answer,
+          explanation: formData.explanation
+        }}
+      />
     </>
   );
 };
