@@ -17,6 +17,161 @@ router.use(optionalAuth);
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
+// Standardize echo view names from various CSV formats
+function standardizeEchoView(rawView: string): string {
+  if (!rawView) return '';
+  
+  // Normalize the input: trim and convert to consistent format
+  const normalized = rawView.trim();
+  
+  // Define mappings for common variations to standardized names
+  const viewMappings: { [key: string]: string } = {
+    // ME 2-Chamber variations
+    'ME 2C': 'ME 2-Chamber',
+    'ME 2C comparison': 'ME 2-Chamber',
+    'ME 2 Chamber': 'ME 2-Chamber',
+    'Mid-oesophageal two-chamber': 'ME 2-Chamber',
+    'Mid-oesophageal two-chamber (80-100°)': 'ME 2-Chamber',
+    'Mid-oesophageal 2-chamber': 'ME 2-Chamber',
+    'Mid-esophageal two-chamber': 'ME 2-Chamber',
+    'Mid-esophageal 2-chamber': 'ME 2-Chamber',
+    'ME two-chamber': 'ME 2-Chamber',
+    
+    // ME 4-Chamber variations  
+    'ME 4C': 'ME 4-Chamber',
+    'ME 4C 0°': 'ME 4-Chamber',
+    'ME 4 Chamber': 'ME 4-Chamber',
+    'Mid-oesophageal four-chamber': 'ME 4-Chamber',
+    'Mid-oesophageal four-chamber (0-15°)': 'ME 4-Chamber',
+    'Mid-oesophageal 4-chamber': 'ME 4-Chamber',
+    'Mid-esophageal four-chamber': 'ME 4-Chamber',
+    'Mid-esophageal 4-chamber': 'ME 4-Chamber',
+    'ME four-chamber': 'ME 4-Chamber',
+    
+    // ME 5-Chamber
+    'ME 5C': 'ME 5-Chamber',
+    'Mid-oesophageal five-chamber': 'ME 5-Chamber',
+    'Mid-oesophageal five-chamber (0°)': 'ME 5-Chamber',
+    'ME five-chamber': 'ME 5-Chamber',
+    
+    // ME LAX variations
+    'ME Long Axis': 'ME LAX',
+    'ME long axis': 'ME LAX',
+    'Mid-oesophageal long axis': 'ME LAX',
+    'Mid-oesophageal long axis (120-140°)': 'ME LAX',
+    'Mid-esophageal long axis': 'ME LAX',
+    
+    // ME AV variations
+    'ME AV LAX': 'ME AV Long Axis',
+    'ME AV LAX 120°': 'ME AV Long Axis',
+    'ME AV LAX 135°': 'ME AV Long Axis',
+    'Mid-oesophageal AV long axis': 'ME AV Long Axis',
+    'Mid-oesophageal AV long axis (120-140°)': 'ME AV Long Axis',
+    'ME AV SAX': 'ME AV Short Axis',
+    'Mid-oesophageal AV short axis': 'ME AV Short Axis',
+    'Mid-oesophageal AV short axis (30-50°)': 'ME AV Short Axis',
+    'ME AV LAX/SAX': 'ME AV',
+    
+    // ME Bicaval variations
+    'ME bicaval': 'ME Bicaval',
+    'Mid-oesophageal bicaval': 'ME Bicaval',
+    'Mid-oesophageal bicaval (90-110°)': 'ME Bicaval',
+    'Mid-esophageal bicaval': 'ME Bicaval',
+    'ME bicaval/4C': 'ME Bicaval',
+    
+    // ME Commissural variations
+    'ME Commissural': 'ME Mitral Commissural',
+    'ME Commissural 65°': 'ME Mitral Commissural',
+    'ME mitral commissural': 'ME Mitral Commissural',
+    'Mid-oesophageal mitral commissural': 'ME Mitral Commissural',
+    'Mid-oesophageal mitral commissural (50-70°)': 'ME Mitral Commissural',
+    
+    // ME RV Inflow-Outflow
+    'ME RV inflow-outflow': 'ME RV Inflow-Outflow',
+    'Mid-oesophageal RV inflow-outflow': 'ME RV Inflow-Outflow',
+    'Mid-oesophageal RV inflow-outflow (50-70°)': 'ME RV Inflow-Outflow',
+    
+    // Other ME views
+    'Mid-oesophageal ascending aorta short axis': 'ME Ascending Aorta Short Axis',
+    'Mid-oesophageal ascending aorta short axis (10-30°)': 'ME Ascending Aorta Short Axis',
+    'Mid-oesophageal LA appendage': 'ME LA Appendage',
+    'Mid-oesophageal LA appendage (90-120°)': 'ME LA Appendage',
+    'Mid-oesophageal LUPV': 'ME LUPV',
+    'Mid-oesophageal LUPV (0-90°)': 'ME LUPV',
+    'Mid-oesophageal left upper pulmonary vein': 'ME LUPV',
+    'Mid-oesophageal left upper pulmonary vein (0-90°)': 'ME LUPV',
+    'Mid-oesophageal modified bicaval TV': 'ME Modified Bicaval TV',
+    'Mid-oesophageal modified bicaval TV (110-130°)': 'ME Modified Bicaval TV',
+    'Modified mid-oesophageal bicaval RUPV': 'ME Modified Bicaval TV',
+    'Modified mid-oesophageal bicaval RUPV (110°)': 'ME Modified Bicaval TV',
+    'Mid-oesophageal four-chamber CS view': 'ME 4-Chamber CS',
+    'Mid-oesophageal four-chamber CS view (0-15°)': 'ME 4-Chamber CS',
+    
+    // TG variations
+    'TG SAX': 'TG Short Axis',
+    'TG LAX': 'TG Long Axis',
+    'Deep TG LAX': 'Deep TG Long Axis',
+    'Transgastric long axis': 'TG Long Axis',
+    'Transgastric long axis (120-140°)': 'TG Long Axis',
+    'Transgastric mid short-axis': 'TG Mid Short Axis',
+    'Transgastric mid-papillary short axis': 'TG Mid Short Axis',
+    'Transgastric mid-papillary short axis (0-15°)': 'TG Mid Short Axis',
+    'Transgastric basal short axis': 'TG Basal Short Axis',
+    'Transgastric basal short axis (0-15°)': 'TG Basal Short Axis',
+    'Transgastric apical short axis': 'TG Apical Short Axis',
+    'Transgastric apical short axis (0-15°)': 'TG Apical Short Axis',
+    'Transgastric two-chamber': 'TG 2-Chamber',
+    'Transgastric two-chamber (80-100°)': 'TG 2-Chamber',
+    'Transgastric RV basal short axis': 'TG RV Basal Short Axis',
+    'Transgastric RV inflow': 'TG RV Inflow',
+    'Transgastric inferior vena cava': 'TG IVC',
+    'Transgastric inferior vena cava (90-110°)': 'TG IVC',
+    'Deep transgastric five-chamber': 'Deep TG 5-Chamber',
+    
+    // UE variations
+    'UE Aortic Arch SAX': 'UE Aortic Arch Short Axis',
+    'Upper oesophageal aortic arch short axis': 'UE Aortic Arch Short Axis',
+    'Upper oesophageal aortic arch short axis (90°)': 'UE Aortic Arch Short Axis',
+    'Upper oesophageal aortic arch long axis': 'UE Aortic Arch Long Axis',
+    'Upper oesophageal aortic arch long axis (110-140°)': 'UE Aortic Arch Long Axis',
+    
+    // Descending Aorta
+    'Desc Ao LAX': 'Descending Aorta Long Axis',
+    'Descending aorta long axis': 'Descending Aorta Long Axis',
+    'Descending aorta long axis (90-100°)': 'Descending Aorta Long Axis',
+    'Desc Ao SAX': 'Descending Aorta Short Axis',
+    'Descending aorta short axis': 'Descending Aorta Short Axis',
+    'Descending aorta short axis (0°)': 'Descending Aorta Short Axis',
+    
+    // RV focused
+    'RV focused': 'RV Focused View',
+    
+    // Generic/non-specific views (return null for these)
+    'ME view': '',
+    'ME views': '',
+    'Orientation': '',
+    'Safety': '',
+    'Pleural space assessment': '',
+  };
+  
+  // Check if we have a direct mapping
+  if (viewMappings.hasOwnProperty(normalized)) {
+    return viewMappings[normalized];
+  }
+  
+  // Check case-insensitive
+  const lowerNormalized = normalized.toLowerCase();
+  for (const [key, value] of Object.entries(viewMappings)) {
+    if (key.toLowerCase() === lowerNormalized) {
+      return value;
+    }
+  }
+  
+  // If no mapping found, return the original but trimmed
+  // This allows for properly formatted views like "3D AV", "CW Doppler", etc.
+  return normalized;
+}
+
 // Get all questions with pagination (filtered by user's exam)
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -53,6 +208,83 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching questions:', error);
     res.status(500).json({ error: 'Failed to fetch questions' });
+  }
+});
+
+// Get all upload batches (admin only)
+router.get('/batches', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const batches = await UploadBatchModel.getAll();
+    res.json(batches);
+  } catch (error) {
+    console.error('Error fetching upload batches:', error);
+    res.status(500).json({ error: 'Failed to fetch upload batches' });
+  }
+});
+
+// Get batch details (admin only)
+router.get('/batches/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const batchId = parseInt(req.params.id);
+    const batch = await UploadBatchModel.getById(batchId);
+    
+    if (!batch) {
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+
+    const questions = await UploadBatchModel.getQuestionsByBatchId(batchId);
+    
+    res.json({
+      batch,
+      questions
+    });
+  } catch (error) {
+    console.error('Error fetching batch details:', error);
+    res.status(500).json({ error: 'Failed to fetch batch details' });
+  }
+});
+
+// Delete entire batch (admin only)
+router.delete('/batches/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const batchId = parseInt(req.params.id);
+    const batch = await UploadBatchModel.getById(batchId);
+    
+    if (!batch) {
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+
+    // Get question count before deletion
+    const questions = await UploadBatchModel.getQuestionsByBatchId(batchId);
+    const questionCount = questions.length;
+
+    // Delete the batch (cascade will delete all associated questions and related data)
+    const deleted = await UploadBatchModel.delete(batchId);
+    
+    if (!deleted) {
+      return res.status(500).json({ error: 'Failed to delete batch' });
+    }
+
+    res.json({ 
+      message: `Batch "${batch.batch_name}" deleted successfully`,
+      deletedQuestions: questionCount,
+      batchId: batchId
+    });
+  } catch (error) {
+    console.error('Error deleting batch:', error);
+    res.status(500).json({ error: 'Failed to delete batch' });
   }
 });
 
@@ -148,6 +380,27 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// Delete a question and its associated image descriptions (admin only)
+router.delete('/:id/with-images', requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user.is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const id = parseInt(req.params.id);
+    const deleted = await QuestionModel.deleteWithImages(id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+    
+    res.json({ message: 'Question and associated image descriptions deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting question with images:', error);
+    res.status(500).json({ error: 'Failed to delete question and associated data' });
+  }
+});
+
 // Batch upload questions from CSV
 router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Request, res: Response) => {
   try {
@@ -201,7 +454,7 @@ router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Reques
             const imageDesc = {
               description: row.image_description || '',
               modality: validModalities.includes(modality) ? modality : null,
-              echo_view: row.image_view || '',
+              echo_view: standardizeEchoView(row.image_view || ''),
               usage_type: validUsageTypes.includes(usageType) ? usageType : 'question',
               image_type: validImageTypes.includes(imageType) ? imageType : 'still',
               questionIndex: questions.length // Track which question this belongs to
@@ -247,9 +500,13 @@ router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Reques
       chapter: chapter || undefined
     });
 
-    // Associate all questions with this batch
+    // Associate all questions with this batch and user's exam settings
+    const user = (req as any).user;
     questions.forEach(question => {
       question.batch_id = batch.id;
+      // Add exam category and type from the user
+      question.exam_category = user?.exam_category || 'echocardiography';
+      question.exam_type = user?.exam_type || 'NBE';
     });
 
     // Bulk insert questions
@@ -547,16 +804,19 @@ router.get('/review/pending', requireAuth, async (req: Request, res: Response) =
   }
 });
 
-// Get questions by review status (reviewers only)
+// Get questions by review status
+// - Anyone can get approved questions (for practice)
+// - Only reviewers/admins can get pending, rejected, or returned questions
 router.get('/review/status/:status', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!req.user.is_reviewer && !req.user.is_admin) {
-      return res.status(403).json({ error: 'Reviewer access required' });
-    }
-
     const status = req.params.status as 'pending' | 'approved' | 'rejected' | 'returned';
     if (!['pending', 'approved', 'rejected', 'returned'].includes(status)) {
       return res.status(400).json({ error: 'Invalid review status' });
+    }
+
+    // Only reviewers/admins can access non-approved questions
+    if (status !== 'approved' && !req.user.is_reviewer && !req.user.is_admin) {
+      return res.status(403).json({ error: 'Reviewer access required for non-approved questions' });
     }
 
     const questions = await QuestionModel.getByReviewStatus(status);
@@ -640,83 +900,6 @@ router.get('/my-questions', requireAuth, async (req: Request, res: Response) => 
   } catch (error) {
     console.error('Error fetching user questions:', error);
     res.status(500).json({ error: 'Failed to fetch user questions' });
-  }
-});
-
-// Get all upload batches (admin only)
-router.get('/batches', requireAuth, async (req: Request, res: Response) => {
-  try {
-    if (!req.user.is_admin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    const batches = await UploadBatchModel.getAll();
-    res.json(batches);
-  } catch (error) {
-    console.error('Error fetching upload batches:', error);
-    res.status(500).json({ error: 'Failed to fetch upload batches' });
-  }
-});
-
-// Get batch details (admin only)
-router.get('/batches/:id', requireAuth, async (req: Request, res: Response) => {
-  try {
-    if (!req.user.is_admin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    const batchId = parseInt(req.params.id);
-    const batch = await UploadBatchModel.getById(batchId);
-    
-    if (!batch) {
-      return res.status(404).json({ error: 'Batch not found' });
-    }
-
-    const questions = await UploadBatchModel.getQuestionsByBatchId(batchId);
-    
-    res.json({
-      batch,
-      questions
-    });
-  } catch (error) {
-    console.error('Error fetching batch details:', error);
-    res.status(500).json({ error: 'Failed to fetch batch details' });
-  }
-});
-
-// Delete entire batch (admin only)
-router.delete('/batches/:id', requireAuth, async (req: Request, res: Response) => {
-  try {
-    if (!req.user.is_admin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    const batchId = parseInt(req.params.id);
-    const batch = await UploadBatchModel.getById(batchId);
-    
-    if (!batch) {
-      return res.status(404).json({ error: 'Batch not found' });
-    }
-
-    // Get question count before deletion
-    const questions = await UploadBatchModel.getQuestionsByBatchId(batchId);
-    const questionCount = questions.length;
-
-    // Delete the batch (cascade will delete all associated questions and related data)
-    const deleted = await UploadBatchModel.delete(batchId);
-    
-    if (!deleted) {
-      return res.status(500).json({ error: 'Failed to delete batch' });
-    }
-
-    res.json({ 
-      message: `Batch "${batch.batch_name}" deleted successfully`,
-      deletedQuestions: questionCount,
-      batchId: batchId
-    });
-  } catch (error) {
-    console.error('Error deleting batch:', error);
-    res.status(500).json({ error: 'Failed to delete batch' });
   }
 });
 

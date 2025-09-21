@@ -401,7 +401,7 @@ router.put('/admin/users/:id', requireAdmin, async (req: Request, res: Response)
     }
     
     // Admin can update any field except password (use separate endpoint)
-    const allowedFields = ['username', 'email', 'first_name', 'last_name', 'is_admin', 'is_reviewer'];
+    const allowedFields = ['username', 'email', 'first_name', 'last_name', 'is_admin', 'is_reviewer', 'is_image_contributor'];
     const filteredUpdates: any = {};
     
     Object.keys(updates).forEach(key => {
@@ -425,6 +425,7 @@ router.put('/admin/users/:id', requireAdmin, async (req: Request, res: Response)
         last_name: updatedUser.last_name,
         is_admin: updatedUser.is_admin,
         is_reviewer: updatedUser.is_reviewer,
+        is_image_contributor: updatedUser.is_image_contributor,
         created_at: updatedUser.created_at
       }
     });

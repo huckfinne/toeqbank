@@ -33,6 +33,10 @@ export interface Image {
   exam_category?: string;
   exam_type?: string;
   uploaded_by?: number;
+  review_status?: string;
+  review_rating?: number;
+  reviewed_by?: number;
+  reviewed_at?: Date;
   created_at?: Date;
   updated_at?: Date;
 }

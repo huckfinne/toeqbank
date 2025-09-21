@@ -85,6 +85,12 @@ export interface Image {
   created_at?: string;
   updated_at?: string;
   display_order?: number;
+  uploaded_by?: number;
+  uploader_username?: string;
+  review_status?: string;
+  review_rating?: number;
+  reviewed_by?: number;
+  reviewed_at?: string;
 }
 
 export interface ImagesResponse {
@@ -135,6 +141,11 @@ export const questionService = {
   // Delete question
   deleteQuestion: async (id: number): Promise<void> => {
     await api.delete(`/questions/${id}`);
+  },
+
+  // Delete a question and its associated image descriptions
+  deleteQuestionWithImages: async (id: number): Promise<void> => {
+    await api.delete(`/questions/${id}/with-images`);
   },
 
   // Upload CSV file
@@ -308,6 +319,7 @@ export const imageService = {
     image_type?: 'still' | 'cine';
     license?: LicenseType;
     license_details?: string;
+    review_rating?: number;
   }): Promise<Image> => {
     const response = await api.put(`/images/${id}`, data);
     return response.data;
@@ -468,6 +480,34 @@ export const imageDescriptionService = {
   // Get all image descriptions
   getAll: async (): Promise<ImageDescription[]> => {
     const response = await api.get('/image-descriptions');
+    return response.data;
+  },
+
+  // Get all image descriptions for a specific batch
+  getAllByBatch: async (batchId: number): Promise<ImageDescription[]> => {
+    const response = await api.get(`/image-descriptions?batch_id=${batchId}`);
+    return response.data;
+  },
+
+  // Get all image descriptions for a specific echo view
+  getAllByEchoView: async (echoView: string): Promise<ImageDescription[]> => {
+    const response = await api.get(`/image-descriptions?echo_view=${encodeURIComponent(echoView)}`);
+    return response.data;
+  },
+
+  // Get all image descriptions with filters
+  getAllWithFilters: async (filters: { batchId?: number; echoView?: string }): Promise<ImageDescription[]> => {
+    const params = new URLSearchParams();
+    if (filters.batchId) params.set('batch_id', filters.batchId.toString());
+    if (filters.echoView) params.set('echo_view', filters.echoView);
+    
+    const response = await api.get(`/image-descriptions?${params.toString()}`);
+    return response.data;
+  },
+
+  // Get distinct echo views
+  getEchoViews: async (): Promise<string[]> => {
+    const response = await api.get('/image-descriptions/echo-views');
     return response.data;
   },
 

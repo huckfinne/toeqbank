@@ -11,29 +11,8 @@ import { query } from '../models/database';
 
 const router = Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../../uploads/images');
-    console.log('Upload destination path:', uploadPath);
-    try {
-      if (!fs.existsSync(uploadPath)) {
-        console.log('Creating upload directory:', uploadPath);
-        fs.mkdirSync(uploadPath, { recursive: true });
-      }
-      cb(null, uploadPath);
-    } catch (error: any) {
-      console.error('Error creating upload directory:', error);
-      cb(error, uploadPath);
-    }
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const extension = path.extname(file.originalname);
-    const filename = `toe_${uniqueSuffix}${extension}`;
-    console.log('Generated filename:', filename);
-    cb(null, filename);
-  }
-});
+// Use memory storage since all uploads go to Spaces
+const storage = multer.memoryStorage();
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = [
@@ -88,38 +67,37 @@ router.post('/upload', requireAuth, upload.single('image'), async (req: Request,
     const { description, tags, image_type, license, license_details } = req.body;
     const imageType = image_type || (req.file.mimetype.startsWith('video/') ? 'cine' : 'still');
     
-    let finalFilename = req.file.filename;
-    let finalFilePath = req.file.path;
-    let publicUrl = '';
+    // FORCE all uploads to DigitalOcean Spaces - no local storage fallback
+    if (!StorageService.isConfigured()) {
+      return res.status(500).json({ 
+        error: 'Storage service not configured', 
+        message: 'DigitalOcean Spaces configuration is required for file uploads'
+      });
+    }
 
-    // Use DigitalOcean Spaces if configured
-    if (StorageService.isConfigured()) {
-      try {
-        console.log('Uploading to DigitalOcean Spaces...');
-        const fileBuffer = fs.readFileSync(req.file.path);
-        const uploadResult = await StorageService.uploadFile(
-          fileBuffer,
-          req.file.originalname,
-          req.file.mimetype
-        );
-        
-        finalFilename = uploadResult.filename;
-        finalFilePath = uploadResult.url; // Store the Spaces URL as file_path
-        publicUrl = uploadResult.url;
-        
-        // Clean up local file after uploading to Spaces
-        try {
-          fs.unlinkSync(req.file.path);
-          console.log('Cleaned up local file after Spaces upload');
-        } catch (cleanupErr) {
-          console.warn('Failed to clean up local file:', cleanupErr);
-        }
-        
-        console.log('Spaces upload successful:', publicUrl);
-      } catch (spacesError) {
-        console.error('Spaces upload failed, falling back to local storage:', spacesError);
-        // Keep using local storage as fallback
-      }
+    let finalFilename: string;
+    let finalFilePath: string;
+    let publicUrl: string;
+
+    try {
+      console.log('Uploading to DigitalOcean Spaces...');
+      const uploadResult = await StorageService.uploadFile(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+      
+      finalFilename = uploadResult.filename;
+      finalFilePath = uploadResult.url; // Store the Spaces URL as file_path
+      publicUrl = uploadResult.url;
+      
+      console.log('Spaces upload successful:', publicUrl);
+    } catch (spacesError) {
+      console.error('Spaces upload failed:', spacesError);
+      return res.status(500).json({ 
+        error: 'Failed to upload to DigitalOcean Spaces', 
+        details: spacesError instanceof Error ? spacesError.message : 'Unknown error'
+      });
     }
 
     const imageData = {
@@ -259,49 +237,33 @@ router.post('/upload-url', requireAuth, async (req: Request, res: Response) => {
     const { buffer, filename, mimetype, size } = downloadResult;
     const imageType = image_type || (mimetype.startsWith('video/') ? 'cine' : 'still');
 
+    // FORCE all uploads to DigitalOcean Spaces - no local storage fallback
+    if (!StorageService.isConfigured()) {
+      return res.status(500).json({ 
+        error: 'Storage service not configured', 
+        message: 'DigitalOcean Spaces configuration is required for file uploads'
+      });
+    }
+
     let finalFilename: string;
     let finalFilePath: string;
-    let publicUrl = '';
+    let publicUrl: string;
 
-    // Use DigitalOcean Spaces if configured
-    if (StorageService.isConfigured()) {
-      try {
-        console.log('Uploading downloaded image to DigitalOcean Spaces...');
-        const uploadResult = await StorageService.uploadFile(buffer, filename, mimetype);
-        
-        finalFilename = uploadResult.filename;
-        finalFilePath = uploadResult.url; // Store the Spaces URL as file_path
-        publicUrl = uploadResult.url;
-        
-        console.log('Spaces upload successful:', publicUrl);
-      } catch (spacesError) {
-        console.error('Spaces upload failed, falling back to local storage:', spacesError);
-        // Fall back to local storage
-        const uploadPath = path.join(__dirname, '../../uploads/images');
-        if (!fs.existsSync(uploadPath)) {
-          fs.mkdirSync(uploadPath, { recursive: true });
-        }
-
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const extension = path.extname(filename) || '.jpg';
-        finalFilename = `toe_${uniqueSuffix}${extension}`;
-        finalFilePath = path.join(uploadPath, finalFilename);
-
-        fs.writeFileSync(finalFilePath, buffer);
-      }
-    } else {
-      // Use local storage when Spaces is not configured
-      const uploadPath = path.join(__dirname, '../../uploads/images');
-      if (!fs.existsSync(uploadPath)) {
-        fs.mkdirSync(uploadPath, { recursive: true });
-      }
-
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const extension = path.extname(filename) || '.jpg';
-      finalFilename = `toe_${uniqueSuffix}${extension}`;
-      finalFilePath = path.join(uploadPath, finalFilename);
-
-      fs.writeFileSync(finalFilePath, buffer);
+    try {
+      console.log('Uploading downloaded image to DigitalOcean Spaces...');
+      const uploadResult = await StorageService.uploadFile(buffer, filename, mimetype);
+      
+      finalFilename = uploadResult.filename;
+      finalFilePath = uploadResult.url; // Store the Spaces URL as file_path
+      publicUrl = uploadResult.url;
+      
+      console.log('Spaces upload successful:', publicUrl);
+    } catch (spacesError) {
+      console.error('Spaces upload failed:', spacesError);
+      return res.status(500).json({ 
+        error: 'Failed to upload to DigitalOcean Spaces', 
+        details: spacesError instanceof Error ? spacesError.message : 'Unknown error'
+      });
     }
     
     const imageData = {
@@ -336,14 +298,12 @@ router.post('/upload-url', requireAuth, async (req: Request, res: Response) => {
       console.error('Database error detail:', dbError.detail);
       console.error('Database error code:', dbError.code);
       
-      // Clean up the file if database save failed (only if local file exists)
-      if (!finalFilePath.startsWith('http')) {
-        try {
-          fs.unlinkSync(finalFilePath);
-          console.log('Cleaned up file after database error:', finalFilePath);
-        } catch (cleanupError) {
-          console.error('Failed to clean up file:', cleanupError);
-        }
+      // Delete from Spaces if database save failed
+      try {
+        await StorageService.deleteFile(finalFilename);
+        console.log('Cleaned up Spaces file after database error:', finalFilename);
+      } catch (cleanupError) {
+        console.error('Failed to clean up Spaces file:', cleanupError);
       }
       
       return res.status(500).json({ 
@@ -603,7 +563,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const { description, tags, image_type, license, license_details } = req.body;
+    const { description, tags, image_type, license, license_details, review_rating } = req.body;
     
     const updateData: any = {};
     if (description !== undefined) updateData.description = description;
@@ -613,6 +573,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (image_type !== undefined) updateData.image_type = image_type;
     if (license !== undefined) updateData.license = license;
     if (license_details !== undefined) updateData.license_details = license_details;
+    if (review_rating !== undefined) updateData.review_rating = review_rating;
     
     const image = await ImageModel.update(id, updateData);
     
@@ -639,10 +600,22 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const deleted = await ImageModel.delete(id);
     
     if (deleted) {
-      try {
-        fs.unlinkSync(image.file_path);
-      } catch (err) {
-        console.warn('Failed to delete file:', image.file_path);
+      // Delete from Spaces if it's a Spaces URL, otherwise try local cleanup for legacy files
+      if (image.file_path.startsWith('http')) {
+        try {
+          await StorageService.deleteFile(image.filename);
+          console.log('Deleted file from Spaces:', image.filename);
+        } catch (err) {
+          console.warn('Failed to delete Spaces file:', image.filename, err);
+        }
+      } else {
+        // Legacy local files - attempt local cleanup
+        try {
+          fs.unlinkSync(image.file_path);
+          console.log('Deleted legacy local file:', image.file_path);
+        } catch (err) {
+          console.warn('Failed to delete legacy local file:', image.file_path);
+        }
       }
     }
     
@@ -729,16 +702,23 @@ router.get('/:id/questions', async (req: Request, res: Response) => {
 });
 
 
+// Legacy endpoint for local file serving - redirect to Spaces
 router.get('/serve/:filename', (req: Request, res: Response) => {
   try {
     const filename = req.params.filename;
-    const filepath = path.join(__dirname, '../../uploads/images', filename);
     
-    if (!fs.existsSync(filepath)) {
-      return res.status(404).json({ error: 'File not found' });
+    // Check if it's a legacy local file first
+    const filepath = path.join(__dirname, '../../uploads/images', filename);
+    if (fs.existsSync(filepath)) {
+      console.log('Serving legacy local file:', filename);
+      return res.sendFile(path.resolve(filepath));
     }
     
-    res.sendFile(path.resolve(filepath));
+    // Redirect to Spaces URL for new files
+    const spacesUrl = StorageService.getPublicUrl(filename);
+    console.log('Redirecting to Spaces URL:', spacesUrl);
+    res.redirect(302, spacesUrl);
+    
   } catch (error) {
     console.error('Serve file error:', error);
     res.status(500).json({ error: 'Failed to serve file' });

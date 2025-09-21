@@ -7,6 +7,8 @@ const FileUpload: React.FC = () => {
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadMode, setUploadMode] = useState<'without-images' | 'with-images' | 'mixed'>('mixed');
+  const [inputMethod, setInputMethod] = useState<'file' | 'paste'>('file');
+  const [csvData, setCsvData] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [isbn, setIsbn] = useState<string>('');
   const [startingPage, setStartingPage] = useState<string>('');
@@ -30,8 +32,14 @@ const FileUpload: React.FC = () => {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
+    // Validate input method requirements
+    if (inputMethod === 'file' && !selectedFile) {
       setError('Please select a file first');
+      return;
+    }
+    
+    if (inputMethod === 'paste' && !csvData.trim()) {
+      setError('Please paste CSV data first');
       return;
     }
 
@@ -45,27 +53,46 @@ const FileUpload: React.FC = () => {
       setUploading(true);
       setError(null);
       
-      // Pass all source information to the service
-      const result = await questionService.uploadCSV(
-        selectedFile, 
-        uploadMode === 'with-images' || uploadMode === 'mixed',
-        {
-          description: description.trim(),
-          isbn: isbn.trim() || undefined,
-          startingPage: startingPage.trim() || undefined,
-          endingPage: endingPage.trim() || undefined,
-          chapter: chapter.trim() || undefined
-        }
-      );
+      let result;
+      if (inputMethod === 'file') {
+        // Pass all source information to the service
+        result = await questionService.uploadCSV(
+          selectedFile!, 
+          uploadMode === 'with-images' || uploadMode === 'mixed',
+          {
+            description: description.trim(),
+            isbn: isbn.trim() || undefined,
+            startingPage: startingPage.trim() || undefined,
+            endingPage: endingPage.trim() || undefined,
+            chapter: chapter.trim() || undefined
+          }
+        );
+      } else {
+        // Convert CSV text to File object for upload
+        const csvFile = new File([csvData], 'pasted-data.csv', { type: 'text/csv' });
+        result = await questionService.uploadCSV(
+          csvFile, 
+          uploadMode === 'with-images' || uploadMode === 'mixed',
+          {
+            description: description.trim(),
+            isbn: isbn.trim() || undefined,
+            startingPage: startingPage.trim() || undefined,
+            endingPage: endingPage.trim() || undefined,
+            chapter: chapter.trim() || undefined
+          }
+        );
+      }
+      
       setUploadResult(result);
       setSelectedFile(null);
+      setCsvData('');
       
       // Clear the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to upload file');
+      setError(err.response?.data?.error || 'Failed to upload data');
     } finally {
       setUploading(false);
     }
@@ -73,6 +100,7 @@ const FileUpload: React.FC = () => {
 
   const resetUpload = () => {
     setSelectedFile(null);
+    setCsvData('');
     setUploadResult(null);
     setError(null);
     setDescription('');
@@ -357,6 +385,70 @@ const FileUpload: React.FC = () => {
         </div>
       </div>
       
+      {/* Input Method Selector */}
+      <div className="input-method-selector" style={{ 
+        marginBottom: '30px', 
+        padding: '20px', 
+        backgroundColor: '#f0f8ff',
+        borderRadius: '8px',
+        border: '1px solid #b3d9ff'
+      }}>
+        <h3 style={{ marginBottom: '15px', color: '#003d7a' }}>Choose Input Method:</h3>
+        <div style={{ display: 'flex', gap: '20px' }}>
+          <label style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            cursor: 'pointer',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            border: '2px solid',
+            borderColor: inputMethod === 'file' ? '#007bff' : '#ced4da',
+            backgroundColor: inputMethod === 'file' ? '#e7f1ff' : 'white',
+            transition: 'all 0.3s ease'
+          }}>
+            <input
+              type="radio"
+              value="file"
+              checked={inputMethod === 'file'}
+              onChange={(e) => setInputMethod(e.target.value as 'file' | 'paste')}
+              style={{ marginRight: '8px' }}
+            />
+            <div>
+              <strong>Upload CSV File</strong>
+              <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
+                Select a .csv file from your computer
+              </div>
+            </div>
+          </label>
+          
+          <label style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            cursor: 'pointer',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            border: '2px solid',
+            borderColor: inputMethod === 'paste' ? '#007bff' : '#ced4da',
+            backgroundColor: inputMethod === 'paste' ? '#e7f1ff' : 'white',
+            transition: 'all 0.3s ease'
+          }}>
+            <input
+              type="radio"
+              value="paste"
+              checked={inputMethod === 'paste'}
+              onChange={(e) => setInputMethod(e.target.value as 'file' | 'paste')}
+              style={{ marginRight: '8px' }}
+            />
+            <div>
+              <strong>Paste CSV Data</strong>
+              <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '2px' }}>
+                Copy and paste CSV data directly
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
       <div className="upload-section">
         <div className="csv-format-info">
           <h3>CSV Format Requirements:</h3>
@@ -376,11 +468,11 @@ const FileUpload: React.FC = () => {
 {(uploadMode === 'with-images' || uploadMode === 'mixed') && (
               <>
                 <li style={{ marginTop: '10px', color: '#0056b3' }}><strong>Image-specific columns:</strong></li>
-                <li><strong>image_description</strong> (optional) - Description of the image</li>
-                <li><strong>image_modality</strong> (optional) - TTE, TEE/TOE, or non-echo</li>
-                <li><strong>image_view</strong> (optional) - Echo view (e.g., A4C, PLAX, etc.)</li>
-                <li><strong>image_usage</strong> (optional) - "question" or "explanation"</li>
-                <li><strong>image_type</strong> (optional) - "still" or "cine"</li>
+                <li><strong>image_description</strong> (REQUIRED) - Description of the image</li>
+                <li><strong>image_modality</strong> (REQUIRED) - TTE, TEE/TOE, or non-echo</li>
+                <li><strong>image_view</strong> (REQUIRED for echo) - Echo view (e.g., A4C, PLAX, etc.)</li>
+                <li><strong>image_usage</strong> (REQUIRED) - "question" or "explanation"</li>
+                <li><strong>image_type</strong> (REQUIRED) - "still" or "cine"</li>
                 <li><strong>image_url</strong> (optional) - URL to the image file</li>
               </>
             )}
@@ -388,29 +480,70 @@ const FileUpload: React.FC = () => {
         </div>
 
         <div className="upload-controls">
-          <div className="file-input-section">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleFileSelect}
-              className="file-input"
-              id="csv-file-input"
-            />
-            <label htmlFor="csv-file-input" className="file-input-label">
-              {selectedFile ? selectedFile.name : 'Choose CSV File'}
-            </label>
-          </div>
+          {inputMethod === 'file' ? (
+            <div className="file-input-section">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleFileSelect}
+                className="file-input"
+                id="csv-file-input"
+              />
+              <label htmlFor="csv-file-input" className="file-input-label">
+                {selectedFile ? selectedFile.name : 'Choose CSV File'}
+              </label>
+            </div>
+          ) : (
+            <div className="csv-paste-section" style={{ marginBottom: '20px' }}>
+              <label 
+                htmlFor="csv-textarea" 
+                style={{ 
+                  display: 'block', 
+                  marginBottom: '10px', 
+                  fontWeight: '500',
+                  color: '#495057'
+                }}
+              >
+                Paste your CSV data below:
+              </label>
+              <textarea
+                id="csv-textarea"
+                value={csvData}
+                onChange={(e) => setCsvData(e.target.value)}
+                placeholder="Paste your CSV data here (including headers)..."
+                style={{
+                  width: '100%',
+                  minHeight: '300px',
+                  padding: '15px',
+                  border: '2px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontFamily: 'monospace',
+                  resize: 'vertical',
+                  backgroundColor: '#fafafa'
+                }}
+              />
+              <div style={{ 
+                textAlign: 'right', 
+                fontSize: '12px', 
+                color: '#6c757d', 
+                marginTop: '5px' 
+              }}>
+                {csvData.split('\n').length - 1} lines
+              </div>
+            </div>
+          )}
 
           <button
             onClick={handleUpload}
-            disabled={!selectedFile || uploading}
+            disabled={(inputMethod === 'file' && !selectedFile) || (inputMethod === 'paste' && !csvData.trim()) || uploading}
             className="upload-button"
           >
             {uploading ? 'Uploading...' : 'Upload Questions'}
           </button>
 
-          {selectedFile && (
+          {(selectedFile || csvData.trim()) && (
             <button onClick={resetUpload} className="reset-button">
               Clear
             </button>
@@ -468,11 +601,11 @@ const FileUpload: React.FC = () => {
               📝 {uploadMode === 'mixed' ? 'Mixed Upload Notes:' : 'Image Upload Notes:'}
             </h4>
             <ul style={{ color: '#856404', fontSize: '14px', marginLeft: '20px' }}>
-              <li><strong>Modality values:</strong> Use "TTE" for transthoracic, "TEE" or "TOE" for transesophageal, "non-echo" for other images</li>
-              <li><strong>Usage values:</strong> Use "question" if image appears with question, "explanation" if with answer</li>
-              <li><strong>Type values:</strong> Use "still" for static images, "cine" for video loops</li>
+              <li><strong>Modality values (REQUIRED):</strong> Use "TTE" for transthoracic, "TEE" or "TOE" for transesophageal, "non-echo" for other images</li>
+              <li><strong>Usage values (REQUIRED):</strong> Use "question" if image appears with question, "explanation" if with answer</li>
+              <li><strong>Type values (REQUIRED):</strong> Use "still" for static images, "cine" for video loops</li>
               <li><strong>Image URLs:</strong> Must be publicly accessible direct links to image/video files</li>
-              <li><strong>Views:</strong> Use standard echo view abbreviations (A4C, A2C, PLAX, PSAX, etc.)</li>
+              <li><strong>Views (REQUIRED for echo):</strong> Must use exact view names from the list below</li>
               {uploadMode === 'mixed' && (
                 <>
                   <li style={{ marginTop: '8px' }}><strong>Mixed Mode:</strong> Leave image fields blank for questions without images</li>
@@ -481,6 +614,116 @@ const FileUpload: React.FC = () => {
                 </>
               )}
             </ul>
+          </div>
+        )}
+        
+        {/* Echo View Options */}
+        {(uploadMode === 'with-images' || uploadMode === 'mixed') && (
+          <div style={{ 
+            marginTop: '20px', 
+            padding: '15px', 
+            backgroundColor: '#e7f3ff',
+            border: '1px solid #0066cc',
+            borderRadius: '6px'
+          }}>
+            <h4 style={{ color: '#003d7a', marginBottom: '10px' }}>
+              🫀 Valid Echo View Options:
+            </h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              {/* TTE Views */}
+              <div>
+                <h5 style={{ color: '#0066cc', marginBottom: '8px' }}>Transthoracic Echo (TTE) Views:</h5>
+                <div style={{ fontSize: '12px', color: '#003d7a', marginLeft: '10px' }}>
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Parasternal:</p>
+                  <ul style={{ marginLeft: '15px', marginBottom: '8px' }}>
+                    <li>Parasternal Long Axis (PLAX)</li>
+                    <li>Parasternal Short Axis - Aortic Valve Level</li>
+                    <li>Parasternal Short Axis - Mitral Valve Level</li>
+                    <li>Parasternal Short Axis - Papillary Muscle Level</li>
+                    <li>Parasternal Short Axis - Apical Level</li>
+                    <li>Right Ventricular Inflow</li>
+                    <li>Right Ventricular Outflow</li>
+                  </ul>
+                  
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Apical:</p>
+                  <ul style={{ marginLeft: '15px', marginBottom: '8px' }}>
+                    <li>Apical 4-Chamber</li>
+                    <li>Apical 2-Chamber</li>
+                    <li>Apical 3-Chamber (Long Axis)</li>
+                    <li>Apical 5-Chamber</li>
+                  </ul>
+                  
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Subcostal:</p>
+                  <ul style={{ marginLeft: '15px', marginBottom: '8px' }}>
+                    <li>Subcostal 4-Chamber</li>
+                    <li>Subcostal Short Axis</li>
+                    <li>Subcostal IVC</li>
+                    <li>Subcostal Aorta</li>
+                  </ul>
+                  
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Suprasternal:</p>
+                  <ul style={{ marginLeft: '15px' }}>
+                    <li>Suprasternal Long Axis</li>
+                    <li>Suprasternal Short Axis</li>
+                  </ul>
+                </div>
+              </div>
+              
+              {/* TEE Views */}
+              <div>
+                <h5 style={{ color: '#0066cc', marginBottom: '8px' }}>Transesophageal Echo (TEE) Views:</h5>
+                <div style={{ fontSize: '12px', color: '#003d7a', marginLeft: '10px' }}>
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Upper Esophageal:</p>
+                  <ul style={{ marginLeft: '15px', marginBottom: '8px' }}>
+                    <li>UE Aortic Arch Long Axis</li>
+                    <li>UE Aortic Arch Short Axis</li>
+                  </ul>
+                  
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Mid-Esophageal:</p>
+                  <ul style={{ marginLeft: '15px', marginBottom: '8px' }}>
+                    <li>ME 4-Chamber</li>
+                    <li>ME 2-Chamber</li>
+                    <li>ME Long Axis</li>
+                    <li>ME Mitral Commissural</li>
+                    <li>ME Aortic Valve Short Axis</li>
+                    <li>ME Aortic Valve Long Axis</li>
+                    <li>ME Right Ventricular Inflow-Outflow</li>
+                    <li>ME Bicaval</li>
+                    <li>ME Left Atrial Appendage</li>
+                    <li>ME Ascending Aorta Short Axis</li>
+                    <li>ME Ascending Aorta Long Axis</li>
+                  </ul>
+                  
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Transgastric:</p>
+                  <ul style={{ marginLeft: '15px', marginBottom: '8px' }}>
+                    <li>TG Mid Short Axis</li>
+                    <li>TG 2-Chamber</li>
+                    <li>TG Long Axis</li>
+                    <li>TG Right Ventricular Inflow</li>
+                    <li>Deep TG Long Axis</li>
+                  </ul>
+                  
+                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Descending Aorta:</p>
+                  <ul style={{ marginLeft: '15px' }}>
+                    <li>Descending Aorta Short Axis</li>
+                    <li>Descending Aorta Long Axis</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ 
+              marginTop: '15px', 
+              padding: '10px', 
+              backgroundColor: '#fff3cd', 
+              border: '1px solid #ffc107', 
+              borderRadius: '4px' 
+            }}>
+              <p style={{ color: '#856404', fontSize: '12px', fontWeight: 'bold', margin: 0 }}>
+                ⚠️ Important: Use the exact view names as listed above. For non-echo images, leave the image_view field empty.
+              </p>
+            </div>
           </div>
         )}
       </div>

@@ -44,11 +44,14 @@ export class UploadBatchModel {
       SELECT 
         ub.*,
         u.username as uploader_username,
-        COUNT(q.id) as actual_question_count
+        COUNT(DISTINCT q.id) as actual_question_count,
+        COUNT(DISTINCT imgd.id) as image_description_count
       FROM upload_batches ub
       LEFT JOIN users u ON u.id = ub.uploaded_by
       LEFT JOIN questions q ON q.batch_id = ub.id
+      LEFT JOIN image_descriptions imgd ON imgd.question_id = q.id
       GROUP BY ub.id, u.username
+      HAVING COUNT(q.id) > 0
       ORDER BY ub.upload_date DESC
     `;
     const result = await query(sql);
@@ -60,10 +63,12 @@ export class UploadBatchModel {
       SELECT 
         ub.*,
         u.username as uploader_username,
-        COUNT(q.id) as actual_question_count
+        COUNT(DISTINCT q.id) as actual_question_count,
+        COUNT(DISTINCT imgd.id) as image_description_count
       FROM upload_batches ub
       LEFT JOIN users u ON u.id = ub.uploaded_by
       LEFT JOIN questions q ON q.batch_id = ub.id
+      LEFT JOIN image_descriptions imgd ON imgd.question_id = q.id
       WHERE ub.id = $1
       GROUP BY ub.id, u.username
     `;
@@ -95,7 +100,13 @@ export class UploadBatchModel {
         END as status_display
       FROM questions q
       WHERE q.batch_id = $1
-      ORDER BY q.question_number, q.id
+      ORDER BY 
+        CASE 
+          WHEN q.question_number IS NULL THEN 0
+          WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
+          ELSE 0
+        END DESC,
+        q.created_at DESC
     `;
     const result = await query(sql, [batchId]);
     return result.rows;

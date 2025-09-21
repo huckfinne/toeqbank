@@ -5,18 +5,39 @@ import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
-// Get all image descriptions
+// Get all image descriptions (optionally filtered by batch and/or echo_view)
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const descriptions = await ImageDescriptionModel.findAll();
-    console.log('Fetched image descriptions:', descriptions.length, 'items');
+    const batchId = req.query.batch_id ? parseInt(req.query.batch_id as string) : undefined;
+    const echoView = req.query.echo_view as string | undefined;
+    
+    let descriptions;
+    if (batchId || echoView) {
+      descriptions = await ImageDescriptionModel.findByFilters({ batchId, echoView });
+      console.log(`Fetched image descriptions with filters (batch: ${batchId}, view: ${echoView}):`, descriptions.length, 'items');
+    } else {
+      descriptions = await ImageDescriptionModel.findAll();
+      console.log('Fetched all image descriptions:', descriptions.length, 'items');
+    }
+    
     if (descriptions.length > 0) {
       console.log('First description sample:', descriptions[0]);
     }
     res.json(descriptions);
   } catch (error) {
-    console.error('Get all image descriptions error:', error);
+    console.error('Get image descriptions error:', error);
     res.status(500).json({ error: 'Failed to fetch image descriptions' });
+  }
+});
+
+// Get distinct echo views
+router.get('/echo-views', async (req: Request, res: Response) => {
+  try {
+    const echoViews = await ImageDescriptionModel.getDistinctEchoViews();
+    res.json(echoViews);
+  } catch (error) {
+    console.error('Get echo views error:', error);
+    res.status(500).json({ error: 'Failed to fetch echo views' });
   }
 });
 

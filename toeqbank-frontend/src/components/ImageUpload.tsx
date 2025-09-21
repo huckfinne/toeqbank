@@ -33,6 +33,7 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
   const [urlInput, setUrlInput] = useState('');
   const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastOpenTime = useRef(0);
 
   const [metadata, setMetadata] = useState({
     description: initialDescription,
@@ -48,6 +49,7 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
   useImperativeHandle(ref, () => ({
     triggerUpload: handleUpload
   }));
+
 
   // Get available views based on selected modality
   const availableViews = metadata.modality ? getViewsForModality(metadata.modality) : [];
@@ -232,6 +234,12 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
     const file = event.target.files?.[0];
     if (file) {
       handleFileSelect(file);
+      // Defer the reset to avoid triggering events
+      setTimeout(() => {
+        if (event.target) {
+          event.target.value = '';
+        }
+      }, 100);
     }
   };
 
@@ -257,7 +265,20 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
   };
 
   const openFileSelector = () => {
-    fileInputRef.current?.click();
+    const now = Date.now();
+    const timeSinceLastOpen = now - lastOpenTime.current;
+    
+    // Prevent double-clicking due to React StrictMode
+    if (timeSinceLastOpen < 200) {
+      return;
+    }
+    
+    lastOpenTime.current = now;
+    
+    // Open the file selector
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   return (
@@ -499,6 +520,18 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
         </div>
       </div>
 
+      {/* Hidden file input - moved outside the clickable area */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={acceptedTypes}
+        onChange={handleInputChange}
+        onClick={(e) => e.stopPropagation()}
+        onFocus={(e) => e.target.blur()}
+        style={{ display: 'none' }}
+        disabled={isUploading}
+      />
+
       {/* URL Input */}
       {uploadMode === 'url' ? (
         <div className="mb-4">
@@ -535,72 +568,85 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
         </div>
       ) : (
         <div
-          style={{
-            width: '200px',
-            height: '100px',
-            margin: '0 auto'
-          }}
-          className={`border-2 border-dashed rounded-lg p-2 text-center transition-colors ${
+          className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
             dragActive
               ? 'border-blue-400 bg-blue-50'
               : 'border-gray-300 hover:border-gray-400'
-          } ${isUploading ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
-        onDragEnter={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleDrag(e);
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleDrag(e);
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleDrag(e);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleDrop(e);
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          openFileSelector();
-        }}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={acceptedTypes}
-          onChange={handleInputChange}
-          className="hidden"
-          disabled={isUploading}
-        />
-        
-        {selectedFile ? (
-          <div className="space-y-1">
-            <div className="text-green-600">
-              <svg className="mx-auto h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+          } ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDrag(e);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDrag(e);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDrag(e);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDrop(e);
+          }}
+        >
+          {selectedFile ? (
+            <div className="space-y-2">
+              {previewUrl && (
+                <div style={{ width: '480px', height: '480px', margin: '0 auto' }}>
+                  {selectedFile.type.startsWith('video/') ? (
+                    <video 
+                      src={previewUrl} 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      controls
+                    />
+                  ) : (
+                    <img 
+                      src={previewUrl} 
+                      alt="Preview" 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-gray-600">{selectedFile.name}</p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openFileSelector();
+                }}
+                className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+              >
+                Change File
+              </button>
             </div>
-            <p className="text-xs text-gray-600">{selectedFile.name}</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            <div className="text-gray-400">
-              <svg className="mx-auto h-4 w-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+          ) : (
+            <div className="space-y-1">
+              <div style={{ width: '160px', height: '160px', margin: '0 auto' }}>
+                <svg className="text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '100%', height: '100%' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <p className="text-sm font-semibold text-gray-900">Upload Image or Video</p>
+              <p className="text-xs text-gray-500">Drag and drop here or</p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openFileSelector();
+                }}
+                className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Choose File
+              </button>
             </div>
-            <p className="text-xs text-gray-600">
-              Drop files or click
-            </p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
 
       {/* Display selected file/URL info for upload */}

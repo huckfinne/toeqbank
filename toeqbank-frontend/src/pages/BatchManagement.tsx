@@ -27,11 +27,13 @@ const BatchManagement: React.FC = () => {
   const loadBatches = async () => {
     try {
       setLoading(true);
+      console.log('Loading batches...');
       const data = await batchService.getAllBatches();
+      console.log('Batches loaded:', data);
       setBatches(data);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load batches');
       console.error('Error loading batches:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to load batches');
     } finally {
       setLoading(false);
     }
@@ -102,47 +104,51 @@ const BatchManagement: React.FC = () => {
           </div>
         )}
 
-        {batches.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-500 mb-4">
-              <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Upload Batches</h3>
-            <p className="text-gray-500">No upload batches have been created yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+        <div className="space-y-4">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-300">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Batch #
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Batch Info
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Uploader
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Questions
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Upload Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-300">
+                {batches.length === 0 ? (
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Batch Info
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Uploader
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Questions
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Upload Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="text-gray-500">
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Upload Batches</h3>
+                        <p className="text-gray-500">No upload batches have been created yet.</p>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {batches.map((batch) => (
-                    <tr key={batch.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                ) : (
+                  batches.map((batch) => (
+                    <tr key={batch.id} className="hover:bg-blue-50 transition-colors duration-200 border-l-4 border-l-transparent hover:border-l-blue-500">
+                      <td className="px-6 py-8 whitespace-nowrap">
+                        <div className="text-2xl font-bold text-blue-600">
+                          #{batch.id}
+                        </div>
+                      </td>
+                      <td className="px-6 py-8 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {batch.batch_name}
-                          </div>
                           <div className="text-sm text-gray-500">
                             {batch.file_name}
                           </div>
@@ -153,28 +159,23 @@ const BatchManagement: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-8 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {batch.uploader_username}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-8 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {batch.actual_question_count}
                         </div>
-                        {batch.question_count !== batch.actual_question_count && (
-                          <div className="text-xs text-amber-600">
-                            (originally {batch.question_count})
-                          </div>
-                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-8 whitespace-nowrap text-sm text-gray-500">
                         {new Date(batch.upload_date).toLocaleDateString()}<br />
                         <span className="text-xs text-gray-400">
                           {new Date(batch.upload_date).toLocaleTimeString()}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <td className="px-6 py-8 whitespace-nowrap text-sm font-medium space-x-2">
                         <button
                           onClick={() => handleViewBatch(batch.id)}
                           className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded transition-colors"
@@ -194,12 +195,12 @@ const BatchManagement: React.FC = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

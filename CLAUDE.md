@@ -40,19 +40,23 @@
 - **IMPORTANT: Always commit and push changes to deploy them**
 
 ## Claude Code Workflow Rules
-🚨 **CRITICAL: ALWAYS COMMIT AND PUSH AFTER EVERY CHANGE** 🚨
+🚨 **COMMIT LOCALLY - PUSH ONLY WHEN REQUESTED** 🚨
 
-1. **MANDATORY: Push after completing ANY task** - Digital Ocean auto-deploys from GitHub
-2. **MANDATORY: Push after ANY file modification** - Even small fixes need deployment
+1. **ALWAYS commit changes locally** - Keep work tracked and safe
+2. **ONLY push to GitHub when explicitly requested** - User controls deployment timing
 3. **Use descriptive commit messages** with the standard footer
-4. **Check build status** after pushing (builds take ~30 seconds) 
-5. **Test locally first** with `npm run build` to catch TypeScript errors
+4. **Test locally first** with `npm run build` to catch TypeScript errors
+5. **Digital Ocean auto-deploys** only when changes are pushed to main branch
 
-### Commit Checklist:
+### Development Workflow:
 - [ ] Made changes to code/files?
 - [ ] Built successfully with `npm run build`?  
-- [ ] Added, committed, and pushed changes?
-- [ ] Verified deployment started on Digital Ocean?
+- [ ] Added and committed changes locally?
+- [ ] **WAIT for user to request push before deploying**
+
+### When User Says "Push" or "Deploy":
+- [ ] Run `git push origin main`
+- [ ] Verify deployment started on Digital Ocean
 
 ## Database Backup & Recovery
 ⚠️ **CRITICAL: Always backup before major changes!**

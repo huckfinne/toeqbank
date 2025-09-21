@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { imageService, Image, LicenseType } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ImageGalleryProps {
   onImageSelect?: (image: Image) => void;
@@ -24,6 +25,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   searchTags
 }) => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [images, setImages] = useState<Image[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -472,6 +474,12 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                             <div className="text-gray-500 mb-1">
                               {formatFileSize(image.file_size)}
                             </div>
+
+                            {isAdmin && image.uploader_username && (
+                              <div className="text-xs text-purple-600 mb-1">
+                                <span className="font-semibold">By:</span> {image.uploader_username}
+                              </div>
+                            )}
 
                             {image.tags && image.tags.length > 0 && (
                               <div className="mb-1">

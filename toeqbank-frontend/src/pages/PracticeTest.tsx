@@ -1,42 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { questionService, Question } from '../services/api';
+import { questionService } from '../services/api';
 import QuestionCard from '../components/QuestionCard';
 import TestResults from '../components/TestResults';
 import { UserAnswer, TestSession } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 const PracticeTest: React.FC = () => {
+  const { isAdmin } = useAuth();
   const [testSession, setTestSession] = useState<TestSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testCompleted, setTestCompleted] = useState(false);
   const [approvedCount, setApprovedCount] = useState<number>(0);
+  const [pendingCount, setPendingCount] = useState<number>(0);
   const [checkingQuestions, setCheckingQuestions] = useState(true);
+  const [showPendingQuestions, setShowPendingQuestions] = useState(false);
+  const [questionCount, setQuestionCount] = useState<number>(2);
 
   useEffect(() => {
-    // Check for approved questions on component mount
-    const checkApprovedQuestions = async () => {
+    // Check for approved and pending questions on component mount
+    const checkQuestions = async () => {
       try {
-        const response = await questionService.getQuestionsByReviewStatus('approved');
-        setApprovedCount(response.questions.length);
+        const approvedResponse = await questionService.getQuestionsByReviewStatus('approved');
+        setApprovedCount(approvedResponse.questions.length);
+        
+        if (isAdmin) {
+          const pendingResponse = await questionService.getQuestionsByReviewStatus('pending');
+          setPendingCount(pendingResponse.questions.length);
+        }
       } catch (err) {
-        console.error('Failed to check approved questions:', err);
+        console.error('Failed to check questions:', err);
       } finally {
         setCheckingQuestions(false);
       }
     };
-    checkApprovedQuestions();
-  }, []);
+    checkQuestions();
+  }, [isAdmin]);
 
-  const startTest = async (questionCount: number = 20) => {
+  const startTest = async (questionCount: number = 2) => {
     try {
       setLoading(true);
       setError(null);
       
-      // Fetch only approved questions
-      const response = await questionService.getQuestionsByReviewStatus('approved');
+      // Fetch questions based on admin toggle
+      const status = isAdmin && showPendingQuestions ? 'pending' : 'approved';
+      const response = await questionService.getQuestionsByReviewStatus(status);
       
       if (response.questions.length === 0) {
-        setError('No approved questions available yet. Questions must be reviewed and approved before they appear in the Question Bank.');
+        const message = showPendingQuestions 
+          ? 'No pending questions available for review.'
+          : 'No approved questions available yet. Questions must be reviewed and approved before they appear in the Question Bank.';
+        setError(message);
         return;
       }
 
@@ -142,36 +156,102 @@ const PracticeTest: React.FC = () => {
     return (
       <div className="practice-test-start">
         <h2>Question Bank</h2>
-        {approvedCount > 0 ? (
+        
+        {isAdmin && (
+          <div style={{
+            backgroundColor: '#f0f0f0',
+            padding: '1rem',
+            borderRadius: '8px',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem'
+          }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={showPendingQuestions}
+                onChange={(e) => setShowPendingQuestions(e.target.checked)}
+                style={{ marginRight: '0.5rem' }}
+              />
+              <span>Show pending questions instead of approved</span>
+            </label>
+            <span style={{ 
+              color: showPendingQuestions ? '#ff9800' : '#27ae60',
+              fontWeight: 'bold'
+            }}>
+              ({showPendingQuestions ? `${pendingCount} pending` : `${approvedCount} approved`} questions)
+            </span>
+          </div>
+        )}
+        
+        {(showPendingQuestions ? pendingCount : approvedCount) > 0 ? (
           <>
-            <p>Test your knowledge with approved questions from the question bank.</p>
-            <p style={{ color: '#27ae60', fontWeight: 'bold', marginTop: '0.5rem' }}>
-              {approvedCount} approved questions available
+            <p>
+              {showPendingQuestions 
+                ? 'Practice with pending questions that need review.'
+                : 'Test your knowledge with approved questions from the question bank.'}
+            </p>
+            <p style={{ 
+              color: showPendingQuestions ? '#ff9800' : '#27ae60', 
+              fontWeight: 'bold', 
+              marginTop: '0.5rem' 
+            }}>
+              {showPendingQuestions ? pendingCount : approvedCount} {showPendingQuestions ? 'pending' : 'approved'} questions available
             </p>
             
             <div className="test-options">
-              <h3>Select Test Length:</h3>
-              <div className="test-buttons">
-                {approvedCount >= 10 && (
-                  <button onClick={() => startTest(10)} className="test-option">
-                    Quick Test (10 questions)
-                  </button>
-                )}
-                {approvedCount >= 20 && (
-                  <button onClick={() => startTest(20)} className="test-option">
-                    Standard Test (20 questions)
-                  </button>
-                )}
-                {approvedCount >= 50 && (
-                  <button onClick={() => startTest(50)} className="test-option">
-                    Long Test (50 questions)
-                  </button>
-                )}
-                {approvedCount < 10 && (
-                  <button onClick={() => startTest(approvedCount)} className="test-option">
-                    Practice All ({approvedCount} questions)
-                  </button>
-                )}
+              <h3>Test Configuration:</h3>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '1rem',
+                alignItems: 'center',
+                marginTop: '1.5rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <label htmlFor="question-count" style={{ fontWeight: 'bold' }}>
+                    Number of Questions:
+                  </label>
+                  <input
+                    id="question-count"
+                    type="number"
+                    min="1"
+                    max={Math.min(50, showPendingQuestions ? pendingCount : approvedCount)}
+                    value={questionCount}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      const maxAvailable = showPendingQuestions ? pendingCount : approvedCount;
+                      setQuestionCount(Math.min(Math.max(1, value), Math.min(50, maxAvailable)));
+                    }}
+                    style={{
+                      padding: '0.5rem',
+                      fontSize: '1rem',
+                      width: '80px',
+                      borderRadius: '4px',
+                      border: '1px solid #ccc'
+                    }}
+                  />
+                  <span style={{ color: '#666', fontSize: '0.9rem' }}>
+                    (max: {Math.min(50, showPendingQuestions ? pendingCount : approvedCount)})
+                  </span>
+                </div>
+                <button 
+                  onClick={() => startTest(questionCount)} 
+                  className="test-option"
+                  style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem 2rem',
+                    fontSize: '1.1rem',
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Start Test ({questionCount} question{questionCount !== 1 ? 's' : ''})
+                </button>
               </div>
             </div>
           </>
@@ -183,13 +263,19 @@ const PracticeTest: React.FC = () => {
             padding: '1.5rem',
             marginTop: '2rem'
           }}>
-            <h3 style={{ color: '#856404', marginBottom: '1rem' }}>No Approved Questions Available</h3>
+            <h3 style={{ color: '#856404', marginBottom: '1rem' }}>
+              No {showPendingQuestions ? 'Pending' : 'Approved'} Questions Available
+            </h3>
             <p style={{ color: '#856404', marginBottom: '0.5rem' }}>
-              The Question Bank is currently empty because no questions have been approved yet.
+              {showPendingQuestions 
+                ? 'There are no pending questions to review at this time.'
+                : 'The Question Bank is currently empty because no questions have been approved yet.'}
             </p>
-            <p style={{ color: '#856404' }}>
-              Questions must be reviewed and approved by an administrator before they appear here.
-            </p>
+            {!showPendingQuestions && (
+              <p style={{ color: '#856404' }}>
+                Questions must be reviewed and approved by an administrator before they appear here.
+              </p>
+            )}
           </div>
         )}
       </div>

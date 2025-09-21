@@ -1,13 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { imageService, Image } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const ImageView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [image, setImage] = useState<Image | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFullScreen, setShowFullScreen] = useState(false);
+  const [editingRating, setEditingRating] = useState(false);
+  const [tempRating, setTempRating] = useState<number | null>(null);
+  const [savingRating, setSavingRating] = useState(false);
+
+  // Add keyboard listener for escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowFullScreen(false);
+      }
+    };
+
+    if (showFullScreen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [showFullScreen]);
 
   useEffect(() => {
     const loadImage = async () => {
@@ -64,6 +84,55 @@ const ImageView: React.FC = () => {
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const handleSaveRating = async () => {
+    if (!image?.id || tempRating === null) return;
+    
+    setSavingRating(true);
+    try {
+      const updatedImage = await imageService.updateImage(image.id, {
+        review_rating: tempRating
+      });
+      setImage(updatedImage);
+      setEditingRating(false);
+    } catch (err) {
+      console.error('Failed to save rating:', err);
+      alert('Failed to save rating');
+    } finally {
+      setSavingRating(false);
+    }
+  };
+
+  const handleEditRating = () => {
+    setTempRating(image?.review_rating || null);
+    setEditingRating(true);
+  };
+
+  const handleCancelRating = () => {
+    setTempRating(null);
+    setEditingRating(false);
+  };
+
+  const renderStars = (rating: number | null | undefined, interactive: boolean = false) => {
+    const stars = [];
+    const currentRating = rating || 0;
+    
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <span
+          key={i}
+          onClick={interactive ? () => setTempRating(i) : undefined}
+          className={`text-2xl ${interactive ? 'cursor-pointer hover:scale-110 transition-transform' : ''} ${
+            i <= currentRating ? 'text-yellow-500' : 'text-gray-300'
+          }`}
+        >
+          ★
+        </span>
+      );
+    }
+    
+    return stars;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -92,18 +161,21 @@ const ImageView: React.FC = () => {
               {image.mime_type.startsWith('video/') ? (
                 <video
                   src={imageService.getImageUrl(image.file_path || image.filename)}
-                  className="w-full h-auto max-h-96 object-contain"
+                  className="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
                   controls
                   loop
+                  onClick={() => setShowFullScreen(true)}
                 />
               ) : (
                 <img
                   src={imageService.getImageUrl(image.file_path || image.filename)}
                   alt={image.description || image.original_name}
-                  className="w-full h-auto max-h-96 object-contain"
+                  className="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => setShowFullScreen(true)}
                 />
               )}
             </div>
+            <p className="text-sm text-gray-500 mt-2 text-center">Click image to view full screen</p>
           </div>
 
           {/* Image Information */}
@@ -167,6 +239,55 @@ const ImageView: React.FC = () => {
                 </div>
               )}
 
+              {isAdmin && image.uploader_username && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Uploaded By</label>
+                  <p className="text-sm font-semibold text-purple-700">{image.uploader_username}</p>
+                </div>
+              )}
+
+              {isAdmin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                  {editingRating ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="flex">
+                        {renderStars(tempRating, true)}
+                      </div>
+                      <button
+                        onClick={handleSaveRating}
+                        disabled={savingRating || tempRating === null}
+                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-gray-400"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={handleCancelRating}
+                        disabled={savingRating}
+                        className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-3">
+                      <div className="flex">
+                        {renderStars(image.review_rating)}
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {image.review_rating ? `(${image.review_rating}/5)` : 'Not rated'}
+                      </span>
+                      <button
+                        onClick={handleEditRating}
+                        className="px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Created</label>
                 <p className="text-sm text-gray-900">
@@ -195,6 +316,52 @@ const ImageView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Full Screen Modal */}
+      {showFullScreen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black bg-opacity-95 flex items-center justify-center p-4"
+          onClick={() => setShowFullScreen(false)}
+        >
+          <div className="relative max-w-full max-h-full">
+            {/* Close button */}
+            <button
+              onClick={() => setShowFullScreen(false)}
+              className="absolute -top-12 right-0 text-white text-4xl hover:text-gray-300 transition-colors"
+              aria-label="Close full screen"
+            >
+              ×
+            </button>
+            
+            {/* Full screen image/video */}
+            {image.mime_type.startsWith('video/') ? (
+              <video
+                src={imageService.getImageUrl(image.file_path || image.filename)}
+                className="max-w-full max-h-[90vh] object-contain"
+                controls
+                loop
+                autoPlay
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <img
+                src={imageService.getImageUrl(image.file_path || image.filename)}
+                alt={image.description || image.original_name}
+                className="max-w-full max-h-[90vh] object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+            
+            {/* Image info overlay */}
+            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-4">
+              <p className="text-sm">{image.original_name}</p>
+              {image.description && (
+                <p className="text-xs mt-1 opacity-80">{image.description}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

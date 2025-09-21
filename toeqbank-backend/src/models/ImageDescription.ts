@@ -84,6 +84,120 @@ export class ImageDescriptionModel {
     return result.rows;
   }
 
+  static async findByBatchId(batchId: number): Promise<ImageDescription[]> {
+    const result = await query(`
+      SELECT 
+        id.id,
+        id.question_id,
+        id.description,
+        id.usage_type,
+        id.modality,
+        id.echo_view,
+        id.image_type,
+        id.created_at,
+        id.updated_at,
+        q.question_number, 
+        q.question 
+      FROM image_descriptions id
+      LEFT JOIN questions q ON id.question_id = q.id
+      WHERE q.batch_id = $1
+      ORDER BY 
+        CASE 
+          WHEN q.question_number IS NULL THEN 0
+          WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
+          ELSE 0
+        END DESC,
+        id.created_at DESC
+    `, [batchId]);
+    
+    return result.rows;
+  }
+
+  static async findByEchoView(echoView: string): Promise<ImageDescription[]> {
+    const result = await query(`
+      SELECT 
+        id.id,
+        id.question_id,
+        id.description,
+        id.usage_type,
+        id.modality,
+        id.echo_view,
+        id.image_type,
+        id.created_at,
+        id.updated_at,
+        q.question_number, 
+        q.question 
+      FROM image_descriptions id
+      LEFT JOIN questions q ON id.question_id = q.id
+      WHERE id.echo_view = $1
+      ORDER BY 
+        CASE 
+          WHEN q.question_number IS NULL THEN 0
+          WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
+          ELSE 0
+        END DESC,
+        id.created_at DESC
+    `, [echoView]);
+    
+    return result.rows;
+  }
+
+  static async findByFilters(filters: { batchId?: number; echoView?: string }): Promise<ImageDescription[]> {
+    let whereConditions: string[] = [];
+    let values: any[] = [];
+    let paramIndex = 1;
+
+    if (filters.batchId) {
+      whereConditions.push(`q.batch_id = $${paramIndex++}`);
+      values.push(filters.batchId);
+    }
+
+    if (filters.echoView) {
+      whereConditions.push(`id.echo_view = $${paramIndex++}`);
+      values.push(filters.echoView);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const result = await query(`
+      SELECT 
+        id.id,
+        id.question_id,
+        id.description,
+        id.usage_type,
+        id.modality,
+        id.echo_view,
+        id.image_type,
+        id.created_at,
+        id.updated_at,
+        q.question_number, 
+        q.question 
+      FROM image_descriptions id
+      LEFT JOIN questions q ON id.question_id = q.id
+      ${whereClause}
+      ORDER BY 
+        CASE 
+          WHEN q.question_number IS NULL THEN 0
+          WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
+          ELSE 0
+        END DESC,
+        id.created_at DESC
+    `, values);
+    
+    return result.rows;
+  }
+
+  static async getDistinctEchoViews(): Promise<string[]> {
+    const result = await query(`
+      SELECT DISTINCT echo_view 
+      FROM image_descriptions 
+      WHERE echo_view IS NOT NULL 
+      ORDER BY echo_view
+    `);
+    
+    return result.rows.map((row: any) => row.echo_view);
+  }
+
   static async update(id: number, data: Partial<Pick<ImageDescription, 'description' | 'usage_type' | 'modality' | 'echo_view' | 'image_type'>>): Promise<ImageDescription> {
     const updates: string[] = [];
     const values: any[] = [];

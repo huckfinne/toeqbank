@@ -17,7 +17,6 @@ const AdminUserPanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [registrationLink, setRegistrationLink] = useState<string | null>(null);
   const [generatingLink, setGeneratingLink] = useState(false);
   
@@ -33,15 +32,6 @@ const AdminUserPanel: React.FC = () => {
     is_image_contributor: false
   });
 
-  const [editForm, setEditForm] = useState({
-    username: '',
-    email: '',
-    first_name: '',
-    last_name: '',
-    is_admin: false,
-    is_reviewer: false,
-    is_image_contributor: false
-  });
 
   const [resetPasswordForm, setResetPasswordForm] = useState({
     userId: 0,
@@ -110,21 +100,6 @@ const AdminUserPanel: React.FC = () => {
     }
   };
 
-  const handleUpdateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingUser) return;
-
-    try {
-      setError(null);
-      await adminService.updateUser(editingUser.id, editForm);
-      setSuccess('User updated successfully');
-      setEditingUser(null);
-      loadUsers();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to update user');
-      console.error('Update user error:', err);
-    }
-  };
 
   const handleDeleteUser = async (userId: number, username: string) => {
     if (!window.confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
@@ -166,18 +141,6 @@ const AdminUserPanel: React.FC = () => {
     }
   };
 
-  const startEditUser = (user: AdminUser) => {
-    setEditingUser(user);
-    setEditForm({
-      username: user.username,
-      email: user.email,
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
-      is_admin: user.is_admin,
-      is_reviewer: user.is_reviewer,
-      is_image_contributor: user.is_image_contributor
-    });
-  };
 
   const startPasswordReset = (userId: number) => {
     setResetPasswordForm({
@@ -186,6 +149,31 @@ const AdminUserPanel: React.FC = () => {
       confirmPassword: ''
     });
     setShowPasswordReset(true);
+  };
+
+  const getUserRole = (user: AdminUser): string => {
+    if (user.is_admin) return 'admin';
+    if (user.is_reviewer) return 'reviewer';
+    if (user.is_image_contributor) return 'image_contributor';
+    return 'regular';
+  };
+
+  const handleQuickRoleChange = async (userId: number, newRole: string) => {
+    try {
+      setError(null);
+      const updateData = {
+        is_admin: newRole === 'admin',
+        is_reviewer: newRole === 'reviewer' || newRole === 'admin',
+        is_image_contributor: newRole === 'image_contributor'
+      };
+      
+      await adminService.updateUser(userId, updateData);
+      setSuccess('User role updated successfully');
+      loadUsers();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to update user role');
+      console.error('Update user role error:', err);
+    }
   };
 
   const generateRegistrationLink = async () => {
@@ -428,34 +416,63 @@ const AdminUserPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-4 space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={createForm.is_admin}
-                    onChange={(e) => setCreateForm({...createForm, is_admin: e.target.checked})}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">Administrator privileges</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={createForm.is_reviewer}
-                    onChange={(e) => setCreateForm({...createForm, is_reviewer: e.target.checked})}
-                    className="mr-2 text-green-600 focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">Reviewer privileges</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={createForm.is_image_contributor}
-                    onChange={(e) => setCreateForm({...createForm, is_image_contributor: e.target.checked})}
-                    className="mr-2 text-purple-600 focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700">Image Contributor</span>
-                </label>
+              <div className="mt-4 space-y-3">
+                <div className="pb-2 border-b border-gray-200">
+                  <p className="text-xs text-gray-500 mb-2 font-medium">User Type:</p>
+                  <label className="flex items-center mb-2">
+                    <input
+                      type="radio"
+                      name="createUserType"
+                      checked={!createForm.is_image_contributor}
+                      onChange={() => setCreateForm({...createForm, is_image_contributor: false})}
+                      className="mr-2 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <span className="text-sm text-gray-700 font-medium">Regular User</span>
+                      <span className="text-xs text-gray-500 block">Can create questions and upload images without limits</span>
+                    </div>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="createUserType"
+                      checked={createForm.is_image_contributor}
+                      onChange={() => setCreateForm({...createForm, is_image_contributor: true})}
+                      className="mr-2 text-purple-600 focus:ring-purple-500"
+                    />
+                    <div>
+                      <span className="text-sm text-gray-700 font-medium">Image Contributor</span>
+                      <span className="text-xs text-gray-500 block">Limited to 20 uploads, for paid contractors</span>
+                    </div>
+                  </label>
+                </div>
+                <div className="pt-2">
+                  <p className="text-xs text-gray-500 mb-2 font-medium">Additional Privileges (optional):</p>
+                  <label className="flex items-center mb-2">
+                    <input
+                      type="checkbox"
+                      checked={createForm.is_admin}
+                      onChange={(e) => setCreateForm({...createForm, is_admin: e.target.checked})}
+                      className="mr-2 text-red-600 focus:ring-red-500"
+                    />
+                    <div>
+                      <span className="text-sm text-gray-700 font-medium">Administrator</span>
+                      <span className="text-xs text-gray-500 block">Full system access</span>
+                    </div>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={createForm.is_reviewer}
+                      onChange={(e) => setCreateForm({...createForm, is_reviewer: e.target.checked})}
+                      className="mr-2 text-green-600 focus:ring-green-500"
+                    />
+                    <div>
+                      <span className="text-sm text-gray-700 font-medium">Reviewer</span>
+                      <span className="text-xs text-gray-500 block">Can review and approve content</span>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               <div className="mt-6 flex gap-3">
@@ -555,13 +572,17 @@ const AdminUserPanel: React.FC = () => {
                       {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => startEditUser(user)}
-                          className="text-blue-600 hover:text-blue-900"
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={getUserRole(user)}
+                          onChange={(e) => handleQuickRoleChange(user.id, e.target.value)}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         >
-                          Edit
-                        </button>
+                          <option value="admin">Admin</option>
+                          <option value="reviewer">Reviewer</option>
+                          <option value="image_contributor">Image Contributor</option>
+                          <option value="regular">Regular User</option>
+                        </select>
                         <button
                           onClick={() => startPasswordReset(user.id)}
                           className="text-yellow-600 hover:text-yellow-900"
@@ -663,13 +684,17 @@ const AdminUserPanel: React.FC = () => {
                       {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => startEditUser(user)}
-                          className="text-blue-600 hover:text-blue-900"
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={getUserRole(user)}
+                          onChange={(e) => handleQuickRoleChange(user.id, e.target.value)}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         >
-                          Edit
-                        </button>
+                          <option value="admin">Admin</option>
+                          <option value="reviewer">Reviewer</option>
+                          <option value="image_contributor">Image Contributor</option>
+                          <option value="regular">Regular User</option>
+                        </select>
                         <button
                           onClick={() => startPasswordReset(user.id)}
                           className="text-yellow-600 hover:text-yellow-900"
@@ -785,13 +810,17 @@ const AdminUserPanel: React.FC = () => {
                       {new Date(user.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => startEditUser(user)}
-                          className="text-blue-600 hover:text-blue-900"
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={getUserRole(user)}
+                          onChange={(e) => handleQuickRoleChange(user.id, e.target.value)}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         >
-                          Edit
-                        </button>
+                          <option value="admin">Admin</option>
+                          <option value="reviewer">Reviewer</option>
+                          <option value="image_contributor">Image Contributor</option>
+                          <option value="regular">Regular User</option>
+                        </select>
                         <button
                           onClick={() => startPasswordReset(user.id)}
                           className="text-yellow-600 hover:text-yellow-900"
@@ -888,13 +917,17 @@ const AdminUserPanel: React.FC = () => {
                       {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => startEditUser(user)}
-                          className="text-blue-600 hover:text-blue-900"
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={getUserRole(user)}
+                          onChange={(e) => handleQuickRoleChange(user.id, e.target.value)}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         >
-                          Edit
-                        </button>
+                          <option value="admin">Admin</option>
+                          <option value="reviewer">Reviewer</option>
+                          <option value="image_contributor">Image Contributor</option>
+                          <option value="regular">Regular User</option>
+                        </select>
                         <button
                           onClick={() => startPasswordReset(user.id)}
                           className="text-yellow-600 hover:text-yellow-900"
@@ -923,115 +956,6 @@ const AdminUserPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Edit User Modal */}
-        {editingUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Edit User: {editingUser.username}
-              </h2>
-              <form onSubmit={handleUpdateUser}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.username}
-                      onChange={(e) => setEditForm({...editForm, username: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={editForm.email}
-                      onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.first_name}
-                      onChange={(e) => setEditForm({...editForm, first_name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.last_name}
-                      onChange={(e) => setEditForm({...editForm, last_name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={editForm.is_admin}
-                        onChange={(e) => setEditForm({...editForm, is_admin: e.target.checked})}
-                        className="mr-2 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">Administrator privileges</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={editForm.is_reviewer}
-                        onChange={(e) => setEditForm({...editForm, is_reviewer: e.target.checked})}
-                        className="mr-2 text-green-600 focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700">Reviewer privileges</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={editForm.is_image_contributor}
-                        onChange={(e) => setEditForm({...editForm, is_image_contributor: e.target.checked})}
-                        className="mr-2 text-purple-600 focus:ring-purple-500"
-                      />
-                      <span className="text-sm text-gray-700">Image Contributor</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex gap-3">
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Update User
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingUser(null)}
-                    className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
         {/* Reset Password Modal */}
         {showPasswordReset && (

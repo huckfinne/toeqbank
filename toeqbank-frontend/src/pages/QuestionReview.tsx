@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { questionService, Question } from '../services/api';
+import { questionService, Question, batchService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const QuestionReview: React.FC = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [batches, setBatches] = useState<any[]>([]);
+  const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -21,15 +25,37 @@ const QuestionReview: React.FC = () => {
 
   useEffect(() => {
     fetchQuestions();
-  }, [currentPage]);
+    if (isAdmin) {
+      loadBatches();
+    }
+  }, [currentPage, selectedBatchId, isAdmin]);
+
+  const loadBatches = async () => {
+    try {
+      const batchData = await batchService.getAllBatches();
+      setBatches(batchData);
+    } catch (err) {
+      console.error('Failed to load batches:', err);
+    }
+  };
 
   const fetchQuestions = async () => {
     try {
       setLoading(true);
       const offset = currentPage * limit;
-      const response = await questionService.getQuestions(limit, offset);
-      setQuestions(response.questions);
-      setTotalQuestions(response.pagination.total);
+      
+      // If a batch is selected, fetch questions from that batch
+      if (selectedBatchId) {
+        const batchDetails = await batchService.getBatchDetails(selectedBatchId);
+        setQuestions(batchDetails.questions || []);
+        setTotalQuestions(batchDetails.questions?.length || 0);
+      } else {
+        // Otherwise fetch all questions with pagination
+        const response = await questionService.getQuestions(limit, offset);
+        setQuestions(response.questions);
+        setTotalQuestions(response.pagination.total);
+      }
+      
       setError(null);
     } catch (err) {
       setError('Failed to fetch questions. Please make sure the backend server is running.');
@@ -56,7 +82,12 @@ const QuestionReview: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (deleteConfirmation.questionId) {
       try {
-        await questionService.deleteQuestion(deleteConfirmation.questionId);
+        // Use the new deleteQuestionWithImages function for admins
+        if (isAdmin) {
+          await questionService.deleteQuestionWithImages(deleteConfirmation.questionId);
+        } else {
+          await questionService.deleteQuestion(deleteConfirmation.questionId);
+        }
         // Refresh the questions list
         fetchQuestions();
         setDeleteConfirmation({ isOpen: false, questionId: null, questionText: '' });
@@ -102,9 +133,15 @@ const QuestionReview: React.FC = () => {
   const handleBulkDeleteConfirm = async () => {
     try {
       // Delete all selected questions
-      await Promise.all(
-        Array.from(selectedQuestions).map(id => questionService.deleteQuestion(id))
-      );
+      if (isAdmin) {
+        await Promise.all(
+          Array.from(selectedQuestions).map(id => questionService.deleteQuestionWithImages(id))
+        );
+      } else {
+        await Promise.all(
+          Array.from(selectedQuestions).map(id => questionService.deleteQuestion(id))
+        );
+      }
       
       // Clear selections and refresh
       setSelectedQuestions(new Set());
@@ -218,6 +255,34 @@ const QuestionReview: React.FC = () => {
             Browse and manage your question collection.
           </p>
         </div>
+
+        {/* Admin Batch Selector */}
+        {isAdmin && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div className="flex items-center space-x-4">
+              <label htmlFor="batch-selector" className="text-sm font-medium text-gray-700">
+                Filter by Batch:
+              </label>
+              <select
+                id="batch-selector"
+                value={selectedBatchId || ''}
+                onChange={(e) => {
+                  setSelectedBatchId(e.target.value ? parseInt(e.target.value) : null);
+                  setCurrentPage(0); // Reset to first page when changing batch
+                  setSelectedQuestions(new Set()); // Clear selections
+                }}
+                className="min-w-0 flex-1 max-w-md px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Batches</option>
+                {batches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>
+                    Batch #{batch.id} - {batch.file_name} ({batch.actual_question_count} questions)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Stats and Bulk Actions */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
@@ -345,7 +410,7 @@ const QuestionReview: React.FC = () => {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {totalPages > 1 && !selectedBatchId && (
           <div className="mt-8 flex justify-center items-center space-x-4">
             <button
               onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}

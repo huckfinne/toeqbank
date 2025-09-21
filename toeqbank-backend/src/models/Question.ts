@@ -78,7 +78,14 @@ export class QuestionModel {
       values.push(examCategory, examType);
     }
     
-    sql += ` ORDER BY created_at DESC LIMIT $${paramCounter++} OFFSET $${paramCounter}`;
+    sql += ` ORDER BY 
+      CASE 
+        WHEN question_number IS NULL THEN 0
+        WHEN question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(question_number, '^Q', '') AS INTEGER)
+        ELSE 0
+      END DESC, 
+      created_at DESC 
+      LIMIT $${paramCounter++} OFFSET $${paramCounter}`;
     values.push(limit, offset);
     
     const result = await query(sql, values);
@@ -123,6 +130,16 @@ export class QuestionModel {
     return result.rowCount > 0;
   }
 
+  static async deleteWithImages(id: number): Promise<boolean> {
+    // First delete associated image descriptions
+    await query('DELETE FROM image_descriptions WHERE question_id = $1', [id]);
+    
+    // Then delete the question
+    const sql = 'DELETE FROM questions WHERE id = $1';
+    const result = await query(sql, [id]);
+    return result.rowCount > 0;
+  }
+
   static async bulkCreate(questions: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'>[]): Promise<Question[]> {
     if (questions.length === 0) return [];
 
@@ -130,8 +147,8 @@ export class QuestionModel {
     const placeholders: string[] = [];
     
     questions.forEach((q, index) => {
-      const offset = index * 15;
-      placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14}, $${offset + 15})`);
+      const offset = index * 17;
+      placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14}, $${offset + 15}, $${offset + 16}, $${offset + 17})`);
       values.push(
         q.question,
         q.choice_a,
@@ -147,12 +164,14 @@ export class QuestionModel {
         q.review_status || 'pending',
         q.review_notes || null,
         q.uploaded_by || null,
-        q.batch_id || null
+        q.batch_id || null,
+        q.exam_category || 'echocardiography',
+        q.exam_type || 'NBE'
       );
     });
 
     const sql = `
-      INSERT INTO questions (question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder, review_status, review_notes, uploaded_by, batch_id)
+      INSERT INTO questions (question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder, review_status, review_notes, uploaded_by, batch_id, exam_category, exam_type)
       VALUES ${placeholders.join(', ')}
       RETURNING *
     `;
@@ -208,14 +227,51 @@ export class QuestionModel {
           )
         )
       )
-      ORDER BY q.created_at ASC
+      ORDER BY 
+        CASE 
+          WHEN q.question_number IS NULL THEN 0
+          WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
+          ELSE 0
+        END DESC,
+        q.created_at DESC
     `;
     const result = await query(sql);
     return result.rows;
   }
 
   static async getByReviewStatus(status: 'pending' | 'approved' | 'rejected' | 'returned'): Promise<Question[]> {
-    const sql = 'SELECT * FROM questions WHERE review_status = $1 ORDER BY created_at DESC';
+    // For approved and pending questions (used in practice tests), 
+    // exclude those that need images but don't have them
+    const sql = (status === 'approved' || status === 'pending') ? `
+      SELECT q.* FROM questions q
+      WHERE q.review_status = $1 
+      -- Exclude questions that have image descriptions but no actual images
+      AND NOT EXISTS (
+        SELECT 1 FROM image_descriptions id
+        WHERE id.question_id = q.id
+        AND NOT EXISTS (
+          SELECT 1 FROM question_images qi
+          WHERE qi.question_id = q.id
+        )
+      )
+      ORDER BY 
+        CASE 
+          WHEN q.question_number IS NULL THEN 0
+          WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
+          ELSE 0
+        END DESC,
+        q.created_at DESC
+    ` : `
+      SELECT * FROM questions 
+      WHERE review_status = $1 
+      ORDER BY 
+        CASE 
+          WHEN question_number IS NULL THEN 0
+          WHEN question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(question_number, '^Q', '') AS INTEGER)
+          ELSE 0
+        END DESC,
+        created_at DESC
+    `;
     const result = await query(sql, [status]);
     return result.rows;
   }
