@@ -352,17 +352,33 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
       const tagArray = tags.split(',').map(t => t.trim());
       // Need to update findByTags to support exam filtering
       const sql = `
-        SELECT * FROM images 
-        WHERE tags && $1::text[]
-        AND exam_category = $2
-        AND exam_type = $3
-        ORDER BY created_at DESC 
+        SELECT i.*, 
+               EXISTS(SELECT 1 FROM question_images qi WHERE qi.image_id = i.id) as has_questions
+        FROM images i
+        WHERE i.tags && $1::text[]
+        AND i.exam_category = $2
+        AND i.exam_type = $3
+        ORDER BY i.created_at DESC 
         LIMIT $4 OFFSET $5
       `;
       const result = await query(sql, [tagArray, examCategory, examType, limit, offset]);
       images = result.rows;
     } else {
-      images = await ImageModel.findAll(limit, offset, imageType, license, uploadedBy, examCategory, examType);
+      // Modified to include has_questions flag
+      const sql = `
+        SELECT i.*, 
+               EXISTS(SELECT 1 FROM question_images qi WHERE qi.image_id = i.id) as has_questions
+        FROM images i
+        WHERE ($1::text IS NULL OR i.image_type = $1)
+        AND ($2::text IS NULL OR i.license = $2)
+        AND ($3::int IS NULL OR i.uploaded_by = $3)
+        AND i.exam_category = $4
+        AND i.exam_type = $5
+        ORDER BY i.created_at DESC
+        LIMIT $6 OFFSET $7
+      `;
+      const result = await query(sql, [imageType, license, uploadedBy, examCategory, examType, limit, offset]);
+      images = result.rows;
     }
 
     const totalCount = await ImageModel.getCount(imageType, license, uploadedBy, examCategory, examType);

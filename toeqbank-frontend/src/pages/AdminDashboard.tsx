@@ -8,10 +8,12 @@ const AdminDashboard: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="page-container d-flex justify-content-center align-items-center" style={{minHeight: '60vh'}}>
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
-          <p className="text-gray-600">You need admin privileges to access this page.</p>
+          <div className="alert alert-error">
+            <h2 className="mb-2">Access Denied</h2>
+            <p className="mb-0">You need admin privileges to access this page.</p>
+          </div>
         </div>
       </div>
     );
@@ -121,83 +123,77 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">🛠️ Admin Dashboard</h1>
-          <p className="text-xl text-gray-600">Central hub for system administration and management</p>
-        </div>
+    <div className="page-container">
+      <div className="page-header">
+        <h1>🛠️ Admin Dashboard</h1>
+        <p>Central hub for system administration and management</p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-          {adminSections.map((section, index) => (
-            <div key={index} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center mb-4">
+      <div className="grid-container grid-3">
+        {adminSections.map((section, index) => (
+          <div key={index} className="content-card">
+            <div className="card-header">
+              <div className="d-flex align-items-center">
                 {section.icon}
-                <div className="ml-4">
-                  <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
-                  <p className="text-sm text-gray-600 mt-1">{section.description}</p>
+                <div className="ms-3">
+                  <h3 className="mb-1">{section.title}</h3>
+                  <p className="text-muted mb-0">{section.description}</p>
                 </div>
               </div>
-
-              <div className="space-y-3 mt-6">
-                {section.options.map((option, optionIndex) => {
-                  const colors = getColorClasses(option.color);
-                  return (
-                    <button
-                      key={optionIndex}
-                      onClick={() => navigate(option.path)}
-                      className={`w-full text-left p-4 rounded-lg border-2 border-transparent ${colors.bg} ${colors.hover} transition-all duration-200 group`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className={`font-semibold ${colors.text} group-hover:text-gray-900`}>
-                            {option.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {option.description}
-                          </p>
-                        </div>
-                        <svg 
-                          className={`w-5 h-5 ${colors.text} group-hover:text-gray-900 group-hover:translate-x-1 transition-all duration-200`}
-                          fill="none" 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+            </div>
+            <div className="card-body">
+              <div className="d-flex flex-column gap-3">
+                {section.options.map((option, optionIndex) => (
+                  <button
+                    key={optionIndex}
+                    onClick={() => navigate(option.path)}
+                    className="btn btn-outline w-100 text-start"
+                  >
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <div className="font-weight-medium">{option.name}</div>
+                        <div className="text-muted small">{option.description}</div>
                       </div>
-                    </button>
-                  );
-                })}
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        {/* Quick Stats Section */}
-        <div className="mt-12 bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Stats</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      {/* Quick Stats Section */}
+      <div className="content-card mt-4">
+        <div className="card-header">
+          <h3 className="mb-0">Quick Stats</h3>
+          <p className="text-muted mb-0">Current system overview and metrics</p>
+        </div>
+        <div className="card-body">
+          <div className="grid-container grid-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">-</div>
-              <div className="text-gray-600">Active Users</div>
+              <div className="h2 text-primary mb-2">-</div>
+              <div className="text-muted">Active Users</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 mb-2">-</div>
-              <div className="text-gray-600">Upload Batches</div>
+              <div className="h2 text-success mb-2">-</div>
+              <div className="text-muted">Upload Batches</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-2">-</div>
-              <div className="text-gray-600">Total Questions</div>
+              <div className="h2 text-warning mb-2">-</div>
+              <div className="text-muted">Total Questions</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-orange-600 mb-2">-</div>
-              <div className="text-gray-600">Pending Reviews</div>
+              <div className="h2 text-danger mb-2">-</div>
+              <div className="text-muted">Pending Reviews</div>
             </div>
           </div>
-          <p className="text-sm text-gray-500 text-center mt-4">
-            Statistics will be loaded dynamically based on current system data
-          </p>
+          <div className="alert alert-info mt-4">
+            <small>Statistics will be loaded dynamically based on current system data</small>
+          </div>
         </div>
       </div>
     </div>

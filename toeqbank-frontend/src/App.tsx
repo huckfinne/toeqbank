@@ -19,6 +19,7 @@ import BatchDetails from './pages/BatchDetails';
 import AdminDashboard from './pages/AdminDashboard';
 import AIManipulation from './pages/AIManipulation';
 import AIGenerateQuestions from './pages/AIGenerateQuestions';
+import GenerateQuestionsFromImages from './pages/GenerateQuestionsFromImages';
 import ImageView from './pages/ImageView';
 import UserSettings from './pages/UserSettings';
 
@@ -75,13 +76,22 @@ const AppContent: React.FC = () => {
                       </div>
                     </Link>
                     {isAdmin && (
-                      <Link to="/ai-generate-questions" className="nav-dropdown-item">
-                        <span className="nav-dropdown-icon">🤖</span>
-                        <div className="nav-dropdown-content">
-                          <span className="nav-dropdown-title">AI Generate Questions from Images</span>
-                          <span className="nav-dropdown-description">Generate questions using AI from uploaded images</span>
-                        </div>
-                      </Link>
+                      <>
+                        <Link to="/ai-generate-questions" className="nav-dropdown-item">
+                          <span className="nav-dropdown-icon">🤖</span>
+                          <div className="nav-dropdown-content">
+                            <span className="nav-dropdown-title">AI Generate Questions from Images</span>
+                            <span className="nav-dropdown-description">Generate questions using AI from uploaded images</span>
+                          </div>
+                        </Link>
+                        <Link to="/generate-questions-from-images" className="nav-dropdown-item">
+                          <span className="nav-dropdown-icon">🎯</span>
+                          <div className="nav-dropdown-content">
+                            <span className="nav-dropdown-title">Generate Questions from Images</span>
+                            <span className="nav-dropdown-description">Create questions from selected image collections</span>
+                          </div>
+                        </Link>
+                      </>
                     )}
                   </div>
                 </div>
@@ -192,6 +202,7 @@ const AppContent: React.FC = () => {
           <Route path="/admin/batches/:id" element={<BatchDetails />} />
           <Route path="/admin/ai" element={<AIManipulation />} />
           <Route path="/ai-generate-questions" element={<AIGenerateQuestions />} />
+          <Route path="/generate-questions-from-images" element={<GenerateQuestionsFromImages />} />
           <Route path="/image/:id" element={<ImageView />} />
           <Route path="/settings" element={<UserSettings />} />
         </Routes>

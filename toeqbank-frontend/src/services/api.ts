@@ -44,7 +44,7 @@ export interface Question {
   correct_answer: string;
   explanation?: string;
   source_folder?: string;
-  review_status?: 'pending' | 'approved' | 'rejected' | 'returned';
+  review_status?: 'pending' | 'approved' | 'rejected' | 'returned' | 'pending submission';
   review_notes?: string;
   reviewed_by?: number;
   reviewed_at?: string;
@@ -182,7 +182,7 @@ export const questionService = {
     return response.data;
   },
 
-  getReviewStats: async (): Promise<{ total: number; pending: number; approved: number; rejected: number; returned: number }> => {
+  getReviewStats: async (): Promise<{ total: number; pending: number; approved: number; rejected: number; returned: number; pending_submission: number }> => {
     const response = await api.get('/questions/review/stats');
     return response.data;
   },
@@ -192,7 +192,7 @@ export const questionService = {
     return response.data;
   },
 
-  getQuestionsByReviewStatus: async (status: 'pending' | 'approved' | 'rejected' | 'returned'): Promise<{ questions: Question[] }> => {
+  getQuestionsByReviewStatus: async (status: 'pending' | 'approved' | 'rejected' | 'returned' | 'pending submission'): Promise<{ questions: Question[] }> => {
     const response = await api.get(`/questions/review/status/${status}`);
     return response.data;
   },

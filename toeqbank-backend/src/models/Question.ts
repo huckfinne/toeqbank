@@ -16,7 +16,7 @@ export interface Question {
   source_folder?: string;
   exam_category?: string;
   exam_type?: string;
-  review_status?: 'pending' | 'approved' | 'rejected' | 'returned';
+  review_status?: 'pending' | 'approved' | 'rejected' | 'returned' | 'pending submission';
   review_notes?: string;
   reviewed_by?: number;
   reviewed_at?: Date;
@@ -207,7 +207,13 @@ export class QuestionModel {
   // Review system methods
   static async getPendingReview(): Promise<Question[]> {
     const sql = `
-      SELECT DISTINCT q.* 
+      SELECT DISTINCT 
+        q.*,
+        CASE 
+          WHEN q.question_number IS NULL THEN 0
+          WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
+          ELSE 0
+        END as sort_number
       FROM questions q
       WHERE q.review_status = 'pending'
       AND (
@@ -228,18 +234,14 @@ export class QuestionModel {
         )
       )
       ORDER BY 
-        CASE 
-          WHEN q.question_number IS NULL THEN 0
-          WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
-          ELSE 0
-        END DESC,
+        sort_number DESC,
         q.created_at DESC
     `;
     const result = await query(sql);
     return result.rows;
   }
 
-  static async getByReviewStatus(status: 'pending' | 'approved' | 'rejected' | 'returned'): Promise<Question[]> {
+  static async getByReviewStatus(status: 'pending' | 'approved' | 'rejected' | 'returned' | 'pending submission'): Promise<Question[]> {
     // For approved and pending questions (used in practice tests), 
     // exclude those that need images but don't have them
     const sql = (status === 'approved' || status === 'pending') ? `
@@ -317,14 +319,15 @@ export class QuestionModel {
     return result.rows;
   }
 
-  static async getReviewStats(): Promise<{ total: number, pending: number, approved: number, rejected: number, returned: number }> {
+  static async getReviewStats(): Promise<{ total: number, pending: number, approved: number, rejected: number, returned: number, pending_submission: number }> {
     const sql = `
       SELECT 
         COUNT(*) as total,
         COUNT(CASE WHEN review_status = 'pending' THEN 1 END) as pending,
         COUNT(CASE WHEN review_status = 'approved' THEN 1 END) as approved,
         COUNT(CASE WHEN review_status = 'rejected' THEN 1 END) as rejected,
-        COUNT(CASE WHEN review_status = 'returned' THEN 1 END) as returned
+        COUNT(CASE WHEN review_status = 'returned' THEN 1 END) as returned,
+        COUNT(CASE WHEN review_status = 'pending submission' THEN 1 END) as pending_submission
       FROM questions
     `;
     const result = await query(sql);
@@ -334,7 +337,8 @@ export class QuestionModel {
       pending: parseInt(stats.pending),
       approved: parseInt(stats.approved),
       rejected: parseInt(stats.rejected),
-      returned: parseInt(stats.returned)
+      returned: parseInt(stats.returned),
+      pending_submission: parseInt(stats.pending_submission)
     };
   }
 }

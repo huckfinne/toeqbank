@@ -413,6 +413,65 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     setIsExamsDialogOpen(true);
   };
 
+  const handleGenerateBoth = async () => {
+    console.log('QuestionForm: handleGenerateBoth called - generating both metadata and exams automatically');
+    
+    // Show loading state
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      const questionData = {
+        question: formData.question,
+        choice_a: formData.choice_a,
+        choice_b: formData.choice_b,
+        choice_c: formData.choice_c,
+        choice_d: formData.choice_d,
+        choice_e: formData.choice_e,
+        choice_f: formData.choice_f,
+        choice_g: formData.choice_g,
+        correct_answer: formData.correct_answer,
+        explanation: formData.explanation
+      };
+
+      // Import AI services
+      const ClaudeApiService = (await import('../services/claudeApi')).default;
+      const ExamApiService = (await import('../services/examApi')).default;
+      
+      // Generate metadata and exams in parallel
+      const [metadata, exams] = await Promise.all([
+        ClaudeApiService.generateMetadata(questionData),
+        ExamApiService.assignExams(questionData)
+      ]);
+
+      // Add metadata automatically
+      const metadataTimestamp = Date.now();
+      const newMetadataId = `metadata_${metadataTimestamp}`;
+      const newMetadata = {
+        id: newMetadataId,
+        data: metadata
+      };
+      setGeneratedMetadata(prev => [...prev, newMetadata]);
+
+      // Add exams automatically
+      const examTimestamp = Date.now() + 1; // Ensure unique ID
+      const newExamId = `exams_${examTimestamp}`;
+      const newExams = {
+        id: newExamId,
+        data: exams
+      };
+      setGeneratedExams(prev => [...prev, newExams]);
+
+      console.log('QuestionForm: Both metadata and exams generated successfully');
+      
+    } catch (error) {
+      console.error('QuestionForm: Error generating metadata and exams:', error);
+      setError('Failed to generate metadata and exam associations. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const toggleMetadataEdit = (id: string) => {
     setEditingMetadata(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -1419,15 +1478,30 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
                 </div>
               )}
 
-              {/* Add Metadata Button */}
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={handleAddMetadata}
-                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                >
-                  + Generate Metadata with AI
-                </button>
+              {/* AI Generation Buttons */}
+              <div className="mt-6 space-y-3">
+                <div className="flex gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleAddMetadata}
+                    className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                  >
+                    + Generate Metadata with AI
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={handleGenerateBoth}
+                    disabled={isSubmitting}
+                    className={`px-4 py-2 rounded transition-colors font-semibold ${
+                      isSubmitting 
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700'
+                    }`}
+                  >
+                    {isSubmitting ? '⚡ Generating Both...' : '⚡ Generate Both with AI'}
+                  </button>
+                </div>
               </div>
 
               {/* Generated Exams */}

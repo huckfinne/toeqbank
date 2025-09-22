@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { imageService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import './AIGenerateQuestions.css';
+import './GenerateQuestionsFromImages.css';
 
 interface SelectedImage {
   id: number;
@@ -22,12 +22,10 @@ interface ImageUploader {
   image_count: number;
 }
 
-const AIGenerateQuestions: React.FC = () => {
+const GenerateQuestionsFromImages: React.FC = () => {
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedDescriptions, setExpandedDescriptions] = useState<ExpandedDescriptions>({});
@@ -107,27 +105,21 @@ const AIGenerateQuestions: React.FC = () => {
     return description && description.length > 100; // Threshold for showing "Read More"
   };
 
-  const handleGenerateQuestions = async () => {
+  const handleGenerateQuestions = () => {
     if (selectedImages.length === 0) {
       setError('Please select at least one image');
       return;
     }
 
-    setGenerating(true);
-    setError(null);
-    setGeneratedQuestions([]);
-
-    try {
-      // TODO: Implement API call to generate questions from images
-      // This would call a new endpoint that uses AI to analyze images and generate questions
-      // For now, showing a placeholder message
-      setError('AI question generation endpoint not yet implemented. This feature will analyze selected images and generate relevant questions.');
-    } catch (err) {
-      setError('Failed to generate questions');
-      console.error(err);
-    } finally {
-      setGenerating(false);
-    }
+    // Get the selected image objects
+    const selectedImageObjects = images.filter(img => selectedImages.includes(img.id));
+    
+    // Navigate to create-question page with selected images as state
+    navigate('/create-question', {
+      state: {
+        preloadedImages: selectedImageObjects
+      }
+    });
   };
 
   const filteredImages = images.filter(img => {
@@ -142,9 +134,9 @@ const AIGenerateQuestions: React.FC = () => {
   });
 
   return (
-    <div className="ai-generate-questions">
+    <div className="generate-questions-from-images">
       <div className="page-header">
-        <h2>AI Generate Questions from Images</h2>
+        <h2>Generate Questions from Images</h2>
         <p>Select images to automatically generate questions using AI analysis</p>
         {images.length > 0 && (
           <div className="filter-stats">
@@ -220,9 +212,9 @@ const AIGenerateQuestions: React.FC = () => {
           <button
             onClick={handleGenerateQuestions}
             className="btn btn-primary"
-            disabled={loading || generating || selectedImages.length === 0}
+            disabled={loading || selectedImages.length === 0}
           >
-            {generating ? 'Generating...' : `Generate Questions (${selectedImages.length} selected)`}
+            {`Create Question (${selectedImages.length} selected)`}
           </button>
         </div>
       </div>
@@ -290,14 +282,8 @@ const AIGenerateQuestions: React.FC = () => {
         </div>
       )}
 
-      {generatedQuestions.length > 0 && (
-        <div className="generated-questions">
-          <h3>Generated Questions</h3>
-          {/* TODO: Display generated questions here */}
-        </div>
-      )}
     </div>
   );
 };
 
-export default AIGenerateQuestions;
+export default GenerateQuestionsFromImages;

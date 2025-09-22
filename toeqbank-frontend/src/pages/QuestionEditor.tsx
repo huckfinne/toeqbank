@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { questionService, Question } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import QuestionCard from '../components/QuestionCard';
@@ -15,10 +15,14 @@ const QuestionEditor: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { isAdmin, user } = useAuth();
   const isEditMode = !!id;
   const fromReview = searchParams.get('from') === 'review';
   const fromReturned = searchParams.get('from') === 'returned';
+  
+  // Get preloaded images from navigation state
+  const preloadedImages = location.state?.preloadedImages || [];
   
   const [question, setQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(isEditMode);
@@ -312,114 +316,122 @@ const QuestionEditor: React.FC = () => {
   // For create mode, show the form instead of the view
   if (!isEditMode) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="w-full px-0 py-4">
-          {/* CSV Template Section - Admin Only */}
-          {isAdmin && (
-            <div className="max-w-6xl mx-auto px-4 mb-6">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg shadow-sm border border-green-200 p-6">
-                <div className="flex items-center mb-4">
-                  <div className="p-2 bg-green-100 rounded-lg mr-3">
-                    <span className="text-2xl">📋</span>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">CSV Template</h2>
-                  </div>
-                </div>
-                
-                <div className="bg-white rounded-lg border border-green-200 p-4">
-                  <div className="bg-gray-50 rounded p-3 font-mono text-sm">
-                    <code className="text-green-600">
-                      question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,choice_f,choice_g,correct_answer,explanation,source_folder
-                    </code>
-                  </div>
-                </div>
-              </div>
+      <div className="page-container">
+        <div className="page-header">
+          <h2>Create New Question</h2>
+          <p>Add a new question to the database with all required information</p>
+          {preloadedImages.length > 0 && (
+            <div className="filter-stats">
+              {preloadedImages.length} image{preloadedImages.length !== 1 ? 's' : ''} preloaded from image selection
             </div>
           )}
+        </div>
 
-          {/* CSV Import Section - Admin Only */}
-          {isAdmin && (
-            <div className="max-w-6xl mx-auto px-4 mb-6">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center mb-4">
-                  <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                    <span className="text-2xl">📊</span>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">CSV Import</h2>
-                    <p className="text-sm text-gray-600">Paste a single question in CSV format for quick import</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="csv-input" className="block text-sm font-medium text-gray-700 mb-2">
-                      CSV Question Data
-                    </label>
-                    <textarea
-                      id="csv-input"
-                      rows={5}
-                      value={csvInput}
-                      onChange={(e) => setCsvInput(e.target.value)}
-                      className="px-3 py-2 text-base border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-vertical font-mono"
-                      style={{width: '100%', minHeight: '120px'}}
-                      placeholder="question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,choice_f,choice_g,correct_answer,explanation,source_folder"
-                    />
-                  </div>
-                  
-                  {csvError && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <p className="text-sm text-red-800">{csvError}</p>
-                    </div>
-                  )}
-                  
-                  {csvSuccess && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-sm text-green-800">
-                        ✅ {csvSuccess}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={parseCsvData}
-                      disabled={!csvInput.trim()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Parse & Fill Form
-                    </button>
-                    <button
-                      type="button"
-                      onClick={clearCsvData}
-                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors text-sm"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                  
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs text-blue-800">
-                      <strong>Format:</strong> Paste CSV data with columns: question_number, question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder
-                    </p>
-                  </div>
+        {/* CSV Template Section - Admin Only */}
+        {isAdmin && (
+          <div className="content-card mb-4">
+            <div className="card-header">
+              <div className="d-flex align-items-center">
+                <span className="text-success me-2">📋</span>
+                <div>
+                  <h3 className="mb-0">CSV Template</h3>
+                  <p className="text-muted mb-0">Copy this format for bulk question creation</p>
                 </div>
               </div>
             </div>
-          )}
+            <div className="card-body">
+              <div className="alert alert-info">
+                <code className="text-primary">
+                  question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,choice_f,choice_g,correct_answer,explanation,source_folder
+                </code>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CSV Import Section - Admin Only */}
+        {isAdmin && (
+          <div className="content-card mb-4">
+            <div className="card-header">
+              <div className="d-flex align-items-center">
+                <span className="text-primary me-2">📊</span>
+                <div>
+                  <h3 className="mb-0">CSV Import</h3>
+                  <p className="text-muted mb-0">Paste a single question in CSV format for quick import</p>
+                </div>
+              </div>
+            </div>
+            <div className="card-body">
+              <div className="form-group">
+                <label htmlFor="csv-input" className="form-label">CSV Question Data</label>
+                <textarea
+                  id="csv-input"
+                  rows={5}
+                  value={csvInput}
+                  onChange={(e) => setCsvInput(e.target.value)}
+                  className="form-control font-mono"
+                  style={{minHeight: '120px'}}
+                  placeholder="question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,choice_f,choice_g,correct_answer,explanation,source_folder"
+                />
+              </div>
+              
+              {csvError && (
+                <div className="alert alert-error">
+                  {csvError}
+                </div>
+              )}
+              
+              {csvSuccess && (
+                <div className="alert alert-success">
+                  ✅ {csvSuccess}
+                </div>
+              )}
+              
+              <div className="action-buttons">
+                <button
+                  type="button"
+                  onClick={parseCsvData}
+                  disabled={!csvInput.trim()}
+                  className="btn btn-primary"
+                >
+                  Parse & Fill Form
+                </button>
+                <button
+                  type="button"
+                  onClick={clearCsvData}
+                  className="btn btn-secondary"
+                >
+                  Clear
+                </button>
+              </div>
+              
+              <div className="alert alert-info">
+                <strong>Format:</strong> Paste CSV data with columns: question_number, question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder
+              </div>
+            </div>
+          </div>
+        )}
           
-          <QuestionForm
-            mode="create"
-            initialData={parsedCsvData || {}}
-            onSuccess={(savedQuestion) => {
-              // Show success message
-              alert(`✅ Question #${savedQuestion.question_number || savedQuestion.id} created successfully!`);
-              // After creating a question, redirect to a fresh create-question page
-              window.location.href = '/create-question';
-            }}
-          />
+        <div className="content-card">
+          <div className="card-header">
+            <h3 className="mb-0">Question Details</h3>
+            <p className="text-muted mb-0">Fill in all required information for the new question</p>
+          </div>
+          <div className="card-body">
+            <QuestionForm
+              mode="create"
+              initialData={{
+                ...(parsedCsvData || {}),
+                images: preloadedImages.length > 0 ? preloadedImages : undefined
+              }}
+              onSuccess={(savedQuestion) => {
+                // Show success message
+                alert(`✅ Question #${savedQuestion.question_number || savedQuestion.id} created successfully!`);
+                // After creating a question, redirect to a fresh create-question page
+                window.location.href = '/create-question';
+              }}
+            />
+          </div>
         </div>
       </div>
     );
@@ -428,19 +440,36 @@ const QuestionEditor: React.FC = () => {
   // For edit mode, also use QuestionForm with edit mode so it has all image functionality
   if (isEditMode && question) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="w-full px-0 py-4">
-          <QuestionForm
-            mode="edit"
-            initialData={question}
-            onSuccess={(savedQuestion) => {
-              if (savedQuestion.id) {
-                navigate(`/question/${savedQuestion.id}`);
-              } else {
-                navigate('/');
-              }
-            }}
-          />
+      <div className="page-container">
+        <div className="page-header">
+          <h2>Edit Question #{question.question_number || question.id}</h2>
+          <p>Modify question details, choices, and associated metadata</p>
+          <div className="page-stats">
+            Question ID: <span className="stats-highlight">{question.id}</span>
+            {question.question_number && (
+              <> | Question Number: <span className="stats-highlight">{question.question_number}</span></>
+            )}
+          </div>
+        </div>
+
+        <div className="content-card">
+          <div className="card-header">
+            <h3 className="mb-0">Question Editor</h3>
+            <p className="text-muted mb-0">Make changes to this question and its associated content</p>
+          </div>
+          <div className="card-body">
+            <QuestionForm
+              mode="edit"
+              initialData={question}
+              onSuccess={(savedQuestion) => {
+                if (savedQuestion.id) {
+                  navigate(`/question/${savedQuestion.id}`);
+                } else {
+                  navigate('/');
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
     );

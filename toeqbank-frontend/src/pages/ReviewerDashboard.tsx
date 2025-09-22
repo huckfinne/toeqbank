@@ -14,7 +14,7 @@ import {
 import { handleImageError, getPlaceholderImage } from '../utils/imageHelpers';
 
 interface QuestionWithStatus extends Question {
-  review_status?: 'pending' | 'approved' | 'rejected' | 'returned';
+  review_status?: 'pending' | 'approved' | 'rejected' | 'returned' | 'pending submission';
   review_notes?: string;
   questionImages?: Image[];
   explanationImages?: Image[];
@@ -99,7 +99,7 @@ const ReviewerDashboard: React.FC = () => {
         
         setCurrentQuestion({
           ...question,
-          review_status: question.review_status || 'pending',
+          review_status: (question.review_status as QuestionWithStatus['review_status']) || 'pending',
           review_notes: question.review_notes || '',
           questionImages: allImages,
           explanationImages: [], // For now, we'll assume all images are for questions
@@ -110,7 +110,7 @@ const ReviewerDashboard: React.FC = () => {
         console.error(`Error loading data for question ${question.id}:`, error);
         setCurrentQuestion({
           ...question,
-          review_status: question.review_status || 'pending',
+          review_status: (question.review_status as QuestionWithStatus['review_status']) || 'pending',
           review_notes: question.review_notes || '',
           questionImages: [],
           explanationImages: [],
