@@ -292,6 +292,11 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                               alt={image.description || image.original_name}
                               className="w-full h-full object-cover"
                               style={{width: '96px', height: '96px', maxWidth: '96px', maxHeight: '96px'}}
+                              onError={(e) => {
+                                const img = e.currentTarget;
+                                // Try a placeholder image
+                                img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"%3E%3Crect fill="%23f0f0f0" width="96" height="96"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3EImage Not Available%3C/text%3E%3C/svg%3E';
+                              }}
                             />
                           )}
                           

@@ -172,6 +172,10 @@ const ImageView: React.FC = () => {
                   alt={image.description || image.original_name}
                   className="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
                   onClick={() => setShowFullScreen(true)}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect fill="%23f0f0f0" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="20"%3EImage Not Available%3C/text%3E%3C/svg%3E';
+                  }}
                 />
               )}
             </div>
@@ -349,6 +353,10 @@ const ImageView: React.FC = () => {
                 alt={image.description || image.original_name}
                 className="max-w-full max-h-[90vh] object-contain"
                 onClick={(e) => e.stopPropagation()}
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect fill="%23f0f0f0" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="20"%3EImage Not Available%3C/text%3E%3C/svg%3E';
+                }}
               />
             )}
             

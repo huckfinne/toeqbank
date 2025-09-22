@@ -722,7 +722,7 @@ router.get('/:id/questions', async (req: Request, res: Response) => {
 
 
 // Legacy endpoint for local file serving - redirect to Spaces
-router.get('/serve/:filename', (req: Request, res: Response) => {
+router.get('/serve/:filename', async (req: Request, res: Response) => {
   try {
     const filename = req.params.filename;
     
@@ -730,13 +730,72 @@ router.get('/serve/:filename', (req: Request, res: Response) => {
     const filepath = path.join(__dirname, '../../uploads/images', filename);
     if (fs.existsSync(filepath)) {
       console.log('Serving legacy local file:', filename);
+      
+      // Get file stats to determine MIME type
+      const ext = path.extname(filename).toLowerCase();
+      let contentType = 'application/octet-stream';
+      
+      switch (ext) {
+        case '.jpg':
+        case '.jpeg':
+          contentType = 'image/jpeg';
+          break;
+        case '.png':
+          contentType = 'image/png';
+          break;
+        case '.gif':
+          contentType = 'image/gif';
+          break;
+        case '.webp':
+          contentType = 'image/webp';
+          break;
+        case '.mp4':
+          contentType = 'video/mp4';
+          break;
+        case '.webm':
+          contentType = 'video/webm';
+          break;
+        case '.mov':
+          contentType = 'video/quicktime';
+          break;
+      }
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+      res.setHeader('Access-Control-Allow-Origin', '*');
       return res.sendFile(path.resolve(filepath));
     }
     
-    // Redirect to Spaces URL for new files
-    const spacesUrl = StorageService.getPublicUrl(filename);
-    console.log('Redirecting to Spaces URL:', spacesUrl);
-    res.redirect(302, spacesUrl);
+    // For files not found locally, try to serve from Spaces
+    if (StorageService.isConfigured()) {
+      const spacesUrl = StorageService.getPublicUrl(filename);
+      console.log('Redirecting to Spaces URL:', spacesUrl);
+      
+      // Instead of redirect, we can proxy the request to avoid CORS issues
+      const https = require('https');
+      https.get(spacesUrl, (proxyRes: any) => {
+        if (proxyRes.statusCode === 200) {
+          // Set appropriate headers
+          res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'image/jpeg');
+          res.setHeader('Cache-Control', 'public, max-age=31536000');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          
+          // Pipe the response
+          proxyRes.pipe(res);
+        } else {
+          console.error(`File not found in Spaces: ${filename}, status: ${proxyRes.statusCode}`);
+          // Return a placeholder image or 404
+          res.status(404).json({ error: 'Image not found', filename });
+        }
+      }).on('error', (error: any) => {
+        console.error('Error fetching from Spaces:', error);
+        res.status(404).json({ error: 'Image not found', filename });
+      });
+    } else {
+      // Spaces not configured and file not found locally
+      console.error('File not found and Spaces not configured:', filename);
+      res.status(404).json({ error: 'Image not found', filename });
+    }
     
   } catch (error) {
     console.error('Serve file error:', error);
