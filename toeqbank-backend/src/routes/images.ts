@@ -481,8 +481,11 @@ router.get('/next-for-review', requireAuth, async (req: Request, res: Response) 
       return res.status(403).json({ error: 'Access denied. Admin or reviewer role required.' });
     }
 
-    // Get next unreviewed image
-    const nextImage = await ImageModel.getNextForReview();
+    // Get optional uploaded_by filter from query parameters
+    const uploadedBy = req.query.uploaded_by ? parseInt(req.query.uploaded_by as string) : undefined;
+    
+    // Get next unreviewed image with optional user filter
+    const nextImage = await ImageModel.getNextForReview(uploadedBy);
     
     if (!nextImage) {
       return res.status(404).json({ 

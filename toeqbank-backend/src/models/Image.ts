@@ -310,14 +310,23 @@ export class ImageModel {
     };
   }
 
-  static async getNextForReview(): Promise<Image | null> {
-    const sql = `
-      SELECT * FROM images 
-      WHERE review_status = 'pending' 
-      ORDER BY created_at ASC 
-      LIMIT 1
+  static async getNextForReview(uploadedBy?: number): Promise<Image | null> {
+    let sql = `
+      SELECT i.*, u.username as uploader_username 
+      FROM images i
+      LEFT JOIN users u ON i.uploaded_by = u.id
+      WHERE i.review_status = 'pending'
     `;
-    const result = await query(sql);
+    const values: any[] = [];
+    
+    if (uploadedBy !== undefined) {
+      sql += ` AND i.uploaded_by = $1`;
+      values.push(uploadedBy);
+    }
+    
+    sql += ` ORDER BY i.created_at ASC LIMIT 1`;
+    
+    const result = await query(sql, values);
     return result.rows[0] || null;
   }
 

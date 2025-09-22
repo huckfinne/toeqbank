@@ -25,6 +25,12 @@ interface ReviewStats {
   remaining: number;
 }
 
+interface ImageUploader {
+  id: number;
+  username: string;
+  image_count: number;
+}
+
 const ReviewImages: React.FC = () => {
   const { isReviewer, isAdmin, token } = useAuth();
   const navigate = useNavigate();
@@ -37,6 +43,8 @@ const ReviewImages: React.FC = () => {
     reviewed: 0,
     remaining: 0
   });
+  const [uploaders, setUploaders] = useState<ImageUploader[]>([]);
+  const [selectedUploader, setSelectedUploader] = useState<number | null>(null);
 
   // Redirect if not authorized
   useEffect(() => {
@@ -51,14 +59,17 @@ const ReviewImages: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(
-        `http://localhost:3001/api/images/next-for-review`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+      // Build URL with optional user filter
+      let url = `http://localhost:3001/api/images/next-for-review`;
+      if (selectedUploader) {
+        url += `?uploaded_by=${selectedUploader}`;
+      }
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      );
+      });
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -76,7 +87,7 @@ const ReviewImages: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, selectedUploader]);
 
   const submitReview = async (imageId: number, rating: number) => {
     try {
@@ -117,11 +128,36 @@ const ReviewImages: React.FC = () => {
     }
   };
 
+  const loadUploaders = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/images/uploaders', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const uploadersData = await response.json();
+        setUploaders(uploadersData);
+      }
+    } catch (err) {
+      console.error('Failed to load uploaders:', err);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (isReviewer || isAdmin) {
       fetchNextImageToReview();
+      loadUploaders();
     }
-  }, [isReviewer, isAdmin, fetchNextImageToReview]);
+  }, [isReviewer, isAdmin, fetchNextImageToReview, loadUploaders]);
+
+  // Reload images when uploader filter changes
+  useEffect(() => {
+    if ((isReviewer || isAdmin) && selectedUploader !== null) {
+      fetchNextImageToReview();
+    }
+  }, [selectedUploader, isReviewer, isAdmin, fetchNextImageToReview]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -246,6 +282,38 @@ const ReviewImages: React.FC = () => {
               </div>
             </div>
           </div>
+          
+          {/* User Filter */}
+          {isAdmin && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-4">
+                <label htmlFor="uploader-select" className="text-sm font-medium text-gray-700">
+                  Filter by uploader:
+                </label>
+                <select
+                  id="uploader-select"
+                  value={selectedUploader || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedUploader(value ? parseInt(value) : null);
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All uploaders</option>
+                  {uploaders.map((uploader) => (
+                    <option key={uploader.id} value={uploader.id}>
+                      {uploader.username} ({uploader.image_count} images)
+                    </option>
+                  ))}
+                </select>
+                {selectedUploader && (
+                  <span className="text-sm text-gray-600">
+                    Reviewing images from {uploaders.find(u => u.id === selectedUploader)?.username}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -367,6 +435,13 @@ const ReviewImages: React.FC = () => {
                     <label className="text-sm font-medium text-gray-500">Uploaded</label>
                     <p className="text-gray-900">{formatDate(currentImage.created_at)}</p>
                   </div>
+                  
+                  {(currentImage as any).uploader_username && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Uploaded by</label>
+                      <p className="text-gray-900">{(currentImage as any).uploader_username}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
