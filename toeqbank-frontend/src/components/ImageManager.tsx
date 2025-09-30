@@ -124,6 +124,49 @@ const ImageManager: React.FC<ImageManagerProps> = ({
             
             <div className="p-6">{/* Content area */}
 
+              {/* Statistics (only show in gallery tab) */}
+              {activeTab === 'gallery' && imageUploaders.length > 0 && (
+                <div className="mb-8">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">📊 Image Statistics</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Total count */}
+                      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+                        <div className="text-3xl font-bold text-indigo-600 mb-1">
+                          {imageUploaders.reduce((total, uploader) => total + uploader.image_count, 0)}
+                        </div>
+                        <div className="text-sm text-gray-600">Total Images</div>
+                      </div>
+                      
+                      {/* User breakdown table */}
+                      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+                        <h4 className="font-semibold text-gray-700 mb-3">Images by User</h4>
+                        <div className="max-h-32 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="border-b border-gray-100">
+                              <tr>
+                                <th className="text-left py-1 text-gray-600 font-medium">User</th>
+                                <th className="text-right py-1 text-gray-600 font-medium">Count</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {imageUploaders
+                                .sort((a, b) => b.image_count - a.image_count)
+                                .map((uploader) => (
+                                <tr key={uploader.id} className="border-b border-gray-50">
+                                  <td className="py-1 text-gray-700">{uploader.username}</td>
+                                  <td className="py-1 text-right font-semibold text-indigo-600">{uploader.image_count}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Filters (only show in gallery tab) */}
               {activeTab === 'gallery' && (
                 <div className="mb-8 space-y-6">

@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { imageService, Image } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const ImageView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAdmin } = useAuth();
+  
+  // Get the 'from' path from navigation state, default to '/images' if not provided
+  const fromPath = (location.state as any)?.from || '/images';
   const [image, setImage] = useState<Image | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -14,6 +18,7 @@ const ImageView: React.FC = () => {
   const [editingRating, setEditingRating] = useState(false);
   const [tempRating, setTempRating] = useState<number | null>(null);
   const [savingRating, setSavingRating] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Add keyboard listener for escape key
   useEffect(() => {
@@ -67,7 +72,7 @@ const ImageView: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Image Not Found</h2>
           <p className="text-gray-600 mb-4">{error || 'The requested image could not be found.'}</p>
           <button
-            onClick={() => navigate('/images')}
+            onClick={() => navigate(fromPath)}
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
           >
             Back to Images
@@ -112,6 +117,23 @@ const ImageView: React.FC = () => {
     setEditingRating(false);
   };
 
+  const handleUpdateReviewStatus = async (status: string) => {
+    if (!image?.id) return;
+    
+    setUpdatingStatus(true);
+    try {
+      const updatedImage = await imageService.updateImage(image.id, {
+        review_status: status
+      });
+      setImage(updatedImage);
+    } catch (err) {
+      console.error('Failed to update review status:', err);
+      alert('Failed to update review status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   const renderStars = (rating: number | null | undefined, interactive: boolean = false) => {
     const stars = [];
     const currentRating = rating || 0;
@@ -143,7 +165,7 @@ const ImageView: React.FC = () => {
             <p className="text-gray-600 mt-1">ID: {image.id}</p>
           </div>
           <button
-            onClick={() => navigate('/images')}
+            onClick={() => navigate(fromPath)}
             className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -289,6 +311,49 @@ const ImageView: React.FC = () => {
                       </button>
                     </div>
                   )}
+                </div>
+              )}
+
+              {isAdmin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Review Status</label>
+                  <div className="flex items-center space-x-3 mb-3">
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
+                      image.review_status === 'approved' 
+                        ? 'bg-green-100 text-green-800' 
+                        : image.review_status === 'rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : image.review_status === 'returned'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {image.review_status === 'returned' ? 'Needs Revision' : 
+                       image.review_status ? image.review_status.charAt(0).toUpperCase() + image.review_status.slice(1) : 'Pending'}
+                    </span>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleUpdateReviewStatus('approved')}
+                      disabled={updatingStatus}
+                      className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-gray-400"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleUpdateReviewStatus('returned')}
+                      disabled={updatingStatus}
+                      className="px-3 py-1 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 disabled:bg-gray-400"
+                    >
+                      Return for Revision
+                    </button>
+                    <button
+                      onClick={() => handleUpdateReviewStatus('rejected')}
+                      disabled={updatingStatus}
+                      className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:bg-gray-400"
+                    >
+                      Reject
+                    </button>
+                  </div>
                 </div>
               )}
 

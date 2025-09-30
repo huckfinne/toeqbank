@@ -48,6 +48,8 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   const [showApplicableExamsDialog, setShowApplicableExamsDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveSourceNote, setSaveSourceNote] = useState(false);
+  const [savedSourceNotes, setSavedSourceNotes] = useState<{id: number, explanation: string, usage_count?: number}[]>([]);
   const [success, setSuccess] = useState<string | null>(null);
   const [editingMetadata, setEditingMetadata] = useState<{[key: string]: boolean}>({});
   const [editingExams, setEditingExams] = useState<{[key: string]: boolean}>({});
@@ -91,6 +93,31 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     
     loadImageDescriptions();
   }, [mode, initialData.id, imageDescriptions.length]);
+
+  // Fetch saved source notes
+  useEffect(() => {
+    const fetchSavedSourceNotes = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/saved-explanations`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSavedSourceNotes(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch saved source notes:', error);
+      }
+    };
+    
+    fetchSavedSourceNotes();
+  }, []);
 
   // Separate useEffect for metadata and exam loading to avoid dependency issues
   useEffect(() => {
@@ -567,12 +594,34 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
         }
       }
 
-      // Associate selected images with the question
-      if (selectedImages.length > 0 && question.id) {
-        for (let i = 0; i < selectedImages.length; i++) {
-          const item = selectedImages[i];
-          if (item.image.id) {
-            await imageService.associateWithQuestion(item.image.id, question.id, i + 1, item.usageType);
+      // Handle image associations for the question
+      if (question.id) {
+        // For edit mode, we need to clean up old associations first
+        if (mode === 'edit' && initialData.images) {
+          console.log('QuestionForm: Removing old image associations before adding new ones');
+          // Remove associations for images that are no longer selected
+          for (const oldImage of initialData.images) {
+            const stillSelected = selectedImages.some(item => item.image.id === oldImage.id);
+            if (!stillSelected && oldImage.id) {
+              console.log('QuestionForm: Removing association for image:', oldImage.id);
+              try {
+                await imageService.removeFromQuestion(oldImage.id, question.id);
+              } catch (error) {
+                console.error('QuestionForm: Failed to remove image association:', error);
+              }
+            }
+          }
+        }
+        
+        // Associate currently selected images with the question
+        if (selectedImages.length > 0) {
+          console.log('QuestionForm: Associating', selectedImages.length, 'images with question');
+          for (let i = 0; i < selectedImages.length; i++) {
+            const item = selectedImages[i];
+            if (item.image.id) {
+              console.log('QuestionForm: Associating image', item.image.id, 'with usage type', item.usageType);
+              await imageService.associateWithQuestion(item.image.id, question.id, i + 1, item.usageType);
+            }
           }
         }
         
@@ -617,6 +666,35 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
       }
 
       setSuccess(`Question ${mode === 'edit' ? 'updated' : 'created'} successfully!`);
+      
+      // Save source note if checkbox is checked
+      if (saveSourceNote && formData.source_folder) {
+        try {
+          const token = localStorage.getItem('authToken');
+          if (token) {
+            await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/saved-explanations`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ explanation: formData.source_folder })
+            });
+            // Refresh the saved source notes list
+            const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/saved-explanations`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              setSavedSourceNotes(data);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to save source note:', error);
+        }
+      }
       
       // Keep metadata and exams after successful save so they persist on edit page
       // Do not clear these as they should remain visible
@@ -1161,9 +1239,60 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
 
             {/* Source Folder / Notes */}
             <div className="w-full">
-              <label htmlFor="source_folder" className="block text-sm font-medium text-gray-700 mb-1">
-                Source / Notes
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="source_folder" className="block text-sm font-medium text-gray-700">
+                  Source / Notes
+                  {savedSourceNotes.length > 0 && (
+                    <span className="ml-2 text-xs text-blue-600 font-normal">
+                      ({savedSourceNotes.length} saved available)
+                    </span>
+                  )}
+                </label>
+                <div className="flex items-center gap-4">
+                  {/* Saved Source Notes Dropdown */}
+                  {savedSourceNotes.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value === 'clear') {
+                            setFormData({...formData, source_folder: ''});
+                            e.target.value = '';
+                          } else if (e.target.value) {
+                            setFormData({...formData, source_folder: e.target.value});
+                          }
+                        }}
+                        className="px-3 py-1.5 text-sm bg-blue-50 border border-blue-300 rounded-md hover:border-blue-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>📚 Select Saved Note ({savedSourceNotes.length} available)</option>
+                        {savedSourceNotes.map((saved) => (
+                          <option 
+                            key={saved.id} 
+                            value={saved.explanation}
+                            title={saved.explanation}
+                          >
+                            {`${saved.usage_count || 1}x used: `}
+                            {saved.explanation.length > 60 
+                              ? saved.explanation.substring(0, 60) + '...' 
+                              : saved.explanation}
+                          </option>
+                        ))}
+                        <option value="clear" className="text-red-600">❌ Clear Selection</option>
+                      </select>
+                    </div>
+                  )}
+                  {/* Save Source Note Checkbox */}
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={saveSourceNote}
+                      onChange={(e) => setSaveSourceNote(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-gray-600">💾 Save for reuse</span>
+                  </label>
+                </div>
+              </div>
               <textarea
                 id="source_folder"
                 value={formData.source_folder}

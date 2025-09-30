@@ -71,7 +71,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                   <div className="bg-gray-100 rounded-lg overflow-hidden" style={{ width: '100%' }}>
                     {image.mime_type.startsWith('video/') ? (
                       <video
-                        src={imageService.getImageUrl(image.filename)}
+                        src={imageService.getImageUrl(image.file_path || image.filename)}
                         className="w-full h-auto object-contain"
                         controls
                         loop
@@ -79,10 +79,14 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                       />
                     ) : (
                       <img
-                        src={imageService.getImageUrl(image.filename)}
+                        src={imageService.getImageUrl(image.file_path || image.filename)}
                         alt={image.description || `Question image ${index + 1}`}
                         className="w-full h-auto object-contain"
                         style={{ width: '100%', height: 'auto' }}
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect fill="%23f0f0f0" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="20"%3EImage Not Available%3C/text%3E%3C/svg%3E';
+                        }}
                       />
                     )}
                   </div>

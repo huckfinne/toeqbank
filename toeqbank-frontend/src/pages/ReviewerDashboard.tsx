@@ -301,7 +301,7 @@ const ReviewerDashboard: React.FC = () => {
                       {currentQuestion.questionImages.map((image: Image) => (
                         <div key={image.id} className="border rounded-lg p-3 bg-white">
                           <img 
-                            src={imageService.getImageUrl(image.filename)}
+                            src={imageService.getImageUrl(image.file_path || image.filename)}
                             alt="Question image"
                             className="w-full max-w-none rounded"
                             style={{ width: '60%' }}
@@ -358,7 +358,7 @@ const ReviewerDashboard: React.FC = () => {
                         {currentQuestion.explanationImages.map((image: Image) => (
                           <div key={image.id} className="border rounded-lg p-3 bg-white">
                             <img 
-                              src={imageService.getImageUrl(image.filename)}
+                              src={imageService.getImageUrl(image.file_path || image.filename)}
                               alt="Explanation image"
                               className="w-full max-w-none rounded"
                               style={{ width: '60%' }}

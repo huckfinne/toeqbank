@@ -22,6 +22,7 @@ import AIGenerateQuestions from './pages/AIGenerateQuestions';
 import GenerateQuestionsFromImages from './pages/GenerateQuestionsFromImages';
 import ImageView from './pages/ImageView';
 import UserSettings from './pages/UserSettings';
+import MyContributions from './pages/MyContributions';
 
 const AppContent: React.FC = () => {
   const { user, logout, isAdmin, isReviewer } = useAuth();
@@ -174,11 +175,46 @@ const AppContent: React.FC = () => {
             )}
           </div>
           <div className="nav-user">
-            <span className="welcome-text">Welcome, {user?.username}!</span>
-            <Link to="/settings" className="settings-link">Settings</Link>
-            <button onClick={logout} className="logout-button">
-              Logout
-            </button>
+            <div className="nav-dropdown">
+              <span className="nav-dropdown-trigger">
+                {user?.username}
+                <svg className="nav-dropdown-arrow" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M8 10.5L4 6.5h8l-4 4z"/>
+                </svg>
+              </span>
+              <div className="nav-dropdown-menu">
+                <Link 
+                  to="/my-contributions" 
+                  className="nav-dropdown-item"
+                >
+                  <span className="nav-dropdown-icon">📊</span>
+                  <div className="nav-dropdown-content">
+                    <span className="nav-dropdown-title">My Contributions</span>
+                    <span className="nav-dropdown-description">View your submitted content</span>
+                  </div>
+                </Link>
+                <Link 
+                  to="/settings" 
+                  className="nav-dropdown-item"
+                >
+                  <span className="nav-dropdown-icon">⚙️</span>
+                  <div className="nav-dropdown-content">
+                    <span className="nav-dropdown-title">Settings</span>
+                    <span className="nav-dropdown-description">Manage your account</span>
+                  </div>
+                </Link>
+                <button 
+                  onClick={logout} 
+                  className="nav-dropdown-item logout-item"
+                >
+                  <span className="nav-dropdown-icon">🚪</span>
+                  <div className="nav-dropdown-content">
+                    <span className="nav-dropdown-title">Logout</span>
+                    <span className="nav-dropdown-description">Sign out of your account</span>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </nav>
@@ -205,6 +241,7 @@ const AppContent: React.FC = () => {
           <Route path="/generate-questions-from-images" element={<GenerateQuestionsFromImages />} />
           <Route path="/image/:id" element={<ImageView />} />
           <Route path="/settings" element={<UserSettings />} />
+          <Route path="/my-contributions" element={<MyContributions />} />
         </Routes>
       </main>
     </div>

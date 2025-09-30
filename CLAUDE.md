@@ -10,6 +10,7 @@
 - **ALWAYS use the Digital Ocean production database for ALL development**
 - **DO NOT create or use a local PostgreSQL database**
 - **The .env file should ALWAYS point to the DO database**
+- **LOCALHOST DEVELOPMENT MUST USE REMOTE DATABASE AND IMAGES**
 
 - Digital Ocean Database Connection:
   ```
@@ -78,6 +79,21 @@ node restore_database.js 2025-09-01T18-30-23-780Z  # Restore specific backup
 - Before major development sessions
 - After uploading significant data
 - Weekly automated backups (set up cron job)
+
+## Exam Configuration Rules
+🚨 **NEVER MODIFY EXAM CATEGORIES WITHOUT EXPLICIT PERMISSION** 🚨
+
+### Current Exam Structure:
+- **Exam Categories**: Echo, USMLE
+- **Exam Types**: 
+  - Echo: Advance PTEeXAM (primary), ASCeXAM, ReASCE, NBE
+  - USMLE: Step 1, Step 2, Step 3
+
+### Rules:
+- **DO NOT change exam category or type options without explicit user request**
+- **DO NOT modify existing exam data structure**
+- **ASK before adding new exam types or categories**
+- **Default for new users**: Echo + Advance PTEeXAM (current primary focus)
 
 ## Common Issues
 - If git push fails, use: `git remote set-url origin https://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@github.com/huckfinne-a/toeqbank.git`

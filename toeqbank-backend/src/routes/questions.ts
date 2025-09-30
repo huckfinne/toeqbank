@@ -193,8 +193,9 @@ router.get('/', async (req: Request, res: Response) => {
     }
     
     // ALWAYS filter by exam - critical for content segregation
-    const questions = await QuestionModel.findAll(limit, offset, examCategory, examType);
-    const total = await QuestionModel.getCount(examCategory, examType);
+    // ALSO exclude returned items (returned, rejected) - these should only be visible to the uploader
+    const questions = await QuestionModel.findAll(limit, offset, examCategory, examType, true); // true = exclude returned
+    const total = await QuestionModel.getCount(examCategory, examType, true); // true = exclude returned
     
     res.json({
       questions,
@@ -288,6 +289,19 @@ router.delete('/batches/:id', requireAuth, async (req: Request, res: Response) =
   }
 });
 
+// Get all questions uploaded by current user
+router.get('/my-questions', requireAuth, async (req: Request, res: Response) => {
+  try {
+    console.log('🔄 GET /my-questions called for user:', req.user.id);
+    const userQuestions = await QuestionModel.getByUploader(req.user.id);
+    console.log('✅ Found', userQuestions.length, 'questions for user', req.user.id);
+    res.json(userQuestions);
+  } catch (error) {
+    console.error('❌ Error fetching user questions:', error);
+    res.status(500).json({ error: 'Failed to fetch user questions' });
+  }
+});
+
 // Get question by ID with associated images
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -296,6 +310,14 @@ router.get('/:id', async (req: Request, res: Response) => {
     
     if (!question) {
       return res.status(404).json({ error: 'Question not found' });
+    }
+    
+    // Hide returned questions from users who didn't upload them
+    const user = (req as any).user;
+    if (question.review_status === 'returned' || question.review_status === 'rejected') {
+      if (!user || question.uploaded_by !== user.id) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
     }
     
     const images = await ImageModel.findByQuestionId(id);
@@ -418,26 +440,58 @@ router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Reques
     const questions: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'>[] = [];
     const imageDescriptions: any[] = [];
     
-    // Parse CSV file
-    await new Promise<void>((resolve, reject) => {
-      fs.createReadStream(req.file!.path)
-        .pipe(csv())
-        .on('data', (row) => {
-          // Map CSV columns to question fields
-          const question: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'> = {
-            question: row.question || '',
-            choice_a: row.choice_a || '',
-            choice_b: row.choice_b || '',
-            choice_c: row.choice_c || '',
-            choice_d: row.choice_d || '',
-            choice_e: row.choice_e || '',
-            choice_f: row.choice_f || '',
-            choice_g: row.choice_g || '',
-            correct_answer: row.correct_answer || '',
-            explanation: row.explanation || '',
-            source_folder: row.source_folder || '',
-            uploaded_by: req.user?.id
-          };
+    // Read the entire file first to detect if it has headers
+    const fileContent = fs.readFileSync(req.file.path, 'utf-8');
+    const lines = fileContent.split('\n').filter(line => line.trim());
+    
+    if (lines.length === 0) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'CSV file is empty' });
+    }
+    
+    // Check if first line looks like a header
+    const firstLine = lines[0];
+    // A header line typically contains these keywords and doesn't start with a number
+    const lowerFirst = firstLine.toLowerCase();
+    const hasHeader = (lowerFirst.includes('question') && 
+                      lowerFirst.includes('choice') &&
+                      lowerFirst.includes('correct_answer')) ||
+                     (lowerFirst.includes('question_number') && 
+                      lowerFirst.includes('question'));
+    
+    // Additional check: if first field is a number, it's probably NOT a header
+    const firstField = firstLine.split(',')[0].trim();
+    const startsWithNumber = /^\d+$/.test(firstField) || /^"\d+"$/.test(firstField);
+    
+    const isHeader = hasHeader && !startsWithNumber;
+    
+    console.log('CSV upload: First line:', firstLine.substring(0, 100));
+    console.log('CSV upload: First field:', firstField);
+    console.log('CSV upload: Starts with number:', startsWithNumber);
+    console.log('CSV upload: Detected header:', isHeader);
+    
+    // If has header, use csv-parser; otherwise, parse manually
+    if (isHeader) {
+      // Parse with headers using csv-parser
+      await new Promise<void>((resolve, reject) => {
+        fs.createReadStream(req.file!.path)
+          .pipe(csv())
+          .on('data', (row) => {
+            // Map CSV columns to question fields
+            const question: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'> = {
+              question: row.question || '',
+              choice_a: row.choice_a || '',
+              choice_b: row.choice_b || '',
+              choice_c: row.choice_c || '',
+              choice_d: row.choice_d || '',
+              choice_e: row.choice_e || '',
+              choice_f: row.choice_f || '',
+              choice_g: row.choice_g || '',
+              correct_answer: row.correct_answer || '',
+              explanation: row.explanation || '',
+              source_folder: row.source_folder || '',
+              uploaded_by: req.user?.id
+            };
           
           // Handle image descriptions - check for image fields regardless of withImages flag
           // This allows mixed CSV files with some questions needing images and others not
@@ -469,15 +523,133 @@ router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Reques
             question.review_status = 'pending';
           }
           
-          // Validate required fields
-          if (question.question && question.correct_answer && 
-              ['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(question.correct_answer)) {
-            questions.push(question);
+            // Validate required fields
+            if (question.question && question.correct_answer && 
+                ['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(question.correct_answer)) {
+              questions.push(question);
+            }
+          })
+          .on('end', resolve)
+          .on('error', reject);
+      });
+    } else {
+      // Parse without headers - assume standard column order
+      // Column order: question_number, question, choice_a, choice_b, choice_c, choice_d, choice_e, correct_answer, explanation, source_folder
+      // Additional image columns if present: image_description, image_modality, image_view, image_usage, image_type, image_url
+      
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const nextChar = line[i + 1];
+          
+          if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+              // Escaped quote
+              current += '"';
+              i++; // Skip next quote
+            } else {
+              // Toggle quote mode
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            // End of field
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
           }
-        })
-        .on('end', resolve)
-        .on('error', reject);
-    });
+        }
+        
+        // Add last field
+        result.push(current.trim());
+        return result;
+      };
+      
+      // Process each line as a data row
+      for (const line of lines) {
+        const columns = parseCSVLine(line);
+        
+        console.log(`Processing line with ${columns.length} columns:`, columns.slice(0, 3).join(' | '));
+        
+        // Skip if line doesn't have enough columns
+        if (columns.length < 8) {
+          console.log('Skipping line - not enough columns');
+          continue;
+        }
+        
+        // Map columns to question fields (adjusted for 0-based index)
+        // Expecting: question_number(0), question(1), choice_a(2), choice_b(3), choice_c(4), choice_d(5), choice_e(6), correct_answer(7), explanation(8), source_folder(9)
+        const question: Omit<Question, 'id' | 'created_at' | 'updated_at' | 'question_number'> = {
+          question: columns[1] || '',
+          choice_a: columns[2] || '',
+          choice_b: columns[3] || '',
+          choice_c: columns[4] || '',
+          choice_d: columns[5] || '',
+          choice_e: columns[6] || '',
+          choice_f: columns[7] || '', // This might be correct_answer if no choice_f
+          choice_g: '', // Usually not present in standard format
+          correct_answer: columns[7] || columns[8] || '', // Could be at position 7 or 8 depending on number of choices
+          explanation: columns[8] || columns[9] || '',
+          source_folder: columns[9] || columns[10] || '',
+          uploaded_by: req.user?.id
+        };
+        
+        // Adjust for cases where there are fewer choice columns
+        // If column 7 is a single letter (A-G), it's likely the correct_answer
+        if (columns[7] && columns[7].length === 1 && ['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(columns[7])) {
+          question.correct_answer = columns[7];
+          question.choice_f = '';
+          question.choice_g = '';
+          question.explanation = columns[8] || '';
+          question.source_folder = columns[9] || '';
+        }
+        
+        // Handle image descriptions if present (columns 10-15)
+        if (columns.length > 10 && (columns[10] || columns[11] || columns[12])) {
+          const validModalities = ['transthoracic', 'transesophageal', 'non-echo'];
+          const validUsageTypes = ['question', 'explanation'];
+          const validImageTypes = ['still', 'cine'];
+          
+          const modality = columns[11]?.toLowerCase();
+          const usageType = columns[13]?.toLowerCase();
+          const imageType = columns[14]?.toLowerCase();
+          
+          const imageDesc = {
+            description: columns[10] || '',
+            modality: validModalities.includes(modality) ? modality : null,
+            echo_view: standardizeEchoView(columns[12] || ''),
+            usage_type: validUsageTypes.includes(usageType) ? usageType : 'question',
+            image_type: validImageTypes.includes(imageType) ? imageType : 'still',
+            questionIndex: questions.length
+          };
+          imageDescriptions.push(imageDesc);
+          
+          question.review_status = 'returned';
+          question.review_notes = 'Question needs image to be uploaded before review';
+        } else {
+          question.review_status = 'pending';
+        }
+        
+        // Validate required fields
+        if (question.question && question.correct_answer && 
+            ['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(question.correct_answer)) {
+          console.log(`Adding question: "${question.question.substring(0, 50)}..." with answer ${question.correct_answer}`);
+          questions.push(question);
+        } else {
+          console.log('Skipping invalid question:', {
+            hasQuestion: !!question.question,
+            correctAnswer: question.correct_answer,
+            isValidAnswer: ['A', 'B', 'C', 'D', 'E', 'F', 'G'].includes(question.correct_answer)
+          });
+        }
+      }
+    }
+    
+    console.log(`Total questions parsed: ${questions.length}`);
 
     // Clean up uploaded file
     fs.unlinkSync(req.file.path);
@@ -892,15 +1064,5 @@ router.get('/my-returned', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Get all questions uploaded by current user
-router.get('/my-questions', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const userQuestions = await QuestionModel.getByUploader(req.user.id);
-    res.json(userQuestions);
-  } catch (error) {
-    console.error('Error fetching user questions:', error);
-    res.status(500).json({ error: 'Failed to fetch user questions' });
-  }
-});
 
 export default router;

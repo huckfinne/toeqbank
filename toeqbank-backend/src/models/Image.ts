@@ -370,6 +370,7 @@ export class ImageModel {
       SELECT u.id, u.username, COUNT(i.id) as image_count
       FROM users u
       INNER JOIN images i ON u.id = i.uploaded_by
+      WHERE i.review_status NOT IN ('returned', 'rejected')
       GROUP BY u.id, u.username
       HAVING COUNT(i.id) > 0
       ORDER BY u.username ASC

@@ -1,0 +1,72 @@
+/* My Contributions page styling matching GenerateQuestionsFromImages */
+
+.my-contributions .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.my-contributions .question-card {
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.my-contributions .question-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.my-contributions .question-info {
+  padding: 16px;
+}
+
+.my-contributions .question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.my-contributions .question-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  background: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.my-contributions .question-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  min-height: 40px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.my-contributions .question-footer {
+  font-size: 12px;
+  color: #666;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Status badges matching the original design */
+.my-contributions .status-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

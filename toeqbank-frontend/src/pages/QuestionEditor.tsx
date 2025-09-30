@@ -21,8 +21,9 @@ const QuestionEditor: React.FC = () => {
   const fromReview = searchParams.get('from') === 'review';
   const fromReturned = searchParams.get('from') === 'returned';
   
-  // Get preloaded images from navigation state
+  // Get preloaded images and return destination from navigation state
   const preloadedImages = location.state?.preloadedImages || [];
+  const returnTo = location.state?.returnTo;
   
   const [question, setQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(isEditMode);
@@ -191,28 +192,65 @@ const QuestionEditor: React.FC = () => {
         return;
       }
 
-      // Parse CSV - handle quoted values with commas
-      const line = csvInput.trim();
-      const values = [];
-      let current = '';
-      let inQuotes = false;
-      
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
+      // Parse CSV line - handle quoted values with commas
+      const parseCSVLine = (line: string): string[] => {
+        const values = [];
+        let current = '';
+        let inQuotes = false;
         
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
-        } else {
-          current += char;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const nextChar = line[i + 1];
+          
+          if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+              // Escaped quote
+              current += '"';
+              i++; // Skip next quote
+            } else {
+              // Toggle quote mode
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
         }
+        // Push the last value
+        if (current) {
+          values.push(current.trim());
+        }
+        return values;
+      };
+
+      // Split into lines and process
+      const lines = csvInput.trim().split('\n').filter(line => line.trim());
+      if (lines.length === 0) {
+        setCsvError('No valid data found');
+        return;
       }
-      // Push the last value
-      if (current) {
-        values.push(current.trim());
-      }
+
+      // Check if first line looks like headers
+      const firstLine = lines[0];
+      const lowerFirst = firstLine.toLowerCase();
+      const hasHeaders = (lowerFirst.includes('question') && 
+                         lowerFirst.includes('choice') &&
+                         lowerFirst.includes('correct_answer')) ||
+                        (lowerFirst.includes('question_number') && 
+                         lowerFirst.includes('question'));
+
+      // Use appropriate line (skip header if present)
+      const dataLine = hasHeaders && lines.length > 1 ? lines[1] : lines[0];
+      const values = parseCSVLine(dataLine);
+
+      console.log('CSV parsing:', {
+        hasHeaders,
+        totalLines: lines.length,
+        usingLine: hasHeaders && lines.length > 1 ? 'line 2 (data)' : 'line 1',
+        parsedValues: values.length
+      });
       
       // Remove surrounding quotes from values
       const cleanValues = values.map(v => v.replace(/^"(.*)"$/, '$1'));
@@ -238,10 +276,11 @@ const QuestionEditor: React.FC = () => {
       };
 
       setParsedCsvData(parsed);
-      setCsvSuccess('CSV data parsed successfully! The form below has been filled with this data.');
+      const headerMsg = hasHeaders ? ' (header row automatically detected and skipped)' : '';
+      setCsvSuccess(`CSV data parsed successfully!${headerMsg} The form below has been filled with this data.`);
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setCsvSuccess(''), 3000);
+      // Clear success message after 5 seconds
+      setTimeout(() => setCsvSuccess(''), 5000);
     } catch (error) {
       setCsvError('Error parsing CSV data. Please check the format.');
       console.error('CSV parsing error:', error);
@@ -407,6 +446,8 @@ const QuestionEditor: React.FC = () => {
               
               <div className="alert alert-info">
                 <strong>Format:</strong> Paste CSV data with columns: question_number, question, choice_a, choice_b, choice_c, choice_d, choice_e, choice_f, choice_g, correct_answer, explanation, source_folder
+                <br/>
+                <strong>Headers:</strong> Optional - if your CSV has headers, they'll be automatically detected and skipped.
               </div>
             </div>
           </div>
@@ -427,8 +468,12 @@ const QuestionEditor: React.FC = () => {
               onSuccess={(savedQuestion) => {
                 // Show success message
                 alert(`✅ Question #${savedQuestion.question_number || savedQuestion.id} created successfully!`);
-                // After creating a question, redirect to a fresh create-question page
-                window.location.href = '/create-question';
+                // After creating a question, redirect to returnTo page or default to fresh create-question page
+                if (returnTo) {
+                  window.location.href = returnTo;
+                } else {
+                  window.location.href = '/create-question';
+                }
               }}
             />
           </div>

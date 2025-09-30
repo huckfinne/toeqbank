@@ -100,7 +100,7 @@ const ReviewImages: React.FC = () => {
       } else if (rating <= 5) {
         status = 'rejected';
       } else { // 6 or 7
-        status = 'needs_revision';
+        status = 'returned';
       }
 
       const response = await fetch(

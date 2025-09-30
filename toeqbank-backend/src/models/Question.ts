@@ -67,7 +67,7 @@ export class QuestionModel {
     return updateResult.rows[0];
   }
 
-  static async findAll(limit = 50, offset = 0, examCategory?: string, examType?: string): Promise<Question[]> {
+  static async findAll(limit = 50, offset = 0, examCategory?: string, examType?: string, excludeReturned = false): Promise<Question[]> {
     let sql = `SELECT * FROM questions WHERE 1=1`;
     const values: any[] = [];
     let paramCounter = 1;
@@ -76,6 +76,11 @@ export class QuestionModel {
     if (examCategory && examType) {
       sql += ` AND exam_category = $${paramCounter++} AND exam_type = $${paramCounter++}`;
       values.push(examCategory, examType);
+    }
+    
+    // Exclude returned items (returned, rejected) if requested
+    if (excludeReturned) {
+      sql += ` AND review_status NOT IN ('returned', 'rejected')`;
     }
     
     sql += ` ORDER BY 
@@ -190,14 +195,20 @@ export class QuestionModel {
     return Promise.all(updatePromises);
   }
 
-  static async getCount(examCategory?: string, examType?: string): Promise<number> {
+  static async getCount(examCategory?: string, examType?: string, excludeReturned = false): Promise<number> {
     let sql = 'SELECT COUNT(*) as count FROM questions WHERE 1=1';
     const values: any[] = [];
+    let paramCounter = 1;
     
     // Add exam filtering if both parameters provided
     if (examCategory && examType) {
-      sql += ' AND exam_category = $1 AND exam_type = $2';
+      sql += ` AND exam_category = $${paramCounter++} AND exam_type = $${paramCounter++}`;
       values.push(examCategory, examType);
+    }
+    
+    // Exclude returned items (returned, rejected) if requested
+    if (excludeReturned) {
+      sql += ` AND review_status NOT IN ('returned', 'rejected')`;
     }
     
     const result = await query(sql, values);

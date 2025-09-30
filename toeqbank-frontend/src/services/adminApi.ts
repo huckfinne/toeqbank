@@ -26,6 +26,8 @@ export interface CreateUserData {
   password: string;
   first_name?: string;
   last_name?: string;
+  exam_category: string;
+  exam_type: string;
   is_admin?: boolean;
   is_reviewer?: boolean;
   is_image_contributor?: boolean;

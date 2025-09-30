@@ -8,8 +8,9 @@ interface SelectedImage {
   id: number;
   filename: string;
   description?: string;
-  file_path: string;
+  file_path?: string;
   has_questions?: boolean;
+  uploader_username?: string;
 }
 
 interface ExpandedDescriptions {
@@ -57,6 +58,7 @@ const GenerateQuestionsFromImages: React.FC = () => {
       const params: any = { limit: 100 };
       if (selectedUploader) {
         params.uploaded_by = selectedUploader;
+        console.log('Loading images with uploader filter:', selectedUploader);
       }
       const response = await imageService.getImages(params);
       setImages(response.images as SelectedImage[]);
@@ -117,7 +119,8 @@ const GenerateQuestionsFromImages: React.FC = () => {
     // Navigate to create-question page with selected images as state
     navigate('/create-question', {
       state: {
-        preloadedImages: selectedImageObjects
+        preloadedImages: selectedImageObjects,
+        returnTo: '/generate-questions-from-images'
       }
     });
   };
@@ -203,6 +206,17 @@ const GenerateQuestionsFromImages: React.FC = () => {
 
         <div className="action-buttons">
           <button
+            onClick={() => {
+              loadImages();
+              loadUploaders();
+            }}
+            className="btn btn-secondary"
+            disabled={loading}
+            title="Refresh the image list to get latest question associations"
+          >
+            🔄 Refresh
+          </button>
+          <button
             onClick={handleSelectAll}
             className="btn btn-secondary"
             disabled={loading}
@@ -233,11 +247,40 @@ const GenerateQuestionsFromImages: React.FC = () => {
               onClick={() => handleImageToggle(image.id)}
             >
               <div className="image-container">
-                <img
-                  src={imageService.getImageUrl(image.filename)}
-                  alt={image.description || image.filename}
-                  loading="lazy"
-                />
+                {(() => {
+                  const url = imageService.getImageUrl(image.file_path || image.filename);
+                  const isVideo = image.filename.toLowerCase().endsWith('.mp4') || 
+                                 image.filename.toLowerCase().endsWith('.webm') || 
+                                 image.filename.toLowerCase().endsWith('.mov');
+                  
+                  if (isVideo) {
+                    return (
+                      <video
+                        src={url}
+                        className="w-full h-auto object-contain"
+                        style={{ maxHeight: '200px', width: '100%' }}
+                        controls
+                        muted
+                        onError={(e) => {
+                          console.error('Video failed to load:', url);
+                        }}
+                      />
+                    );
+                  } else {
+                    return (
+                      <img
+                        src={url}
+                        alt={image.description || image.filename}
+                        loading="lazy"
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          console.error('Image failed to load:', img.src);
+                          img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="14"%3EImage Not Available%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                    );
+                  }
+                })()}
                 {selectedImages.includes(image.id) && (
                   <div className="selection-overlay">
                     <svg className="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -255,6 +298,11 @@ const GenerateQuestionsFromImages: React.FC = () => {
               </div>
               <div className="image-info">
                 <p className="image-filename">{image.filename}</p>
+                {image.uploader_username && (
+                  <p className="image-contributor" style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '2px', marginBottom: '4px' }}>
+                    By: {image.uploader_username}
+                  </p>
+                )}
                 {image.description && (
                   <div className="description-container">
                     <p className={`image-description ${expandedDescriptions[image.id] ? 'expanded' : ''}`}>

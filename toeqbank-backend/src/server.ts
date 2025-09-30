@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
-import { initializeDatabase } from './models/database';
+import { initializeDatabase, getPoolStatus } from './models/database';
 import questionRoutes from './routes/questions';
 import authRoutes from './routes/auth';
 import imageRoutes from './routes/images';
@@ -10,6 +10,7 @@ import questionMetadataRoutes from './routes/questionMetadata';
 import metadataRoutes from './routes/metadata';
 import examRoutes from './routes/exams';
 import debugRoutes from './routes/debug';
+import savedExplanationsRoutes from './routes/savedExplanations';
 
 dotenv.config();
 
@@ -30,10 +31,29 @@ app.use('/api/question-metadata', questionMetadataRoutes);
 app.use('/api/metadata', metadataRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/debug', debugRoutes);
+app.use('/api/saved-explanations', savedExplanationsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Database health check endpoint
+app.get('/health/database', async (req, res) => {
+  try {
+    const status = getPoolStatus();
+    res.json({
+      status: status.isHealthy ? 'healthy' : 'unhealthy',
+      details: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      message: (error as Error).message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Initialize database and start server
@@ -41,16 +61,16 @@ const startServer = async () => {
   try {
     await initializeDatabase();
     console.log('Database initialized successfully');
-    
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Health check: http://localhost:${PORT}/health`);
-      console.log(`API base URL: http://localhost:${PORT}/api`);
-    });
   } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+    console.error('⚠️  Database initialization failed, but starting server anyway:', (error as Error).message);
+    console.log('🔄 Server will retry database connections on each request');
   }
+  
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`API base URL: http://localhost:${PORT}/api`);
+  });
 };
 
 startServer();

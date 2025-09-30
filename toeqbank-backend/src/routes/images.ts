@@ -8,6 +8,7 @@ import { ImageModel } from '../models/Image';
 import { requireAuth } from '../middleware/auth';
 import { StorageService } from '../utils/storage';
 import { query } from '../models/database';
+import pool from '../models/database';
 
 const router = Router();
 
@@ -358,22 +359,26 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
         WHERE i.tags && $1::text[]
         AND i.exam_category = $2
         AND i.exam_type = $3
+        AND i.review_status NOT IN ('returned', 'rejected')
         ORDER BY i.created_at DESC 
         LIMIT $4 OFFSET $5
       `;
       const result = await query(sql, [tagArray, examCategory, examType, limit, offset]);
       images = result.rows;
     } else {
-      // Modified to include has_questions flag
+      // Modified to include has_questions flag and uploader username
       const sql = `
         SELECT i.*, 
+               u.username as uploader_username,
                EXISTS(SELECT 1 FROM question_images qi WHERE qi.image_id = i.id) as has_questions
         FROM images i
+        LEFT JOIN users u ON i.uploaded_by = u.id
         WHERE ($1::text IS NULL OR i.image_type = $1)
         AND ($2::text IS NULL OR i.license = $2)
         AND ($3::int IS NULL OR i.uploaded_by = $3)
         AND i.exam_category = $4
         AND i.exam_type = $5
+        AND i.review_status NOT IN ('returned', 'rejected')
         ORDER BY i.created_at DESC
         LIMIT $6 OFFSET $7
       `;
@@ -526,8 +531,8 @@ router.post('/:id/review', requireAuth, async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Rating must be between 0 and 10' });
     }
 
-    if (!['approved', 'rejected', 'needs_revision'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status. Must be approved, rejected, or needs_revision' });
+    if (!['approved', 'rejected', 'returned'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be approved, rejected, or returned' });
     }
 
     // Submit the review
@@ -563,6 +568,32 @@ router.get('/uploaders', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// Get current user's images
+router.get('/my-images', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user.id;
+    console.log('🔄 GET /my-images called for user:', userId);
+    const queryText = `
+      SELECT 
+        i.*,
+        u.username as uploader_username,
+        r.username as reviewer_name
+      FROM images i
+      LEFT JOIN users u ON i.uploaded_by = u.id
+      LEFT JOIN users r ON i.reviewed_by = r.id
+      WHERE i.uploaded_by = $1
+      ORDER BY i.created_at DESC
+    `;
+    
+    const result = await pool.query(queryText, [userId]);
+    console.log('✅ Found', result.rows.length, 'images for user', userId);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('❌ Get my images error:', error);
+    res.status(500).json({ error: 'Failed to fetch user images' });
+  }
+});
+
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -572,6 +603,14 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Image not found' });
     }
     
+    // Hide returned images from users who didn't upload them
+    const user = (req as any).user;
+    if (image.review_status === 'returned' || image.review_status === 'rejected') {
+      if (!user || image.uploaded_by !== user.id) {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+    }
+    
     res.json(image);
   } catch (error) {
     console.error('Get image error:', error);
@@ -579,10 +618,10 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const { description, tags, image_type, license, license_details, review_rating } = req.body;
+    const { description, tags, image_type, license, license_details, review_rating, review_status } = req.body;
     
     const updateData: any = {};
     if (description !== undefined) updateData.description = description;
@@ -593,6 +632,11 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (license !== undefined) updateData.license = license;
     if (license_details !== undefined) updateData.license_details = license_details;
     if (review_rating !== undefined) updateData.review_rating = review_rating;
+    if (review_status !== undefined) {
+      updateData.review_status = review_status;
+      updateData.reviewed_by = req.user.id;
+      updateData.reviewed_at = new Date();
+    }
     
     const image = await ImageModel.update(id, updateData);
     
@@ -771,25 +815,56 @@ router.get('/serve/:filename', async (req: Request, res: Response) => {
       const spacesUrl = StorageService.getPublicUrl(filename);
       console.log('Redirecting to Spaces URL:', spacesUrl);
       
-      // Instead of redirect, we can proxy the request to avoid CORS issues
+      // Check if this is a video file that needs special handling
+      const ext = path.extname(filename).toLowerCase();
+      const isVideo = ['.mp4', '.webm', '.mov', '.avi'].includes(ext);
+      
+      // For images, proxy the request to avoid CORS issues
       const https = require('https');
-      https.get(spacesUrl, (proxyRes: any) => {
+      
+      const request = https.get(spacesUrl, {
+        timeout: isVideo ? 120000 : 30000, // 120s for videos, 30s for images
+        headers: {
+          'User-Agent': 'TOEQBank/1.0'
+        }
+      }, (proxyRes: any) => {
         if (proxyRes.statusCode === 200) {
           // Set appropriate headers
           res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'image/jpeg');
           res.setHeader('Cache-Control', 'public, max-age=31536000');
           res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Content-Length', proxyRes.headers['content-length'] || '');
           
           // Pipe the response
           proxyRes.pipe(res);
         } else {
           console.error(`File not found in Spaces: ${filename}, status: ${proxyRes.statusCode}`);
-          // Return a placeholder image or 404
           res.status(404).json({ error: 'Image not found', filename });
         }
-      }).on('error', (error: any) => {
+      });
+      
+      request.on('error', (error: any) => {
         console.error('Error fetching from Spaces:', error);
-        res.status(404).json({ error: 'Image not found', filename });
+        if (!res.headersSent) {
+          res.status(404).json({ error: 'Image not found', filename });
+        }
+      });
+      
+      request.on('timeout', () => {
+        console.error('Timeout fetching from Spaces:', filename);
+        request.destroy();
+        if (!res.headersSent) {
+          res.status(504).json({ error: 'Image request timeout', filename });
+        }
+      });
+      
+      // Also set socket timeout
+      request.setTimeout(isVideo ? 120000 : 30000, () => {
+        console.error('Socket timeout fetching from Spaces:', filename);
+        request.destroy();
+        if (!res.headersSent) {
+          res.status(504).json({ error: 'Image request timeout', filename });
+        }
       });
     } else {
       // Spaces not configured and file not found locally

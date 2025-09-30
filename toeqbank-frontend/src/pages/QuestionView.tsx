@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { questionService, Question } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import QuestionCard from '../components/QuestionCard';
@@ -13,7 +13,11 @@ import { ApplicableExam } from '../services/examApi';
 const QuestionView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAdmin } = useAuth();
+  
+  // Get the 'from' path from navigation state, default to '/' if not provided
+  const fromPath = (location.state as any)?.from || '/';
   const [question, setQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +160,7 @@ const QuestionView: React.FC = () => {
                 Retry
               </button>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate(fromPath)}
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
               >
                 Go Back
@@ -209,7 +213,7 @@ const QuestionView: React.FC = () => {
                 Edit Question
               </button>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate(fromPath)}
                 className="px-6 py-3 text-gray-600 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white hover:shadow-md transition-all duration-200"
               >
                 <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,7 +229,7 @@ const QuestionView: React.FC = () => {
         <nav className="mb-8">
           <div className="flex items-center space-x-3 text-sm bg-white/60 backdrop-blur-sm px-4 py-3 rounded-xl border border-gray-200 w-fit">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate(fromPath)}
               className="flex items-center text-gray-600 hover:text-blue-600 transition-colors font-medium"
             >
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

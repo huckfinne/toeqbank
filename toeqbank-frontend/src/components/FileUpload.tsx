@@ -114,19 +114,19 @@ const FileUpload: React.FC = () => {
   };
 
   return (
-    <div className="file-upload">
-      <h2>Upload Questions</h2>
-      <p>Upload a CSV file containing questions to add them to the question bank.</p>
+    <div className="page-container">
+      <div className="page-header">
+        <h2>Upload Questions</h2>
+        <p>Upload a CSV file containing questions to add them to the question bank.</p>
+      </div>
       
       {/* Upload Mode Selector */}
-      <div className="upload-mode-selector" style={{ 
-        marginBottom: '30px', 
-        padding: '20px', 
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        border: '1px solid #dee2e6'
-      }}>
-        <h3 style={{ marginBottom: '15px', color: '#495057' }}>Select Upload Mode:</h3>
+      <div className="content-card" style={{ marginBottom: '30px' }}>
+        <div className="card-header">
+          <h3 className="mb-0">Select Upload Mode</h3>
+          <p className="text-muted mb-0">Choose how you want to handle image-related questions</p>
+        </div>
+        <div className="card-body">
         <div style={{ display: 'flex', gap: '20px' }}>
           <label style={{ 
             display: 'flex', 
@@ -206,20 +206,16 @@ const FileUpload: React.FC = () => {
             </div>
           </label>
         </div>
+        </div>
       </div>
 
       {/* Source Information */}
-      <div className="upload-source-section" style={{ 
-        marginBottom: '30px', 
-        padding: '20px', 
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        border: '1px solid #dee2e6'
-      }}>
-        <h3 style={{ marginBottom: '10px', color: '#495057' }}>Source Information:</h3>
-        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '20px' }}>
-          Please provide details about where these questions came from to help track and cite sources properly.
-        </p>
+      <div className="content-card" style={{ marginBottom: '30px' }}>
+        <div className="card-header">
+          <h3 className="mb-0">Source Information</h3>
+          <p className="text-muted mb-0">Provide details about where these questions came from to help track and cite sources properly</p>
+        </div>
+        <div className="card-body">
 
         {/* Description */}
         <div style={{ marginBottom: '20px' }}>
@@ -383,17 +379,16 @@ const FileUpload: React.FC = () => {
         }}>
           <span style={{ color: '#dc3545' }}>*</span> Required field
         </div>
+        </div>
       </div>
       
       {/* Input Method Selector */}
-      <div className="input-method-selector" style={{ 
-        marginBottom: '30px', 
-        padding: '20px', 
-        backgroundColor: '#f0f8ff',
-        borderRadius: '8px',
-        border: '1px solid #b3d9ff'
-      }}>
-        <h3 style={{ marginBottom: '15px', color: '#003d7a' }}>Choose Input Method:</h3>
+      <div className="content-card" style={{ marginBottom: '30px' }}>
+        <div className="card-header">
+          <h3 className="mb-0">Choose Input Method</h3>
+          <p className="text-muted mb-0">Select how you want to provide your CSV data</p>
+        </div>
+        <div className="card-body">
         <div style={{ display: 'flex', gap: '20px' }}>
           <label style={{ 
             display: 'flex', 
@@ -447,13 +442,20 @@ const FileUpload: React.FC = () => {
             </div>
           </label>
         </div>
+        </div>
       </div>
 
-      <div className="upload-section">
-        <div className="csv-format-info">
-          <h3>CSV Format Requirements:</h3>
-          <p>Your CSV file should contain the following columns:</p>
-          <ul>
+      <div className="content-card">
+        <div className="card-header">
+          <h3 className="mb-0">CSV Format Requirements</h3>
+          <p className="text-muted mb-0">Your CSV file should contain the following columns</p>
+        </div>
+        <div className="card-body">
+          <div className="alert alert-info mb-3">
+            <strong>📝 Format Options:</strong> You can upload CSV files with OR without headers. The system will automatically detect the format.
+          </div>
+          <h4>Column Order (if no headers):</h4>
+          <ol>
             <li><strong>question_number</strong> (optional) - Question identifier</li>
             <li><strong>question</strong> (required) - The question text</li>
             <li><strong>choice_a</strong> (optional) - Option A</li>
@@ -464,22 +466,30 @@ const FileUpload: React.FC = () => {
             <li><strong>correct_answer</strong> (required) - Must be A, B, C, D, or E</li>
             <li><strong>explanation</strong> (optional) - Explanation of the correct answer</li>
             <li><strong>source_folder</strong> (optional) - Source or category</li>
+          </ol>
             
 {(uploadMode === 'with-images' || uploadMode === 'mixed') && (
               <>
-                <li style={{ marginTop: '10px', color: '#0056b3' }}><strong>Image-specific columns:</strong></li>
+                <h4 style={{ marginTop: '20px', color: '#0056b3' }}>Additional Image Columns:</h4>
+                <ol start={11}>
                 <li><strong>image_description</strong> (REQUIRED) - Description of the image</li>
                 <li><strong>image_modality</strong> (REQUIRED) - TTE, TEE/TOE, or non-echo</li>
                 <li><strong>image_view</strong> (REQUIRED for echo) - Echo view (e.g., A4C, PLAX, etc.)</li>
                 <li><strong>image_usage</strong> (REQUIRED) - "question" or "explanation"</li>
                 <li><strong>image_type</strong> (REQUIRED) - "still" or "cine"</li>
                 <li><strong>image_url</strong> (optional) - URL to the image file</li>
+                </ol>
               </>
             )}
-          </ul>
         </div>
+      </div>
 
-        <div className="upload-controls">
+      <div className="content-card">
+        <div className="card-header">
+          <h3 className="mb-0">Upload Data</h3>
+          <p className="text-muted mb-0">Provide your CSV data using the selected input method</p>
+        </div>
+        <div className="card-body">
           {inputMethod === 'file' ? (
             <div className="file-input-section">
               <input
@@ -495,15 +505,10 @@ const FileUpload: React.FC = () => {
               </label>
             </div>
           ) : (
-            <div className="csv-paste-section" style={{ marginBottom: '20px' }}>
+            <div className="w-full" style={{ marginBottom: '20px' }}>
               <label 
                 htmlFor="csv-textarea" 
-                style={{ 
-                  display: 'block', 
-                  marginBottom: '10px', 
-                  fontWeight: '500',
-                  color: '#495057'
-                }}
+                className="block text-sm font-medium text-gray-700 mb-2"
               >
                 Paste your CSV data below:
               </label>
@@ -512,68 +517,66 @@ const FileUpload: React.FC = () => {
                 value={csvData}
                 onChange={(e) => setCsvData(e.target.value)}
                 placeholder="Paste your CSV data here (including headers)..."
+                className="px-3 py-2 text-base border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-vertical"
                 style={{
                   width: '100%',
-                  minHeight: '300px',
-                  padding: '15px',
-                  border: '2px solid #ced4da',
-                  borderRadius: '6px',
+                  minHeight: '400px',
                   fontSize: '13px',
                   fontFamily: 'monospace',
-                  resize: 'vertical',
                   backgroundColor: '#fafafa'
                 }}
               />
-              <div style={{ 
-                textAlign: 'right', 
-                fontSize: '12px', 
-                color: '#6c757d', 
-                marginTop: '5px' 
-              }}>
+              <div className="text-right text-sm text-gray-600 mt-2">
                 {csvData.split('\n').length - 1} lines
               </div>
             </div>
           )}
 
-          <button
-            onClick={handleUpload}
-            disabled={(inputMethod === 'file' && !selectedFile) || (inputMethod === 'paste' && !csvData.trim()) || uploading}
-            className="upload-button"
-          >
-            {uploading ? 'Uploading...' : 'Upload Questions'}
-          </button>
-
-          {(selectedFile || csvData.trim()) && (
-            <button onClick={resetUpload} className="reset-button">
-              Clear
+          <div className="action-buttons">
+            <button
+              onClick={handleUpload}
+              disabled={(inputMethod === 'file' && !selectedFile) || (inputMethod === 'paste' && !csvData.trim()) || uploading}
+              className="btn btn-primary"
+            >
+              {uploading ? 'Uploading...' : 'Upload Questions'}
             </button>
-          )}
+
+            {(selectedFile || csvData.trim()) && (
+              <button onClick={resetUpload} className="btn btn-secondary">
+                Clear
+              </button>
+            )}
+          </div>
         </div>
-
-        {error && (
-          <div className="error-message">
-            <p>Error: {error}</p>
-          </div>
-        )}
-
-        {uploadResult && (
-          <div className="success-message">
-            <h3>Upload Successful!</h3>
-            <p>{uploadResult.message}</p>
-            <div className="upload-details">
-              <p>Uploaded {uploadResult.questions?.length || 0} questions successfully.</p>
-            </div>
-            <button onClick={resetUpload} className="reset-button">
-              Upload Another File
-            </button>
-          </div>
-        )}
       </div>
 
-      <div className="existing-questions-info">
-        <h3>Sample CSV Format:</h3>
-        <div className="csv-sample">
-          <pre>
+      {error && (
+        <div className="alert alert-error">
+          Error: {error}
+        </div>
+      )}
+
+      {uploadResult && (
+        <div className="alert alert-success">
+          <h3>Upload Successful!</h3>
+          <p>{uploadResult.message}</p>
+          <div className="upload-details">
+            <p>Uploaded {uploadResult.questions?.length || 0} questions successfully.</p>
+          </div>
+          <button onClick={resetUpload} className="btn btn-primary mt-3">
+            Upload Another File
+          </button>
+        </div>
+      )}
+
+      <div className="content-card">
+        <div className="card-header">
+          <h3 className="mb-0">Sample CSV Format</h3>
+          <p className="text-muted mb-0">Example data format for your CSV file</p>
+        </div>
+        <div className="card-body">
+          <div className="csv-sample">
+            <pre style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '6px', overflow: 'auto' }}>
 {uploadMode === 'without-images' 
   ? `question_number,question,choice_a,choice_b,choice_c,choice_d,choice_e,correct_answer,explanation,source_folder
 1,"What is 2+2?",3,4,5,6,7,B,"2+2 equals 4",Math
@@ -586,8 +589,8 @@ const FileUpload: React.FC = () => {
 1,"What is 2+2?",3,4,5,6,7,B,"2+2 equals 4",Math,,,,,,
 2,"Identify the cardiac structure shown in this echocardiogram",Mitral valve,Aortic valve,Tricuspid valve,Pulmonary valve,,A,"The image shows the mitral valve in apical 4-chamber view",Cardiology,"Apical 4-chamber view showing mitral valve",TTE,A4C,question,still,https://example.com/image1.jpg
 3,"What is the capital of France?",London,Paris,Berlin,Madrid,Rome,B,"Paris is the capital of France",Geography,,,,,`}
-          </pre>
-        </div>
+            </pre>
+          </div>
         
 {(uploadMode === 'with-images' || uploadMode === 'mixed') && (
           <div style={{ 
@@ -726,6 +729,7 @@ const FileUpload: React.FC = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

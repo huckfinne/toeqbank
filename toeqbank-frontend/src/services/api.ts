@@ -320,6 +320,7 @@ export const imageService = {
     license?: LicenseType;
     license_details?: string;
     review_rating?: number;
+    review_status?: string;
   }): Promise<Image> => {
     const response = await api.put(`/images/${id}`, data);
     return response.data;
@@ -372,7 +373,14 @@ export const imageService = {
       // For other external URLs, use proxy to avoid CORS issues
       return `${API_BASE_URL}/images/proxy?url=${encodeURIComponent(filename)}`;
     }
-    // Local images use direct serving
+    
+    // For local development, always use production server for images
+    // since images are stored on the production server
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `https://toeqbank-wxhxl.ondigitalocean.app/api/images/serve/${filename}`;
+    }
+    
+    // All images go through backend serving (handles both local and Spaces)
     return `${API_BASE_URL}/images/serve/${filename}`;
   },
 
@@ -419,6 +427,12 @@ export const imageService = {
   // Get users who have uploaded images (admin only)
   getImageUploaders: async (): Promise<{ id: number; username: string; image_count: number }[]> => {
     const response = await api.get('/images/uploaders');
+    return response.data;
+  },
+
+  // Get current user's uploaded images
+  getMyImages: async (): Promise<Image[]> => {
+    const response = await api.get('/images/my-images');
     return response.data;
   },
 };
