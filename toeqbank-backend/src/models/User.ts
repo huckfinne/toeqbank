@@ -56,7 +56,7 @@ export interface LoginRequest {
 }
 
 export class UserModel {
-  static validateExamSelection(examCategory: string, examType: string): boolean {
+  static validateExamSelection(examCategory?: string, examType?: string): boolean {
     // Allow empty/null exam category and type (user can select on first login)
     if (!examCategory || !examType) {
       return true;
