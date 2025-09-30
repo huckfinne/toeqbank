@@ -99,8 +99,10 @@ const AdminUserPanel: React.FC = () => {
       setShowCreateForm(false);
       loadUsers();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create user');
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Failed to create user';
+      setError(errorMessage);
       console.error('Create user error:', err);
+      console.error('Error response:', err.response?.data);
     }
   };
 
