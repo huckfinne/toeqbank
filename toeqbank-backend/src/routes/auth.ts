@@ -11,8 +11,8 @@ router.post('/register', async (req: Request, res: Response) => {
     const userData: CreateUserRequest = req.body;
     
     // Validate required fields
-    if (!userData.username || !userData.email || !userData.password || !userData.exam_category || !userData.exam_type) {
-      return res.status(400).json({ error: 'Username, email, password, exam category, and exam type are required' });
+    if (!userData.username || !userData.email || !userData.password) {
+      return res.status(400).json({ error: 'Username, email, and password are required' });
     }
     
     // Validate username format
@@ -316,8 +316,8 @@ router.post('/admin/users', requireAdmin, async (req: Request, res: Response) =>
     const userData: CreateUserRequest & { is_admin?: boolean; is_reviewer?: boolean } = req.body;
     
     // Validate required fields
-    if (!userData.username || !userData.email || !userData.password || !userData.exam_category || !userData.exam_type) {
-      return res.status(400).json({ error: 'Username, email, password, exam category, and exam type are required' });
+    if (!userData.username || !userData.email || !userData.password) {
+      return res.status(400).json({ error: 'Username, email, and password are required' });
     }
     
     // Validate username format
