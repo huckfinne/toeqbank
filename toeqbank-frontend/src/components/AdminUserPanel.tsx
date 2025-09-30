@@ -27,8 +27,8 @@ const AdminUserPanel: React.FC = () => {
     confirmPassword: '',
     first_name: '',
     last_name: '',
-    exam_category: 'echocardiography',
-    exam_type: 'eacvi_toe',
+    exam_category: '',
+    exam_type: '',
     is_admin: false,
     is_reviewer: false,
     is_image_contributor: false
@@ -90,8 +90,8 @@ const AdminUserPanel: React.FC = () => {
         confirmPassword: '',
         first_name: '',
         last_name: '',
-        exam_category: 'echocardiography',
-        exam_type: 'eacvi_toe',
+        exam_category: '',
+        exam_type: '',
         is_admin: false,
         is_reviewer: false,
         is_image_contributor: false
@@ -423,18 +423,23 @@ const AdminUserPanel: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Category *
+                    Exam Category (Optional)
                   </label>
                   <select
                     value={createForm.exam_category}
                     onChange={(e) => {
                       const newCategory = e.target.value;
-                      const newExamType = newCategory === 'echocardiography' ? 'eacvi_toe' : 'step1';
+                      let newExamType = '';
+                      if (newCategory === 'echocardiography') {
+                        newExamType = 'eacvi_toe';
+                      } else if (newCategory === 'usmle') {
+                        newExamType = 'step1';
+                      }
                       setCreateForm({...createForm, exam_category: newCategory, exam_type: newExamType});
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
                   >
+                    <option value="">None (select on first login)</option>
                     <option value="echocardiography">Echocardiography</option>
                     <option value="usmle">USMLE</option>
                   </select>
@@ -442,26 +447,27 @@ const AdminUserPanel: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Type *
+                    Exam Type (Optional)
                   </label>
                   <select
                     value={createForm.exam_type}
                     onChange={(e) => setCreateForm({...createForm, exam_type: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
+                    disabled={!createForm.exam_category}
                   >
+                    <option value="">None</option>
                     {createForm.exam_category === 'echocardiography' ? (
                       <>
                         <option value="eacvi_toe">EACVI TOE (Advance PTEeXAM)</option>
                         <option value="tte">TTE</option>
                       </>
-                    ) : (
+                    ) : createForm.exam_category === 'usmle' ? (
                       <>
                         <option value="step1">Step 1</option>
                         <option value="step2">Step 2</option>
                         <option value="step3">Step 3</option>
                       </>
-                    )}
+                    ) : null}
                   </select>
                 </div>
               </div>

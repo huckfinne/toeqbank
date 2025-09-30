@@ -46,8 +46,8 @@ export interface CreateUserRequest {
   is_admin?: boolean;
   is_reviewer?: boolean;
   is_image_contributor?: boolean;
-  exam_category: string;
-  exam_type: string;
+  exam_category?: string;
+  exam_type?: string;
 }
 
 export interface LoginRequest {
@@ -57,6 +57,11 @@ export interface LoginRequest {
 
 export class UserModel {
   static validateExamSelection(examCategory: string, examType: string): boolean {
+    // Allow empty/null exam category and type (user can select on first login)
+    if (!examCategory || !examType) {
+      return true;
+    }
+
     const validCategories = Object.values(EXAM_CATEGORIES) as string[];
     const validTypes = Object.values(EXAM_TYPES) as string[];
     
@@ -102,8 +107,8 @@ export class UserModel {
         userData.is_admin === true,
         userData.is_reviewer === true,
         userData.is_image_contributor === true,
-        userData.exam_category,
-        userData.exam_type
+        userData.exam_category || null,
+        userData.exam_type || null
       ];
       
       console.log('Creating user with values:', values.map((v, i) => i === 2 ? '[PASSWORD]' : v));
