@@ -48,6 +48,7 @@ export interface Question {
   review_notes?: string;
   reviewed_by?: number;
   reviewed_at?: string;
+  difficulty_rating?: number; // 1-5 scale: 1=easy, 5=hardest
   created_at?: string;
   updated_at?: string;
   images?: Image[];
@@ -187,8 +188,8 @@ export const questionService = {
     return response.data;
   },
 
-  updateReviewStatus: async (questionId: number, status: 'approved' | 'rejected' | 'returned', notes: string): Promise<{ message: string; question: Question }> => {
-    const response = await api.post(`/questions/review/${questionId}`, { status, notes });
+  updateReviewStatus: async (questionId: number, status: 'approved' | 'rejected' | 'returned', notes: string, difficultyRating?: number): Promise<{ message: string; question: Question }> => {
+    const response = await api.post(`/questions/review/${questionId}`, { status, notes, difficulty_rating: difficultyRating });
     return response.data;
   },
 

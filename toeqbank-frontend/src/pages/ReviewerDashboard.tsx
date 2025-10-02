@@ -29,6 +29,7 @@ const ReviewerDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
+  const [difficultyRating, setDifficultyRating] = useState<number | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -106,6 +107,9 @@ const ReviewerDashboard: React.FC = () => {
           metadata: metadata,
           examAssignments: examAssignments
         });
+        
+        // Initialize difficulty rating from existing question data
+        setDifficultyRating(question.difficulty_rating || null);
       } catch (error) {
         console.error(`Error loading data for question ${question.id}:`, error);
         setCurrentQuestion({
@@ -117,6 +121,9 @@ const ReviewerDashboard: React.FC = () => {
           metadata: undefined,
           examAssignments: []
         });
+        
+        // Initialize difficulty rating from existing question data
+        setDifficultyRating(question.difficulty_rating || null);
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -139,11 +146,12 @@ const ReviewerDashboard: React.FC = () => {
 
   const handleApprove = async (questionId: number) => {
     try {
-      await questionService.updateReviewStatus(questionId, 'approved', reviewNotes);
+      await questionService.updateReviewStatus(questionId, 'approved', reviewNotes, difficultyRating || undefined);
       
       // Show success message and load next question
       alert('Question approved successfully!');
       setReviewNotes('');
+      setDifficultyRating(null);
       loadNextQuestion();
     } catch (err) {
       console.error('Approve error:', err);
@@ -158,11 +166,12 @@ const ReviewerDashboard: React.FC = () => {
     }
     
     try {
-      await questionService.updateReviewStatus(questionId, 'returned', reviewNotes);
+      await questionService.updateReviewStatus(questionId, 'returned', reviewNotes, difficultyRating || undefined);
       
       // Show success message and load next question
       alert('Question marked as needs work');
       setReviewNotes('');
+      setDifficultyRating(null);
       loadNextQuestion();
     } catch (err) {
       console.error('Needs work error:', err);
@@ -281,6 +290,14 @@ const ReviewerDashboard: React.FC = () => {
                 )}
                 {currentQuestion.created_at && (
                   <span>Created: {new Date(currentQuestion.created_at).toLocaleDateString()}</span>
+                )}
+                {currentQuestion.difficulty_rating && (
+                  <span className="flex items-center gap-1">
+                    Difficulty: 
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {currentQuestion.difficulty_rating}/5
+                    </span>
+                  </span>
                 )}
               </div>
             </div>
@@ -482,6 +499,45 @@ const ReviewerDashboard: React.FC = () => {
             boxSizing: 'border-box'
           }}
         />
+        
+        {/* Difficulty Rating Section */}
+        <div className="bg-gray-50 border-t border-gray-200 py-4">
+          <div className="max-w-7xl mx-auto px-4">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Difficulty Rating (Optional):
+            </label>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">Easy</span>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    onClick={() => setDifficultyRating(rating === difficultyRating ? null : rating)}
+                    className={`w-10 h-10 rounded-full border-2 transition-all ${
+                      difficultyRating === rating
+                        ? 'bg-blue-500 border-blue-500 text-white'
+                        : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400'
+                    }`}
+                  >
+                    {rating}
+                  </button>
+                ))}
+              </div>
+              <span className="text-sm text-gray-600">Hard</span>
+              {difficultyRating && (
+                <button
+                  onClick={() => setDifficultyRating(null)}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline ml-4"
+                >
+                  Clear rating
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Rate the difficulty from 1 (easy) to 5 (hardest). This helps categorize questions for users.
+            </p>
+          </div>
+        </div>
         
         {/* Action buttons in container */}
         <div className="bg-white py-6">
