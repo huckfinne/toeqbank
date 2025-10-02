@@ -22,6 +22,7 @@ export interface Question {
   reviewed_at?: Date;
   uploaded_by?: number;
   batch_id?: number;
+  difficulty_rating?: number; // 1-5 scale: 1=easy, 5=hardest
   created_at?: Date;
   updated_at?: Date;
 }
@@ -293,15 +294,16 @@ export class QuestionModel {
     id: number, 
     status: 'pending' | 'approved' | 'rejected' | 'returned', 
     reviewNotes: string, 
-    reviewerId: number
+    reviewerId: number,
+    difficultyRating?: number
   ): Promise<Question | null> {
     const sql = `
       UPDATE questions 
-      SET review_status = $1, review_notes = $2, reviewed_by = $3, reviewed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      SET review_status = $1, review_notes = $2, reviewed_by = $3, reviewed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, difficulty_rating = $5
       WHERE id = $4 
       RETURNING *
     `;
-    const result = await query(sql, [status, reviewNotes, reviewerId, id]);
+    const result = await query(sql, [status, reviewNotes, reviewerId, id, difficultyRating || null]);
     return result.rows[0] || null;
   }
 

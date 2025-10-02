@@ -1007,7 +1007,7 @@ router.post('/review/:id', requireAuth, async (req: Request, res: Response) => {
     }
 
     const questionId = parseInt(req.params.id);
-    const { status, notes } = req.body;
+    const { status, notes, difficulty_rating } = req.body;
 
     if (!['approved', 'rejected', 'returned'].includes(status)) {
       return res.status(400).json({ error: 'Invalid review status. Must be: approved, rejected, or returned' });
@@ -1017,11 +1017,20 @@ router.post('/review/:id', requireAuth, async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Review notes are required for rejected or returned questions' });
     }
 
+    // Validate difficulty rating if provided
+    if (difficulty_rating !== undefined && difficulty_rating !== null) {
+      const rating = parseInt(difficulty_rating);
+      if (isNaN(rating) || rating < 1 || rating > 5) {
+        return res.status(400).json({ error: 'Difficulty rating must be between 1 and 5' });
+      }
+    }
+
     const updatedQuestion = await QuestionModel.updateReviewStatus(
       questionId, 
       status, 
       notes || '', 
-      req.user.id
+      req.user.id,
+      difficulty_rating ? parseInt(difficulty_rating) : undefined
     );
 
     if (!updatedQuestion) {
