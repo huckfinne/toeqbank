@@ -26,5 +26,3 @@ export const getApiBaseUrl = (): string => {
   console.log(`✅ [${timestamp}] Using default localhost API URL`);
   return 'http://localhost:3001/api';
 };
-
-export const API_BASE_URL = getApiBaseUrl();

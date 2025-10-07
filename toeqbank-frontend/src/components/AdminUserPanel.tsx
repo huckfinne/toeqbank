@@ -27,8 +27,8 @@ const AdminUserPanel: React.FC = () => {
     confirmPassword: '',
     first_name: '',
     last_name: '',
-    exam_category: '',
-    exam_type: '',
+    exam_category: 'echocardiography',
+    exam_type: 'eacvi_toe',
     is_admin: false,
     is_reviewer: false,
     is_image_contributor: false
@@ -90,8 +90,8 @@ const AdminUserPanel: React.FC = () => {
         confirmPassword: '',
         first_name: '',
         last_name: '',
-        exam_category: '',
-        exam_type: '',
+        exam_category: 'echocardiography',
+        exam_type: 'eacvi_toe',
         is_admin: false,
         is_reviewer: false,
         is_image_contributor: false
@@ -439,7 +439,6 @@ const AdminUserPanel: React.FC = () => {
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">None (select on first login)</option>
                     <option value="echocardiography">Echocardiography</option>
                     <option value="usmle">USMLE</option>
                   </select>

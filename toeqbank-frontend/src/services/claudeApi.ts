@@ -1,5 +1,7 @@
 import { Question } from './api';
-import { API_BASE_URL } from '../config/api.config';
+import { getApiBaseUrl } from '../config/api.config';
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface GeneratedMetadata {
   difficulty: string;
