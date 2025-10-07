@@ -221,26 +221,26 @@ const AppContent: React.FC = () => {
       
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<QuestionReview />} />
-          <Route path="/practice" element={<PracticeTest />} />
-          <Route path="/create-question" element={<QuestionEditor />} />
-          <Route path="/edit-question/:id" element={<QuestionEditor />} />
-          <Route path="/question/:id" element={<QuestionView />} />
-          <Route path="/upload" element={<FileUpload />} />
-          <Route path="/images" element={<ImageLibrary />} />
-          <Route path="/needed-images" element={<NeededImages />} />
-          <Route path="/my-returned-questions" element={<MyReturnedQuestions />} />
-          <Route path="/reviewer/dashboard" element={<ReviewerDashboard />} />
-          <Route path="/reviewer/images" element={<ReviewImages />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminUserPanel />} />
-          <Route path="/admin/batches" element={<BatchManagement />} />
-          <Route path="/admin/batches/:id" element={<BatchDetails />} />
-          <Route path="/admin/ai" element={<AIManipulation />} />
-          <Route path="/ai-generate-questions" element={<AIGenerateQuestions />} />
-          <Route path="/generate-questions-from-images" element={<GenerateQuestionsFromImages />} />
-          <Route path="/image/:id" element={<ImageView />} />
-          <Route path="/settings" element={<UserSettings />} />
+          <Route path="/" element={<ProtectedRoute><QuestionReview /></ProtectedRoute>} />
+          <Route path="/practice" element={<ProtectedRoute><PracticeTest /></ProtectedRoute>} />
+          <Route path="/create-question" element={<ProtectedRoute><QuestionEditor /></ProtectedRoute>} />
+          <Route path="/edit-question/:id" element={<ProtectedRoute><QuestionEditor /></ProtectedRoute>} />
+          <Route path="/question/:id" element={<ProtectedRoute><QuestionView /></ProtectedRoute>} />
+          <Route path="/upload" element={<ProtectedRoute><FileUpload /></ProtectedRoute>} />
+          <Route path="/images" element={<ProtectedRoute><ImageLibrary /></ProtectedRoute>} />
+          <Route path="/needed-images" element={<ProtectedRoute><NeededImages /></ProtectedRoute>} />
+          <Route path="/my-returned-questions" element={<ProtectedRoute><MyReturnedQuestions /></ProtectedRoute>} />
+          <Route path="/reviewer/dashboard" element={<ProtectedRoute><ReviewerDashboard /></ProtectedRoute>} />
+          <Route path="/reviewer/images" element={<ProtectedRoute><ReviewImages /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute><AdminUserPanel /></ProtectedRoute>} />
+          <Route path="/admin/batches" element={<ProtectedRoute><BatchManagement /></ProtectedRoute>} />
+          <Route path="/admin/batches/:id" element={<ProtectedRoute><BatchDetails /></ProtectedRoute>} />
+          <Route path="/admin/ai" element={<ProtectedRoute><AIManipulation /></ProtectedRoute>} />
+          <Route path="/ai-generate-questions" element={<ProtectedRoute><AIGenerateQuestions /></ProtectedRoute>} />
+          <Route path="/generate-questions-from-images" element={<ProtectedRoute><GenerateQuestionsFromImages /></ProtectedRoute>} />
+          <Route path="/image/:id" element={<ProtectedRoute><ImageView /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
           <Route path="/my-contributions" element={<MyContributions />} />
         </Routes>
       </main>
