@@ -959,15 +959,17 @@ router.get('/review/pending', requireAuth, async (req: Request, res: Response) =
   try {
     console.log('=== REVIEW QUEUE REQUEST ===');
     console.log('User:', req.user?.username, 'Admin:', req.user?.is_admin, 'Reviewer:', req.user?.is_reviewer);
+    console.log('User exam preferences:', req.user?.exam_category, req.user?.exam_type);
     
     if (!req.user.is_reviewer && !req.user.is_admin) {
       console.log('Access denied - user is not reviewer or admin');
       return res.status(403).json({ error: 'Reviewer access required' });
     }
 
-    const questions = await QuestionModel.getPendingReview();
-    console.log('Found pending questions:', questions.length);
-    console.log('Questions:', questions.map(q => ({ id: q.id, question: q.question.substring(0, 50) + '...' })));
+    // Filter by reviewer's exam preferences
+    const questions = await QuestionModel.getPendingReview(req.user.exam_category, req.user.exam_type);
+    console.log('Found pending questions for', req.user.exam_category, req.user.exam_type, ':', questions.length);
+    console.log('Questions:', questions.map(q => ({ id: q.id, exam_category: q.exam_category, exam_type: q.exam_type, question: q.question.substring(0, 50) + '...' })));
     
     res.json({ questions });
   } catch (error) {

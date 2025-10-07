@@ -217,8 +217,8 @@ export class QuestionModel {
   }
 
   // Review system methods
-  static async getPendingReview(): Promise<Question[]> {
-    const sql = `
+  static async getPendingReview(examCategory?: string, examType?: string): Promise<Question[]> {
+    let sql = `
       SELECT DISTINCT 
         q.*,
         CASE 
@@ -227,7 +227,22 @@ export class QuestionModel {
           ELSE 0
         END as sort_number
       FROM questions q
-      WHERE q.review_status = 'pending'
+      WHERE q.review_status = 'pending'`;
+    
+    const params: any[] = [];
+    
+    // Add exam category and type filters if provided
+    if (examCategory) {
+      sql += ` AND q.exam_category = $${params.length + 1}`;
+      params.push(examCategory);
+    }
+    
+    if (examType) {
+      sql += ` AND q.exam_type = $${params.length + 1}`;
+      params.push(examType);
+    }
+    
+    sql += `
       AND (
         -- Questions with no image descriptions (don't need images)
         NOT EXISTS (
@@ -249,7 +264,7 @@ export class QuestionModel {
         sort_number DESC,
         q.created_at DESC
     `;
-    const result = await query(sql);
+    const result = await query(sql, params);
     return result.rows;
   }
 
