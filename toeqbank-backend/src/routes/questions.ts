@@ -180,22 +180,21 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     
     // Get user's exam category and type from req.user
     const user = (req as any).user;
-    const examCategory = user?.exam_category;
-    const examType = user?.exam_type;
+    const examCategory = user?.exam_category || 'echocardiography';
+    const examType = user?.exam_type || 'eacvi_toe';
     
-    // User MUST have exam settings for content filtering
-    if (!examCategory || !examType) {
-      console.error('User missing exam settings:', { userId: user?.id, username: user?.username });
-      return res.status(400).json({ 
-        error: 'User exam settings not configured',
-        message: 'Please configure your exam preferences in settings'
-      });
-    }
+    console.log('Filtering questions for user:', user?.username, 'exam:', examCategory, examType);
     
-    // ALWAYS filter by exam - critical for content segregation
-    // ALSO exclude returned items (returned, rejected) - these should only be visible to the uploader
-    const questions = await QuestionModel.findAll(limit, offset, examCategory, examType, true); // true = exclude returned
-    const total = await QuestionModel.getCount(examCategory, examType, true); // true = exclude returned
+    // Filter by exam - critical for content segregation
+    const questions = await QuestionModel.findAll(limit, offset, examCategory, examType, true);
+    const total = await QuestionModel.getCount(examCategory, examType, true);
+    
+    console.log(`=== MAIN QUESTIONS RESPONSE ===`);
+    console.log(`Total questions found: ${total}`);
+    console.log(`Returning ${questions.length} questions:`);
+    questions.slice(0, 5).forEach((q: any) => {
+      console.log(`- Q${q.id}: ${q.exam_category}/${q.exam_type} - ${q.question?.substring(0, 50)}...`);
+    });
     
     res.json({
       questions,
@@ -1056,7 +1055,14 @@ router.get('/review/stats', requireAuth, async (req: Request, res: Response) => 
       return res.status(403).json({ error: 'Reviewer access required' });
     }
 
-    const stats = await QuestionModel.getReviewStats();
+    // Get user's exam category and type for filtering
+    const user = (req as any).user;
+    const examCategory = user?.exam_category || 'echocardiography';
+    const examType = user?.exam_type || 'eacvi_toe';
+    
+    console.log('Getting review stats for user:', user?.username, 'exam:', examCategory, examType);
+    
+    const stats = await QuestionModel.getReviewStats(examCategory, examType);
     res.json(stats);
   } catch (error) {
     console.error('Error fetching review stats:', error);

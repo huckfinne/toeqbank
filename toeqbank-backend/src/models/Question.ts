@@ -347,8 +347,8 @@ export class QuestionModel {
     return result.rows;
   }
 
-  static async getReviewStats(): Promise<{ total: number, pending: number, approved: number, rejected: number, returned: number, pending_submission: number }> {
-    const sql = `
+  static async getReviewStats(examCategory?: string, examType?: string): Promise<{ total: number, pending: number, approved: number, rejected: number, returned: number, pending_submission: number }> {
+    let sql = `
       SELECT 
         COUNT(*) as total,
         COUNT(CASE WHEN review_status = 'pending' THEN 1 END) as pending,
@@ -357,8 +357,19 @@ export class QuestionModel {
         COUNT(CASE WHEN review_status = 'returned' THEN 1 END) as returned,
         COUNT(CASE WHEN review_status = 'pending submission' THEN 1 END) as pending_submission
       FROM questions
+      WHERE 1=1
     `;
-    const result = await query(sql);
+    
+    const values: any[] = [];
+    let paramCounter = 1;
+    
+    // Add exam filtering if both parameters provided
+    if (examCategory && examType) {
+      sql += ` AND exam_category = $${paramCounter++} AND exam_type = $${paramCounter++}`;
+      values.push(examCategory, examType);
+    }
+    
+    const result = await query(sql, values);
     const stats = result.rows[0];
     return {
       total: parseInt(stats.total),
