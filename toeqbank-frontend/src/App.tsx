@@ -51,7 +51,7 @@ const AppContent: React.FC = () => {
                     <Link to="/" className="nav-dropdown-item">
                       <span className="nav-dropdown-icon">📖</span>
                       <div className="nav-dropdown-content">
-                        <span className="nav-dropdown-title">Review Questions</span>
+                        <span className="nav-dropdown-title">Browse Questions</span>
                         <span className="nav-dropdown-description">Browse and review existing questions</span>
                       </div>
                     </Link>

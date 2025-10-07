@@ -173,7 +173,7 @@ function standardizeEchoView(rawView: string): string {
 }
 
 // Get all questions with pagination (filtered by user's exam)
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
