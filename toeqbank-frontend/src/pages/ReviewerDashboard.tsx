@@ -506,14 +506,15 @@ const ReviewerDashboard: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Difficulty Rating (Optional):
             </label>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Easy</span>
-              <div className="flex gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <span style={{ fontSize: '14px', color: '#6B7280', fontWeight: '500' }}>Easy</span>
+              <div style={{ display: 'flex', gap: '12px', margin: '0 16px' }}>
                 {[1, 2, 3, 4, 5].map((rating) => (
                   <button
                     key={rating}
                     onClick={() => setDifficultyRating(rating === difficultyRating ? null : rating)}
-                    className={`w-10 h-10 rounded-full border-2 transition-all ${
+                    style={{ width: '64px', height: '64px', fontSize: '18px', fontWeight: 'bold' }}
+                    className={`rounded-full border-2 transition-all ${
                       difficultyRating === rating
                         ? 'bg-blue-500 border-blue-500 text-white'
                         : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400'
@@ -523,7 +524,7 @@ const ReviewerDashboard: React.FC = () => {
                   </button>
                 ))}
               </div>
-              <span className="text-sm text-gray-600">Hard</span>
+              <span style={{ fontSize: '14px', color: '#6B7280', fontWeight: '500' }}>Hard</span>
               {difficultyRating && (
                 <button
                   onClick={() => setDifficultyRating(null)}
