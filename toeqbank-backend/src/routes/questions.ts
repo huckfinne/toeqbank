@@ -992,7 +992,14 @@ router.get('/review/status/:status', requireAuth, async (req: Request, res: Resp
       return res.status(403).json({ error: 'Reviewer access required for non-approved questions' });
     }
 
-    const questions = await QuestionModel.getByReviewStatus(status);
+    // Get user's exam category and type for filtering
+    const user = (req as any).user;
+    const examCategory = user?.exam_category || 'echocardiography';
+    const examType = user?.exam_type || 'eacvi_toe';
+    
+    console.log(`Getting ${status} questions for user:`, user?.username, 'exam:', examCategory, examType);
+
+    const questions = await QuestionModel.getByReviewStatus(status, examCategory, examType);
     res.json({ questions });
   } catch (error) {
     console.error('Error fetching questions by status:', error);

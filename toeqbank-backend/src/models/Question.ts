@@ -268,10 +268,10 @@ export class QuestionModel {
     return result.rows;
   }
 
-  static async getByReviewStatus(status: 'pending' | 'approved' | 'rejected' | 'returned' | 'pending submission'): Promise<Question[]> {
+  static async getByReviewStatus(status: 'pending' | 'approved' | 'rejected' | 'returned' | 'pending submission', examCategory?: string, examType?: string): Promise<Question[]> {
     // For approved and pending questions (used in practice tests), 
     // exclude those that need images but don't have them
-    const sql = (status === 'approved' || status === 'pending') ? `
+    let sql = (status === 'approved' || status === 'pending') ? `
       SELECT q.* FROM questions q
       WHERE q.review_status = $1 
       -- Exclude questions that have image descriptions but no actual images
@@ -283,16 +283,21 @@ export class QuestionModel {
           WHERE qi.question_id = q.id
         )
       )
-      ORDER BY 
-        CASE 
-          WHEN q.question_number IS NULL THEN 0
-          WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
-          ELSE 0
-        END DESC,
-        q.created_at DESC
     ` : `
       SELECT * FROM questions 
       WHERE review_status = $1 
+    `;
+    
+    const values: any[] = [status];
+    let paramCounter = 2;
+    
+    // Add exam filtering if both parameters provided
+    if (examCategory && examType) {
+      sql += ` AND exam_category = $${paramCounter++} AND exam_type = $${paramCounter++}`;
+      values.push(examCategory, examType);
+    }
+    
+    sql += `
       ORDER BY 
         CASE 
           WHEN question_number IS NULL THEN 0
@@ -301,7 +306,8 @@ export class QuestionModel {
         END DESC,
         created_at DESC
     `;
-    const result = await query(sql, [status]);
+    
+    const result = await query(sql, values);
     return result.rows;
   }
 
