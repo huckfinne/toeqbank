@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ImageUpload from './ImageUpload';
 import { Image } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,16 +28,18 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   const imageUploadRef = useRef<any>(null);
   const { user } = useAuth();
   
-  // Hide modality for USMLE users - make case insensitive
-  const hideModality = user?.exam_category?.toLowerCase() === 'usmle';
+  // Hide modality for USMLE users - multiple checks for safety
+  const examCategory = user?.exam_category?.toLowerCase() || '';
+  const hideModality = examCategory === 'usmle' || examCategory === 'USMLE';
   
   // Debug logging for deployed version
   console.log('ImageUploadModal Debug:', {
     user: user,
     exam_category: user?.exam_category,
-    exam_category_lower: user?.exam_category?.toLowerCase(),
+    exam_category_lower: examCategory,
     hideModality: hideModality,
-    comparison: user?.exam_category?.toLowerCase() === 'usmle'
+    userKeys: user ? Object.keys(user) : [],
+    fullUser: JSON.stringify(user)
   });
 
   if (!isOpen) return null;
