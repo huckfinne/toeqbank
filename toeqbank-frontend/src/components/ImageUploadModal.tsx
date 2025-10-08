@@ -31,11 +31,12 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   // Hide modality for USMLE users
   const hideModality = user?.exam_category?.toLowerCase() === 'usmle';
   
-  // Debug logging
-  console.log('ImageUploadModal - User data:', {
+  // Debug logging - DEPLOYMENT TEST
+  console.log('ImageUploadModal - User data (DEPLOYMENT TEST):', {
     username: user?.username,
     exam_category: user?.exam_category,
-    hideModality: hideModality
+    hideModality: hideModality,
+    timestamp: new Date().toISOString()
   });
 
   if (!isOpen) return null;
