@@ -28,8 +28,17 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   const imageUploadRef = useRef<any>(null);
   const { user } = useAuth();
   
-  // Hide modality for USMLE users
-  const hideModality = user?.exam_category === 'usmle';
+  // Hide modality for USMLE users - make case insensitive
+  const hideModality = user?.exam_category?.toLowerCase() === 'usmle';
+  
+  // Debug logging for deployed version
+  console.log('ImageUploadModal Debug:', {
+    user: user,
+    exam_category: user?.exam_category,
+    exam_category_lower: user?.exam_category?.toLowerCase(),
+    hideModality: hideModality,
+    comparison: user?.exam_category?.toLowerCase() === 'usmle'
+  });
 
   if (!isOpen) return null;
 
