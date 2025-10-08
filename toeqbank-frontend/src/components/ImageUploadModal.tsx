@@ -1,9 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import ImageUpload from './ImageUpload';
 import { Image } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
-import { getApiBaseUrl } from '../config/api.config';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -27,67 +25,17 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   questionNumber
 }) => {
   const [canSave, setCanSave] = useState(false);
-  const [freshUser, setFreshUser] = useState<any>(null);
-  const [userDataLoaded, setUserDataLoaded] = useState(false);
   const imageUploadRef = useRef<any>(null);
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   
-  // Force refresh user data when modal opens
-  useEffect(() => {
-    const refreshUserData = async () => {
-      if (isOpen && token) {
-        setUserDataLoaded(false);
-        try {
-          const API_BASE_URL = getApiBaseUrl();
-          const response = await axios.get(`${API_BASE_URL}/auth/verify`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (response.data.valid && response.data.user) {
-            setFreshUser(response.data.user);
-            console.log('ImageUploadModal - Fresh user data:', response.data.user);
-          } else {
-            setFreshUser(user); // Fallback to cached user
-          }
-        } catch (error) {
-          console.error('Failed to refresh user data:', error);
-          setFreshUser(user); // Fallback to cached user
-        } finally {
-          setUserDataLoaded(true);
-        }
-      } else if (!isOpen) {
-        setUserDataLoaded(false);
-        setFreshUser(null);
-      }
-    };
-    refreshUserData();
-  }, [isOpen, token, user]);
+  // Hide modality for USMLE users
+  const hideModality = user?.exam_category?.toLowerCase() === 'usmle';
   
-  // Use fresh user data if available, otherwise fall back to cached user
-  const currentUser = freshUser || user;
-  
-  // Hide modality for USMLE users - multiple checks for safety
-  const examCategory = currentUser?.exam_category?.toLowerCase() || '';
-  const isUSMLE = examCategory === 'usmle' || examCategory === 'USMLE';
-  
-  // TEMPORARY: Force hide modality for huckfinne user for testing
-  const isHuckfinne = currentUser?.username === 'huckfinne';
-  const hideModality = isUSMLE || isHuckfinne;
-  
-  // Debug logging for deployed version
-  console.log('ImageUploadModal Debug - DETAILED:', {
-    user: user,
-    freshUser: freshUser,
-    currentUser: currentUser,
-    username: currentUser?.username,
-    exam_category: currentUser?.exam_category,
-    exam_category_raw: JSON.stringify(currentUser?.exam_category),
-    exam_category_lower: examCategory,
-    isUSMLE: isUSMLE,
-    isHuckfinne: isHuckfinne,
-    hideModality: hideModality,
-    userKeys: currentUser ? Object.keys(currentUser) : [],
-    fullUser: JSON.stringify(currentUser),
-    userDataLoaded: userDataLoaded
+  // Debug logging
+  console.log('ImageUploadModal - User data:', {
+    username: user?.username,
+    exam_category: user?.exam_category,
+    hideModality: hideModality
   });
 
   if (!isOpen) return null;

@@ -92,9 +92,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const storedToken = localStorage.getItem('authToken');
       const storedUser = localStorage.getItem('authUser');
 
-      if (storedToken && storedUser) {
+      if (storedToken) {
         try {
-          // Verify token is still valid
+          // Always verify token and get fresh user data from server
           const response = await axios.get(`${API_BASE_URL}/auth/verify`, {
             headers: { Authorization: `Bearer ${storedToken}` }
           });
