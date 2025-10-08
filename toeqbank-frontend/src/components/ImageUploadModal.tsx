@@ -111,7 +111,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-2xl font-bold text-white">
-                Upload New Images {questionNumber && <span className="text-yellow-200">for Question #{questionNumber}</span>}
+                Upload New Images v0.2.0 {questionNumber && <span className="text-yellow-200">for Question #{questionNumber}</span>}
               </h3>
               <p className="text-blue-100 mt-1">Add TOE images and cine clips to your question</p>
             </div>
