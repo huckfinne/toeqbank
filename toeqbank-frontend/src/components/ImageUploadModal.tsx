@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import ImageUpload from './ImageUpload';
 import { Image } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
+import { getApiBaseUrl } from '../config/api.config';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -25,21 +27,49 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   questionNumber
 }) => {
   const [canSave, setCanSave] = useState(false);
+  const [freshUser, setFreshUser] = useState<any>(null);
   const imageUploadRef = useRef<any>(null);
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  
+  // Force refresh user data when modal opens
+  useEffect(() => {
+    const refreshUserData = async () => {
+      if (isOpen && token) {
+        try {
+          const API_BASE_URL = getApiBaseUrl();
+          const response = await axios.get(`${API_BASE_URL}/auth/verify`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (response.data.valid && response.data.user) {
+            setFreshUser(response.data.user);
+            console.log('ImageUploadModal - Fresh user data:', response.data.user);
+          }
+        } catch (error) {
+          console.error('Failed to refresh user data:', error);
+          setFreshUser(user); // Fallback to cached user
+        }
+      }
+    };
+    refreshUserData();
+  }, [isOpen, token, user]);
+  
+  // Use fresh user data if available, otherwise fall back to cached user
+  const currentUser = freshUser || user;
   
   // Hide modality for USMLE users - multiple checks for safety
-  const examCategory = user?.exam_category?.toLowerCase() || '';
+  const examCategory = currentUser?.exam_category?.toLowerCase() || '';
   const hideModality = examCategory === 'usmle' || examCategory === 'USMLE';
   
   // Debug logging for deployed version
   console.log('ImageUploadModal Debug:', {
     user: user,
-    exam_category: user?.exam_category,
+    freshUser: freshUser,
+    currentUser: currentUser,
+    exam_category: currentUser?.exam_category,
     exam_category_lower: examCategory,
     hideModality: hideModality,
-    userKeys: user ? Object.keys(user) : [],
-    fullUser: JSON.stringify(user)
+    userKeys: currentUser ? Object.keys(currentUser) : [],
+    fullUser: JSON.stringify(currentUser)
   });
 
   if (!isOpen) return null;
