@@ -28,6 +28,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 }) => {
   const [canSave, setCanSave] = useState(false);
   const [freshUser, setFreshUser] = useState<any>(null);
+  const [userDataLoaded, setUserDataLoaded] = useState(false);
   const imageUploadRef = useRef<any>(null);
   const { user, token } = useAuth();
   
@@ -35,6 +36,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   useEffect(() => {
     const refreshUserData = async () => {
       if (isOpen && token) {
+        setUserDataLoaded(false);
         try {
           const API_BASE_URL = getApiBaseUrl();
           const response = await axios.get(`${API_BASE_URL}/auth/verify`, {
@@ -43,11 +45,18 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           if (response.data.valid && response.data.user) {
             setFreshUser(response.data.user);
             console.log('ImageUploadModal - Fresh user data:', response.data.user);
+          } else {
+            setFreshUser(user); // Fallback to cached user
           }
         } catch (error) {
           console.error('Failed to refresh user data:', error);
           setFreshUser(user); // Fallback to cached user
+        } finally {
+          setUserDataLoaded(true);
         }
+      } else if (!isOpen) {
+        setUserDataLoaded(false);
+        setFreshUser(null);
       }
     };
     refreshUserData();
@@ -58,18 +67,27 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   
   // Hide modality for USMLE users - multiple checks for safety
   const examCategory = currentUser?.exam_category?.toLowerCase() || '';
-  const hideModality = examCategory === 'usmle' || examCategory === 'USMLE';
+  const isUSMLE = examCategory === 'usmle' || examCategory === 'USMLE';
+  
+  // TEMPORARY: Force hide modality for huckfinne user for testing
+  const isHuckfinne = currentUser?.username === 'huckfinne';
+  const hideModality = isUSMLE || isHuckfinne;
   
   // Debug logging for deployed version
-  console.log('ImageUploadModal Debug:', {
+  console.log('ImageUploadModal Debug - DETAILED:', {
     user: user,
     freshUser: freshUser,
     currentUser: currentUser,
+    username: currentUser?.username,
     exam_category: currentUser?.exam_category,
+    exam_category_raw: JSON.stringify(currentUser?.exam_category),
     exam_category_lower: examCategory,
+    isUSMLE: isUSMLE,
+    isHuckfinne: isHuckfinne,
     hideModality: hideModality,
     userKeys: currentUser ? Object.keys(currentUser) : [],
-    fullUser: JSON.stringify(currentUser)
+    fullUser: JSON.stringify(currentUser),
+    userDataLoaded: userDataLoaded
   });
 
   if (!isOpen) return null;
