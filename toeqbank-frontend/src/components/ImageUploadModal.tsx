@@ -29,12 +29,16 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   const { user } = useAuth();
   
   // Hide modality for USMLE users
-  const hideModality = user?.exam_category?.toLowerCase() === 'usmle';
+  const isUSMLEByCategory = user?.exam_category?.toLowerCase() === 'usmle';
+  const isUSMLEByUsername = ['huckfinne', 'huckfinnereviewer', 'SofiD'].includes(user?.username || '');
+  const hideModality = isUSMLEByCategory || isUSMLEByUsername;
   
   // Debug logging - DEPLOYMENT TEST
   console.log('ImageUploadModal - User data (DEPLOYMENT TEST):', {
     username: user?.username,
     exam_category: user?.exam_category,
+    isUSMLEByCategory: isUSMLEByCategory,
+    isUSMLEByUsername: isUSMLEByUsername,
     hideModality: hideModality,
     timestamp: new Date().toISOString()
   });
