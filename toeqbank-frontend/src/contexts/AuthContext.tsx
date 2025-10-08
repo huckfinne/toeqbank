@@ -103,6 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setToken(storedToken);
             // Use fresh user data from server instead of localStorage
             const freshUser = response.data.user;
+            console.log('AuthContext - Fresh user data from server:', freshUser);
             setUser(freshUser);
             // Update localStorage with fresh user data
             localStorage.setItem('authUser', JSON.stringify(freshUser));
@@ -132,6 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const { user: userData, token: userToken } = response.data;
       
+      console.log('AuthContext - Login response user data:', userData);
       setUser(userData);
       setToken(userToken);
       
