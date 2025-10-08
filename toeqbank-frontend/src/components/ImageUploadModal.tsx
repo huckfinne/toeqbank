@@ -29,17 +29,17 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   const { user } = useAuth();
   
   // Hide modality for USMLE users
-  const isUSMLEByCategory = user?.exam_category?.toLowerCase() === 'usmle';
-  const isUSMLEByUsername = ['huckfinne', 'huckfinnereviewer', 'SofiD'].includes(user?.username || '');
-  const hideModality = isUSMLEByCategory || isUSMLEByUsername;
+  const hideModality = user?.exam_category?.toLowerCase() === 'usmle';
   
-  // Debug logging - DEPLOYMENT TEST
-  console.log('ImageUploadModal - User data (DEPLOYMENT TEST):', {
+  // Debug logging to diagnose deployment differences - CACHE BUST v2
+  console.log('ImageUploadModal - DEPLOYMENT DEBUG v2:', {
     username: user?.username,
     exam_category: user?.exam_category,
-    isUSMLEByCategory: isUSMLEByCategory,
-    isUSMLEByUsername: isUSMLEByUsername,
+    exam_category_type: typeof user?.exam_category,
+    exam_category_raw: JSON.stringify(user?.exam_category),
     hideModality: hideModality,
+    userObject: user,
+    buildVersion: 'v2.0.1',
     timestamp: new Date().toISOString()
   });
 

@@ -242,11 +242,11 @@ router.post('/change-password', requireAuth, async (req: Request, res: Response)
 
 // Verify token (for frontend to check if token is still valid)
 router.get('/verify', requireAuth, (req: Request, res: Response) => {
-  console.log('=== AUTH VERIFY DEBUG ===');
+  console.log('=== AUTH VERIFY DEBUG v2.0.1 ===');
   console.log('req.user:', req.user);
   console.log('req.user.exam_category:', req.user.exam_category);
   console.log('req.user.username:', req.user.username);
-  console.log('========================');
+  console.log('==================================');
   
   res.json({ 
     valid: true, 
@@ -262,7 +262,9 @@ router.get('/verify', requireAuth, (req: Request, res: Response) => {
       created_at: req.user.created_at,
       exam_category: req.user.exam_category,
       exam_type: req.user.exam_type
-    }
+    },
+    backendVersion: 'v2.0.1',
+    timestamp: new Date().toISOString()
   });
 });
 
