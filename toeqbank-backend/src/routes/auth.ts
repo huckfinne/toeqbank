@@ -242,6 +242,12 @@ router.post('/change-password', requireAuth, async (req: Request, res: Response)
 
 // Verify token (for frontend to check if token is still valid)
 router.get('/verify', requireAuth, (req: Request, res: Response) => {
+  console.log('=== AUTH VERIFY DEBUG ===');
+  console.log('req.user:', req.user);
+  console.log('req.user.exam_category:', req.user.exam_category);
+  console.log('req.user.username:', req.user.username);
+  console.log('========================');
+  
   res.json({ 
     valid: true, 
     user: {
