@@ -12,6 +12,7 @@ interface ImageUploadProps {
   initialUsageType?: 'question' | 'explanation';
   initialModality?: 'transthoracic' | 'transesophageal' | 'non-echo';
   initialEchoView?: string;
+  hideModality?: boolean;
 }
 
 const ImageUpload = forwardRef<any, ImageUploadProps>(({
@@ -23,7 +24,8 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
   initialDescription = "",
   initialUsageType = "question",
   initialModality,
-  initialEchoView
+  initialEchoView,
+  hideModality = false
 }, ref) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
     license: 'user-contributed' as LicenseType,
     license_details: '',
     usage_type: initialUsageType,
-    modality: (initialModality || '') as 'transthoracic' | 'transesophageal' | 'non-echo' | '',
+    modality: (initialModality || (hideModality ? 'non-echo' : '')) as 'transthoracic' | 'transesophageal' | 'non-echo' | '',
     echo_view: initialEchoView || ''
   });
 
@@ -177,11 +179,11 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
       setError('Please provide a description of the image.');
       return;
     }
-    if (!metadata.modality) {
+    if (!hideModality && !metadata.modality) {
       setError('Please select a modality.');
       return;
     }
-    if (metadata.modality !== 'non-echo' && !metadata.echo_view) {
+    if (!hideModality && metadata.modality !== 'non-echo' && !metadata.echo_view) {
       setError('Please select an echo view.');
       return;
     }
@@ -297,46 +299,48 @@ const ImageUpload = forwardRef<any, ImageUploadProps>(({
       </div>
 
       {/* Modality */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-800 mb-3">
-          Modality *
-        </label>
-        <div className="space-y-2">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              value="transthoracic"
-              checked={metadata.modality === 'transthoracic'}
-              onChange={(e) => handleModalityChange(e.target.value as 'transthoracic')}
-              className="w-4 h-4 text-blue-600 mr-3"
-            />
-            <span className="text-sm text-gray-700">Transthoracic Echo (TTE)</span>
+      {!hideModality && (
+        <div>
+          <label className="block text-sm font-semibold text-gray-800 mb-3">
+            Modality *
           </label>
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              value="transesophageal"
-              checked={metadata.modality === 'transesophageal'}
-              onChange={(e) => handleModalityChange(e.target.value as 'transesophageal')}
-              className="w-4 h-4 text-blue-600 mr-3"
-            />
-            <span className="text-sm text-gray-700">Transesophageal Echo (TEE/TOE)</span>
-          </label>
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              value="non-echo"
-              checked={metadata.modality === 'non-echo'}
-              onChange={(e) => handleModalityChange(e.target.value as 'non-echo')}
-              className="w-4 h-4 text-blue-600 mr-3"
-            />
-            <span className="text-sm text-gray-700">Non-echo Image</span>
-          </label>
+          <div className="space-y-2">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                value="transthoracic"
+                checked={metadata.modality === 'transthoracic'}
+                onChange={(e) => handleModalityChange(e.target.value as 'transthoracic')}
+                className="w-4 h-4 text-blue-600 mr-3"
+              />
+              <span className="text-sm text-gray-700">Transthoracic Echo (TTE)</span>
+            </label>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                value="transesophageal"
+                checked={metadata.modality === 'transesophageal'}
+                onChange={(e) => handleModalityChange(e.target.value as 'transesophageal')}
+                className="w-4 h-4 text-blue-600 mr-3"
+              />
+              <span className="text-sm text-gray-700">Transesophageal Echo (TEE/TOE)</span>
+            </label>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                value="non-echo"
+                checked={metadata.modality === 'non-echo'}
+                onChange={(e) => handleModalityChange(e.target.value as 'non-echo')}
+                className="w-4 h-4 text-blue-600 mr-3"
+              />
+              <span className="text-sm text-gray-700">Non-echo Image</span>
+            </label>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Echo View */}
-      {metadata.modality && metadata.modality !== 'non-echo' && (
+      {!hideModality && metadata.modality && metadata.modality !== 'non-echo' && (
         <div>
           <label className="block text-sm font-semibold text-gray-800 mb-2">
             Echo View *

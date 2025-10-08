@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import ImageUpload from './ImageUpload';
 import { Image } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ImageUploadModalProps {
   isOpen: boolean;
@@ -25,6 +26,10 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 }) => {
   const [canSave, setCanSave] = useState(false);
   const imageUploadRef = useRef<any>(null);
+  const { user } = useAuth();
+  
+  // Hide modality for USMLE users
+  const hideModality = user?.exam_category === 'usmle';
 
   if (!isOpen) return null;
 
@@ -129,6 +134,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
             initialUsageType={initialUsageType}
             initialModality={initialModality}
             initialEchoView={initialEchoView}
+            hideModality={hideModality}
           />
         </div>
         
