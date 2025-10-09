@@ -31,7 +31,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
   return (
     <div className="auth-container">
       <div className="auth-form">
-        <h2>Login to TOE Question Bank</h2>
+        <h2>Login to Question Bank</h2>
         
         {error && (
           <div className="error-message">

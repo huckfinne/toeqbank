@@ -29,12 +29,26 @@ const AppContent: React.FC = () => {
   
   // Check if user is ONLY an image contributor (no admin or reviewer privileges)
   const isOnlyImageContributor = user && user.is_image_contributor === true && !user.is_admin && !user.is_reviewer;
+  
+  // Dynamic title based on user's exam category
+  const getNavbarTitle = () => {
+    if (!user) return 'Question Bank';
+    
+    const examCategory = user.exam_category?.toLowerCase();
+    if (examCategory === 'usmle') {
+      return 'USMLE Question Bank';
+    } else if (examCategory === 'echocardiography' || examCategory === 'echo') {
+      return 'Echo Question Bank';
+    } else {
+      return 'TOE Question Bank'; // Fallback for backward compatibility
+    }
+  };
 
   return (
     <div className="App">
       <nav className="navbar">
         <div className="nav-container">
-          <h1>TOE Question Bank</h1>
+          <h1>{getNavbarTitle()}</h1>
           <div className="nav-links">
             {/* Hide Questions dropdown and Question Bank for users who are ONLY image contributors */}
             {!isOnlyImageContributor && (
