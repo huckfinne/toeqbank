@@ -35,6 +35,13 @@ const AppContent: React.FC = () => {
     if (!user) return 'Question Bank';
     
     const examCategory = user.exam_category?.toLowerCase();
+    console.log('Navbar Title Debug - v0.3.0:', { 
+      username: user.username, 
+      exam_category: user.exam_category,
+      examCategory: examCategory,
+      timestamp: new Date().toISOString() 
+    });
+    
     if (examCategory === 'usmle') {
       return 'USMLE Question Bank';
     } else if (examCategory === 'echocardiography' || examCategory === 'echo') {
