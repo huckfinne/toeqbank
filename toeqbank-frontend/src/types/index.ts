@@ -47,6 +47,12 @@ export interface Question {
   explanation?: string;
   source_folder?: string;
   metadata_category?: string;
+  review_status?: 'pending' | 'approved' | 'rejected' | 'returned' | 'pending submission';
+  review_notes?: string;
+  reviewed_by?: number;
+  reviewed_at?: string;
+  reviewer_name?: string;
+  difficulty_rating?: number;
   created_at?: string;
   updated_at?: string;
   images?: Image[];
