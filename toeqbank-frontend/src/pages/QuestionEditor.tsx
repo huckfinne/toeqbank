@@ -497,6 +497,61 @@ const QuestionEditor: React.FC = () => {
           </div>
         </div>
 
+        {/* Review Feedback Banner - Show for returned questions */}
+        {fromReturned && question.review_status === 'returned' && question.review_notes && (
+          <div className="content-card mb-4" style={{ borderLeft: '4px solid #ef4444' }}>
+            <div className="card-header" style={{ backgroundColor: '#fef2f2', borderBottom: '1px solid #fecaca' }}>
+              <div className="d-flex align-items-center">
+                <span className="text-danger me-2" style={{ fontSize: '1.5rem' }}>⚠️</span>
+                <div>
+                  <h3 className="mb-0" style={{ color: '#991b1b' }}>Reviewer Feedback</h3>
+                  <p className="text-muted mb-0" style={{ fontSize: '0.875rem' }}>
+                    This question was returned for revision by {question.reviewer_name || 'a reviewer'}
+                    {question.reviewed_at && (
+                      <> on {new Date(question.reviewed_at).toLocaleDateString()}</>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="card-body" style={{ backgroundColor: '#fffbeb', padding: '1.5rem' }}>
+              <div style={{
+                backgroundColor: 'white',
+                border: '1px solid #fca5a5',
+                borderRadius: '8px',
+                padding: '1rem',
+                marginBottom: '1rem'
+              }}>
+                <h4 style={{ color: '#991b1b', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                  Required Changes:
+                </h4>
+                <p style={{
+                  color: '#7f1d1d',
+                  whiteSpace: 'pre-wrap',
+                  margin: 0,
+                  lineHeight: '1.6'
+                }}>
+                  {question.review_notes}
+                </p>
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 1rem',
+                backgroundColor: '#fef3c7',
+                border: '1px solid #fbbf24',
+                borderRadius: '6px'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>💡</span>
+                <span style={{ color: '#78350f', fontSize: '0.875rem' }}>
+                  Please address the feedback above before resubmitting this question for review.
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="content-card">
           <div className="card-header">
             <h3 className="mb-0">Question Editor</h3>
