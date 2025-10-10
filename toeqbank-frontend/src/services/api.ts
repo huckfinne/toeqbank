@@ -52,6 +52,7 @@ export interface Question {
   review_notes?: string;
   reviewed_by?: number;
   reviewed_at?: string;
+  reviewer_name?: string;
   difficulty_rating?: number; // 1-5 scale: 1=easy, 5=hardest
   created_at?: string;
   updated_at?: string;
