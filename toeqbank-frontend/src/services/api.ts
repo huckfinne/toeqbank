@@ -45,6 +45,9 @@ export interface Question {
   correct_answer: string;
   explanation?: string;
   source_folder?: string;
+  metadata_category?: string;
+  exam_category?: string;
+  exam_type?: string;
   review_status?: 'pending' | 'approved' | 'rejected' | 'returned' | 'pending submission';
   review_notes?: string;
   reviewed_by?: number;

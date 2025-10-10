@@ -7,8 +7,10 @@ const QuestionReview: React.FC = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
+  const [selectedExamType, setSelectedExamType] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,20 @@ const QuestionReview: React.FC = () => {
     }
   }, [currentPage, selectedBatchId, isAdmin]);
 
+  // Filter questions when exam type filter changes
+  useEffect(() => {
+    if (selectedExamType === 'all') {
+      setQuestions(allQuestions);
+      setTotalQuestions(allQuestions.length);
+    } else {
+      const filtered = allQuestions.filter(q => q.exam_type === selectedExamType);
+      setQuestions(filtered);
+      setTotalQuestions(filtered.length);
+    }
+    setCurrentPage(0); // Reset to first page when filter changes
+    setSelectedQuestions(new Set()); // Clear selections
+  }, [selectedExamType, allQuestions]);
+
   const loadBatches = async () => {
     try {
       const batchData = await batchService.getAllBatches();
@@ -42,18 +58,20 @@ const QuestionReview: React.FC = () => {
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const offset = currentPage * limit;
       
       // If a batch is selected, fetch questions from that batch
       if (selectedBatchId) {
         const batchDetails = await batchService.getBatchDetails(selectedBatchId);
-        setQuestions(batchDetails.questions || []);
-        setTotalQuestions(batchDetails.questions?.length || 0);
+        const questions = batchDetails.questions || [];
+        setAllQuestions(questions);
+        setQuestions(questions);
+        setTotalQuestions(questions.length);
       } else {
-        // Otherwise fetch all questions with pagination
-        const response = await questionService.getQuestions(limit, offset);
+        // Fetch all questions (no pagination for filtering)
+        const response = await questionService.getQuestions(1000, 0); // Get a large number
+        setAllQuestions(response.questions);
         setQuestions(response.questions);
-        setTotalQuestions(response.pagination.total);
+        setTotalQuestions(response.questions.length);
       }
       
       setError(null);
@@ -65,6 +83,9 @@ const QuestionReview: React.FC = () => {
   };
 
   const totalPages = Math.ceil(totalQuestions / limit);
+  
+  // Get paginated questions for current page
+  const paginatedQuestions = questions.slice(currentPage * limit, (currentPage + 1) * limit);
 
   const truncateText = (text: string, maxLength: number = 80) => {
     if (text.length <= maxLength) return text;
@@ -114,14 +135,20 @@ const QuestionReview: React.FC = () => {
   };
 
   const handleSelectAll = () => {
-    if (selectedQuestions.size === questions.length) {
-      // If all are selected, deselect all
-      setSelectedQuestions(new Set());
+    const currentPageIds = paginatedQuestions.map(q => q.id!);
+    const allCurrentPageSelected = currentPageIds.every(id => selectedQuestions.has(id));
+    
+    const newSelected = new Set(selectedQuestions);
+    
+    if (allCurrentPageSelected) {
+      // If all current page items are selected, deselect them
+      currentPageIds.forEach(id => newSelected.delete(id));
     } else {
-      // Select all current page questions
-      const allIds = new Set(questions.map(q => q.id!));
-      setSelectedQuestions(allIds);
+      // Select all current page items
+      currentPageIds.forEach(id => newSelected.add(id));
     }
+    
+    setSelectedQuestions(newSelected);
   };
 
   const handleBulkDelete = () => {
@@ -256,7 +283,27 @@ const QuestionReview: React.FC = () => {
           </p>
         </div>
 
-        {/* Admin Batch Selector */}
+        {/* Exam Type Filter */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex items-center space-x-4">
+            <label htmlFor="exam-type-selector" className="text-sm font-medium text-gray-700">
+              Filter by Exam Type:
+            </label>
+            <select
+              id="exam-type-selector"
+              value={selectedExamType}
+              onChange={(e) => setSelectedExamType(e.target.value)}
+              className="min-w-0 flex-1 max-w-md px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All Exam Types</option>
+              <option value="step1">Step 1</option>
+              <option value="step2">Step 2</option>
+              <option value="step3">Step 3</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Admin/Reviewer Batch Selector */}
         {isAdmin && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
             <div className="flex items-center space-x-4">
@@ -274,11 +321,15 @@ const QuestionReview: React.FC = () => {
                 className="min-w-0 flex-1 max-w-md px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Batches</option>
-                {batches.map((batch) => (
-                  <option key={batch.id} value={batch.id}>
-                    Batch #{batch.id} - {batch.file_name} ({batch.actual_question_count} questions)
-                  </option>
-                ))}
+                {batches.length === 0 ? (
+                  <option disabled>No batches available</option>
+                ) : (
+                  batches.map((batch) => (
+                    <option key={batch.id} value={batch.id}>
+                      Batch #{batch.id} - {batch.file_name} ({batch.actual_question_count} questions)
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           </div>
@@ -333,7 +384,7 @@ const QuestionReview: React.FC = () => {
                       <div className="flex items-center">
                         <input
                           type="checkbox"
-                          checked={questions.length > 0 && selectedQuestions.size === questions.length}
+                          checked={paginatedQuestions.length > 0 && paginatedQuestions.every(q => selectedQuestions.has(q.id!))}
                           onChange={handleSelectAll}
                           className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
@@ -347,12 +398,15 @@ const QuestionReview: React.FC = () => {
                       Category
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Exam Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {questions.map((question) => {
+                  {paginatedQuestions.map((question) => {
                     return (
                       <tr key={question.id} className={`hover:bg-gray-50 ${selectedQuestions.has(question.id!) ? 'bg-blue-50' : ''}`}>
                         <td className="px-6 py-4 text-sm text-gray-900">
@@ -381,7 +435,12 @@ const QuestionReview: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {question.source_folder || 'Uncategorized'}
+                            {question.metadata_category || question.source_folder || 'Uncategorized'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            {question.exam_type ? question.exam_type.toUpperCase().replace('STEP', 'Step ') : '-'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

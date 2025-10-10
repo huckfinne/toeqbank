@@ -69,28 +69,30 @@ export class QuestionModel {
   }
 
   static async findAll(limit = 50, offset = 0, examCategory?: string, examType?: string, excludeReturned = false): Promise<Question[]> {
-    let sql = `SELECT * FROM questions WHERE 1=1`;
+    let sql = `SELECT q.*, qm.category as metadata_category FROM questions q 
+               LEFT JOIN question_metadata qm ON q.id = qm.question_id 
+               WHERE 1=1`;
     const values: any[] = [];
     let paramCounter = 1;
     
     // Add exam filtering if both parameters provided
     if (examCategory && examType) {
-      sql += ` AND exam_category = $${paramCounter++} AND exam_type = $${paramCounter++}`;
+      sql += ` AND q.exam_category = $${paramCounter++} AND q.exam_type = $${paramCounter++}`;
       values.push(examCategory, examType);
     }
     
     // Exclude returned items (returned, rejected) if requested
     if (excludeReturned) {
-      sql += ` AND review_status NOT IN ('returned', 'rejected')`;
+      sql += ` AND q.review_status NOT IN ('returned', 'rejected')`;
     }
     
     sql += ` ORDER BY 
       CASE 
-        WHEN question_number IS NULL THEN 0
-        WHEN question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(question_number, '^Q', '') AS INTEGER)
+        WHEN q.question_number IS NULL THEN 0
+        WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
         ELSE 0
       END DESC, 
-      created_at DESC 
+      q.created_at DESC 
       LIMIT $${paramCounter++} OFFSET $${paramCounter}`;
     values.push(limit, offset);
     
@@ -206,6 +208,46 @@ export class QuestionModel {
       sql += ` AND exam_category = $${paramCounter++} AND exam_type = $${paramCounter++}`;
       values.push(examCategory, examType);
     }
+    
+    // Exclude returned items (returned, rejected) if requested
+    if (excludeReturned) {
+      sql += ` AND review_status NOT IN ('returned', 'rejected')`;
+    }
+    
+    const result = await query(sql, values);
+    return parseInt(result.rows[0].count);
+  }
+
+  // Methods for category-based filtering (for USMLE to show all steps) 
+  static async findAllByCategory(limit = 50, offset = 0, examCategory: string, excludeReturned = false): Promise<Question[]> {
+    let sql = `SELECT q.*, qm.category as metadata_category FROM questions q 
+               LEFT JOIN question_metadata qm ON q.id = qm.question_id 
+               WHERE q.exam_category = $1`;
+    const values: any[] = [examCategory];
+    let paramCounter = 2;
+    
+    // Exclude returned items (returned, rejected) if requested
+    if (excludeReturned) {
+      sql += ` AND q.review_status NOT IN ('returned', 'rejected')`;
+    }
+    
+    sql += ` ORDER BY 
+      CASE 
+        WHEN q.question_number IS NULL THEN 0
+        WHEN q.question_number ~ '^Q?[0-9]+$' THEN CAST(REGEXP_REPLACE(q.question_number, '^Q', '') AS INTEGER)
+        ELSE 0
+      END DESC, 
+      q.created_at DESC 
+      LIMIT $${paramCounter++} OFFSET $${paramCounter}`;
+    values.push(limit, offset);
+    
+    const result = await query(sql, values);
+    return result.rows;
+  }
+  
+  static async getCountByCategory(examCategory: string, excludeReturned = false): Promise<number> {
+    let sql = 'SELECT COUNT(*) as count FROM questions WHERE exam_category = $1';
+    const values: any[] = [examCategory];
     
     // Exclude returned items (returned, rejected) if requested
     if (excludeReturned) {

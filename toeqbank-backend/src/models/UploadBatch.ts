@@ -58,6 +58,25 @@ export class UploadBatchModel {
     return result.rows;
   }
 
+  static async getByExamCategory(examCategory: string): Promise<UploadBatch[]> { 
+    const sql = `
+      SELECT 
+        ub.*,
+        u.username as uploader_username,
+        COUNT(DISTINCT q.id) as actual_question_count,
+        COUNT(DISTINCT imgd.id) as image_description_count
+      FROM upload_batches ub
+      LEFT JOIN users u ON u.id = ub.uploaded_by
+      LEFT JOIN questions q ON q.batch_id = ub.id AND q.exam_category = $1
+      LEFT JOIN image_descriptions imgd ON imgd.question_id = q.id
+      GROUP BY ub.id, u.username
+      HAVING COUNT(q.id) > 0
+      ORDER BY ub.upload_date DESC
+    `;
+    const result = await query(sql, [examCategory]);
+    return result.rows;
+  }
+
   static async getById(id: number): Promise<UploadBatch | null> {
     const sql = `
       SELECT 

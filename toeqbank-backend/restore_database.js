@@ -5,7 +5,8 @@ const path = require('path');
 require('dotenv').config();
 
 // Handle Digital Ocean managed database SSL (relaxed verification for now)
-const sslConfig = {
+const isLocalDatabase = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('localhost');
+const sslConfig = isLocalDatabase ? {} : {
   ssl: {
     rejectUnauthorized: false // Required for DO managed databases
   }

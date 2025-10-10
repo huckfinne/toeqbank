@@ -185,9 +185,20 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     
     console.log('Filtering questions for user:', user?.username, 'exam:', examCategory, examType);
     
-    // Filter by exam - critical for content segregation
-    const questions = await QuestionModel.findAll(limit, offset, examCategory, examType, true);
-    const total = await QuestionModel.getCount(examCategory, examType, true);
+    // For USMLE users, show ALL USMLE questions regardless of step
+    // For other categories, filter by specific exam type
+    let questions;
+    let total;
+    
+    if (examCategory === 'usmle') {
+      // Show all USMLE questions for USMLE users
+      questions = await QuestionModel.findAllByCategory(limit, offset, examCategory, true);
+      total = await QuestionModel.getCountByCategory(examCategory, true);
+    } else {
+      // Filter by specific exam type for non-USMLE categories
+      questions = await QuestionModel.findAll(limit, offset, examCategory, examType, true);
+      total = await QuestionModel.getCount(examCategory, examType, true);
+    }
     
     console.log(`=== MAIN QUESTIONS RESPONSE ===`);
     console.log(`Total questions found: ${total}`);
@@ -211,14 +222,15 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Get all upload batches (admin only)
+// Get upload batches (filtered by user's exam category)
 router.get('/batches', requireAuth, async (req: Request, res: Response) => {
   try {
-    if (!req.user.is_admin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    const batches = await UploadBatchModel.getAll();
+    const user = (req as any).user;
+    const examCategory = user?.exam_category || 'echocardiography';
+    
+    // All users (including admins) see batches filtered by their exam category
+    // This ensures USMLE admins only see USMLE batches, Echo admins only see Echo batches
+    const batches = await UploadBatchModel.getByExamCategory(examCategory);
     res.json(batches);
   } catch (error) {
     console.error('Error fetching upload batches:', error);

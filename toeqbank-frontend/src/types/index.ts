@@ -46,6 +46,7 @@ export interface Question {
   correct_answer: string;
   explanation?: string;
   source_folder?: string;
+  metadata_category?: string;
   created_at?: string;
   updated_at?: string;
   images?: Image[];
