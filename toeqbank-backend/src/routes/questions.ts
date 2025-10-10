@@ -313,6 +313,29 @@ router.get('/my-questions', requireAuth, async (req: Request, res: Response) => 
   }
 });
 
+// Get questions returned to user for rework
+router.get('/my-returned', requireAuth, async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 /my-returned - Request received');
+    console.log('🔍 /my-returned - req.user:', req.user);
+    console.log('🔍 /my-returned - req.user.id:', req.user?.id);
+
+    if (!req.user || !req.user.id) {
+      console.error('❌ /my-returned - No user or user.id found');
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    console.log('🔍 /my-returned - Calling getReturnedForUploader with userId:', req.user.id);
+    const returnedQuestions = await QuestionModel.getReturnedForUploader(req.user.id);
+    console.log('✅ /my-returned - Found', returnedQuestions.length, 'returned questions');
+    res.json(returnedQuestions);
+  } catch (error) {
+    console.error('❌ /my-returned - Error fetching returned questions:', error);
+    console.error('❌ /my-returned - Error stack:', (error as Error).stack);
+    res.status(500).json({ error: 'Failed to fetch returned questions' });
+  }
+});
+
 // Get question by ID with associated images
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -1088,17 +1111,5 @@ router.get('/review/stats', requireAuth, async (req: Request, res: Response) => 
     res.status(500).json({ error: 'Failed to fetch review statistics' });
   }
 });
-
-// Get questions returned to user for rework
-router.get('/my-returned', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const returnedQuestions = await QuestionModel.getReturnedForUploader(req.user.id);
-    res.json(returnedQuestions);
-  } catch (error) {
-    console.error('Error fetching returned questions:', error);
-    res.status(500).json({ error: 'Failed to fetch returned questions' });
-  }
-});
-
 
 export default router;

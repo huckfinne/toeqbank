@@ -18,6 +18,7 @@ const EXAM_CATEGORIES = {
 
 const EXAM_TYPES = {
   EACVI_TOE: 'eacvi_toe',
+  ADVANCE_PTEEXAM: 'advance_pteexam',
   TTE: 'tte',
   STEP_1: 'step1',
   STEP_2: 'step2',
@@ -27,7 +28,7 @@ const EXAM_TYPES = {
 const EXAM_CATEGORY_TYPES = {
   [EXAM_CATEGORIES.ECHOCARDIOGRAPHY]: [
     { value: EXAM_TYPES.EACVI_TOE, label: 'EACVI TOE (Transesophageal Echocardiography)' },
-    { value: EXAM_TYPES.TTE, label: 'TTE (Transthoracic Echocardiography)' }
+    { value: EXAM_TYPES.ADVANCE_PTEEXAM, label: 'Advance PTEeXAM' }
   ],
   [EXAM_CATEGORIES.USMLE]: [
     { value: EXAM_TYPES.STEP_1, label: 'Step 1' },

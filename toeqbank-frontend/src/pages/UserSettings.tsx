@@ -56,6 +56,7 @@ const UserSettings: React.FC = () => {
 
     const typeNames = {
       'eacvi_toe': 'EACVI TOE (Transesophageal Echocardiography)',
+      'advance_pteexam': 'Advance PTEeXAM',
       'tte': 'TTE (Transthoracic Echocardiography)',
       'step1': 'Step 1',
       'step2': 'Step 2',

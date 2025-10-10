@@ -27,9 +27,14 @@ const MyReturnedQuestions: React.FC = () => {
   const loadReturnedQuestions = async () => {
     try {
       setLoading(true);
+      console.log('🔍 MyReturnedQuestions - Loading returned questions...');
       const questions = await questionService.getMyReturnedQuestions();
+      console.log('✅ MyReturnedQuestions - Received questions:', questions);
+      console.log('📊 MyReturnedQuestions - Question count:', questions.length);
       setReturnedQuestions(questions);
     } catch (err: any) {
+      console.error('❌ MyReturnedQuestions - Error loading returned questions:', err);
+      console.error('❌ MyReturnedQuestions - Error response:', err.response);
       setError(err.response?.data?.error || 'Failed to load returned questions');
       console.error('Error loading returned questions:', err);
     } finally {
@@ -38,7 +43,7 @@ const MyReturnedQuestions: React.FC = () => {
   };
 
   const handleEditQuestion = (questionId: number) => {
-    navigate(`/question-editor/${questionId}?from=returned`);
+    navigate(`/edit-question/${questionId}?from=returned`);
   };
 
   if (loading) {

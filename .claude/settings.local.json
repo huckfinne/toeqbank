@@ -1,12 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit:*)",
-      "Bash(npm run build:*)",
-      "WebFetch(domain:toeqbank-frontend-nkyvw.ondigitalocean.app)",
-      "Bash(gh:*)",
-      "Bash(git fetch:*)",
-      "Bash(curl:*)"
+      "Bash(NODE_ENV=production node -e \"\nrequire(''dotenv'').config();\nconst { query } = require(''./dist/models/database'');\n\nquery(\"\"UPDATE users SET exam_type = ''eacvi_toe'' WHERE username = ''huckfinne'' RETURNING id, username, exam_category, exam_type\"\").then(result => {\n  console.log(''Updated huckfinne user:'');\n  console.log(result.rows[0]);\n  process.exit(0);\n}).catch(err => {\n  console.error(''Error:'', err.message);\n  process.exit(1);\n});\n\")"
     ],
     "deny": [],
     "ask": []
