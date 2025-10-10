@@ -31,11 +31,12 @@ const AppContent: React.FC = () => {
   const isOnlyImageContributor = user && user.is_image_contributor === true && !user.is_admin && !user.is_reviewer;
   
   // Dynamic title based on user's exam category
+  // Version 0.3.1 - Force cache bust for deployment
   const getNavbarTitle = () => {
     if (!user) return 'Question Bank';
-    
+
     const examCategory = user.exam_category?.toLowerCase();
-    console.log('Navbar Title Debug - v0.3.0:', { 
+    console.log('Navbar Title Debug - v0.3.1:', { 
       username: user.username, 
       exam_category: user.exam_category,
       examCategory: examCategory,

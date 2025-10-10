@@ -1,9 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nAdd exam type filtering and improve USMLE category handling\n\n- Add frontend exam type filter dropdown (All/Step 1/Step 2/Step 3) on QuestionReview page\n- Implement category-based question retrieval for USMLE to show all steps together\n- Add findAllByCategory() and getCountByCategory() methods to Question model\n- Update questions route to use category filtering for USMLE, type filtering for others\n- Filter upload batches by user''s exam category for better content segregation\n- Join question_metadata table for enhanced category display\n- Improve pagination to work with client-side filtering\n- Update batch selector to show \"No batches available\" when empty\n- Add exam_type column to questions table display\n- Fix select-all checkbox to work with paginated results\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push:*)"
+      "Bash(git commit:*)",
+      "Bash(npm run build:*)",
+      "WebFetch(domain:toeqbank-frontend-nkyvw.ondigitalocean.app)"
     ],
     "deny": [],
     "ask": []
