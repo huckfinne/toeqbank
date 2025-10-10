@@ -23,7 +23,7 @@ import GenerateQuestionsFromImages from './pages/GenerateQuestionsFromImages';
 import ImageView from './pages/ImageView';
 import UserSettings from './pages/UserSettings';
 import MyContributions from './pages/MyContributions';
-import { apiService } from './services/api';
+import api from './services/api';
 import packageJson from '../package.json';
 
 const FRONTEND_VERSION = packageJson.version;
@@ -31,7 +31,7 @@ const FRONTEND_VERSION = packageJson.version;
 const AppContent: React.FC = () => {
   const { user, logout, isAdmin, isReviewer } = useAuth();
   const [backendVersion, setBackendVersion] = useState<string>('...');
-  
+
   // Check if user is ONLY an image contributor (no admin or reviewer privileges)
   const isOnlyImageContributor = user && user.is_image_contributor === true && !user.is_admin && !user.is_reviewer;
 
@@ -39,7 +39,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const fetchBackendVersion = async () => {
       try {
-        const response = await apiService.get('/version');
+        const response = await api.get('/version');
         setBackendVersion(response.data.version);
       } catch (error) {
         console.error('Failed to fetch backend version:', error);
