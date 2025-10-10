@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { initializeDatabase, getPoolStatus } from './models/database';
 import questionRoutes from './routes/questions';
 import authRoutes from './routes/auth';
@@ -13,6 +15,12 @@ import debugRoutes from './routes/debug';
 import savedExplanationsRoutes from './routes/savedExplanations';
 
 dotenv.config();
+
+// Load version from package.json
+const packageJson = JSON.parse(
+  readFileSync(join(__dirname, '../package.json'), 'utf8')
+);
+const BACKEND_VERSION = packageJson.version;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -33,9 +41,14 @@ app.use('/api/exams', examRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api/saved-explanations', savedExplanationsRoutes);
 
+// Version endpoint
+app.get('/api/version', (req, res) => {
+  res.json({ version: BACKEND_VERSION });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', version: BACKEND_VERSION, timestamp: new Date().toISOString() });
 });
 
 // Database health check endpoint

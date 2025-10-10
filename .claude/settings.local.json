@@ -3,7 +3,10 @@
     "allow": [
       "Bash(git commit:*)",
       "Bash(npm run build:*)",
-      "WebFetch(domain:toeqbank-frontend-nkyvw.ondigitalocean.app)"
+      "WebFetch(domain:toeqbank-frontend-nkyvw.ondigitalocean.app)",
+      "Bash(gh:*)",
+      "Bash(git fetch:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -23,13 +23,32 @@ import GenerateQuestionsFromImages from './pages/GenerateQuestionsFromImages';
 import ImageView from './pages/ImageView';
 import UserSettings from './pages/UserSettings';
 import MyContributions from './pages/MyContributions';
+import { apiService } from './services/api';
+import packageJson from '../package.json';
+
+const FRONTEND_VERSION = packageJson.version;
 
 const AppContent: React.FC = () => {
   const { user, logout, isAdmin, isReviewer } = useAuth();
+  const [backendVersion, setBackendVersion] = useState<string>('...');
   
   // Check if user is ONLY an image contributor (no admin or reviewer privileges)
   const isOnlyImageContributor = user && user.is_image_contributor === true && !user.is_admin && !user.is_reviewer;
-  
+
+  // Fetch backend version on mount
+  useEffect(() => {
+    const fetchBackendVersion = async () => {
+      try {
+        const response = await apiService.get('/version');
+        setBackendVersion(response.data.version);
+      } catch (error) {
+        console.error('Failed to fetch backend version:', error);
+        setBackendVersion('error');
+      }
+    };
+    fetchBackendVersion();
+  }, []);
+
   // Dynamic title based on user's exam category
   // Version 0.3.1 - Force cache bust for deployment
   const getNavbarTitle = () => {
@@ -56,6 +75,12 @@ const AppContent: React.FC = () => {
     <div className="App">
       <nav className="navbar">
         <div className="nav-container">
+          <div className="nav-left">
+            <div className="version-display">
+              <div className="version-line">FE: v{FRONTEND_VERSION}</div>
+              <div className="version-line">BE: v{backendVersion}</div>
+            </div>
+          </div>
           <h1>{getNavbarTitle()}</h1>
           <div className="nav-links">
             {/* Hide Questions dropdown and Question Bank for users who are ONLY image contributors */}
