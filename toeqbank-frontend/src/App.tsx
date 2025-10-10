@@ -37,12 +37,15 @@ const AppContent: React.FC = () => {
 
   // Fetch backend version on mount
   useEffect(() => {
+    console.log('🔢 Version Display - Frontend version:', FRONTEND_VERSION);
     const fetchBackendVersion = async () => {
       try {
+        console.log('🌐 Fetching backend version...');
         const response = await api.get('/version');
+        console.log('✅ Backend version response:', response.data);
         setBackendVersion(response.data.version);
       } catch (error) {
-        console.error('Failed to fetch backend version:', error);
+        console.error('❌ Failed to fetch backend version:', error);
         setBackendVersion('error');
       }
     };
