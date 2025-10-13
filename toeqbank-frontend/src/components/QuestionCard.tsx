@@ -1,4 +1,6 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Question } from '../types';
 import { imageService } from '../services/api';
 
@@ -161,7 +163,11 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           {question.explanation && (showExplanation || isReviewMode) && (
             <div className="explanation">
               <h4>Explanation:</h4>
-              <p>{question.explanation}</p>
+              <div className="markdown-content">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {question.explanation}
+                </ReactMarkdown>
+              </div>
             </div>
           )}
         </div>
