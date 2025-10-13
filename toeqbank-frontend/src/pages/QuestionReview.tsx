@@ -9,7 +9,9 @@ const QuestionReview: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
+  const [submitters, setSubmitters] = useState<{ id: number; username: string }[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedExamType, setSelectedExamType] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
@@ -17,10 +19,10 @@ const QuestionReview: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedQuestions, setSelectedQuestions] = useState<Set<number>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; questionId: number | null; questionText: string }>({ 
-    isOpen: false, 
-    questionId: null, 
-    questionText: '' 
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; questionId: number | null; questionText: string }>({
+    isOpen: false,
+    questionId: null,
+    questionText: ''
   });
 
   const limit = 50; // Show more questions in list view
@@ -29,8 +31,9 @@ const QuestionReview: React.FC = () => {
     fetchQuestions();
     if (isAdmin) {
       loadBatches();
+      loadSubmitters();
     }
-  }, [currentPage, selectedBatchId, isAdmin]);
+  }, [currentPage, selectedBatchId, selectedUserId, isAdmin]);
 
   // Filter questions when exam type filter changes
   useEffect(() => {
@@ -55,10 +58,19 @@ const QuestionReview: React.FC = () => {
     }
   };
 
+  const loadSubmitters = async () => {
+    try {
+      const submitterData = await questionService.getQuestionSubmitters();
+      setSubmitters(submitterData);
+    } catch (err) {
+      console.error('Failed to load submitters:', err);
+    }
+  };
+
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      
+
       // If a batch is selected, fetch questions from that batch
       if (selectedBatchId) {
         const batchDetails = await batchService.getBatchDetails(selectedBatchId);
@@ -67,13 +79,13 @@ const QuestionReview: React.FC = () => {
         setQuestions(questions);
         setTotalQuestions(questions.length);
       } else {
-        // Fetch all questions (no pagination for filtering)
-        const response = await questionService.getQuestions(1000, 0); // Get a large number
+        // Fetch all questions (with optional user filter)
+        const response = await questionService.getQuestions(1000, 0, selectedUserId || undefined); // Get a large number
         setAllQuestions(response.questions);
         setQuestions(response.questions);
         setTotalQuestions(response.questions.length);
       }
-      
+
       setError(null);
     } catch (err) {
       setError('Failed to fetch questions. Please make sure the backend server is running.');
@@ -327,6 +339,38 @@ const QuestionReview: React.FC = () => {
                   batches.map((batch) => (
                     <option key={batch.id} value={batch.id}>
                       Batch #{batch.id} - {batch.file_name} ({batch.actual_question_count} questions)
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* Admin/Reviewer User Selector */}
+        {isAdmin && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div className="flex items-center space-x-4">
+              <label htmlFor="user-selector" className="text-sm font-medium text-gray-700">
+                Filter by Submitter:
+              </label>
+              <select
+                id="user-selector"
+                value={selectedUserId || ''}
+                onChange={(e) => {
+                  setSelectedUserId(e.target.value ? parseInt(e.target.value) : null);
+                  setCurrentPage(0); // Reset to first page when changing user
+                  setSelectedQuestions(new Set()); // Clear selections
+                }}
+                className="min-w-0 flex-1 max-w-md px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Users</option>
+                {submitters.length === 0 ? (
+                  <option disabled>No submitters available</option>
+                ) : (
+                  submitters.map((submitter) => (
+                    <option key={submitter.id} value={submitter.id}>
+                      {submitter.username}
                     </option>
                   ))
                 )}

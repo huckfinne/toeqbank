@@ -172,25 +172,59 @@ function standardizeEchoView(rawView: string): string {
   return normalized;
 }
 
+// Get list of users who have submitted questions
+router.get('/submitters', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const sql = `
+      SELECT DISTINCT u.id, u.username
+      FROM users u
+      INNER JOIN questions q ON q.uploaded_by = u.id
+      ORDER BY u.username
+    `;
+    const result = await query(sql);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching question submitters:', error);
+    res.status(500).json({ error: 'Failed to fetch submitters' });
+  }
+});
+
 // Get all questions with pagination (filtered by user's exam)
 router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
-    
+    const filterByUserId = req.query.userId ? parseInt(req.query.userId as string) : null;
+
     // Get user's exam category and type from req.user
     const user = (req as any).user;
     const examCategory = user?.exam_category || 'echocardiography';
     const examType = user?.exam_type || 'eacvi_toe';
-    
+
     console.log('Filtering questions for user:', user?.username, 'exam:', examCategory, examType);
-    
+    if (filterByUserId) {
+      console.log('Filtering by submitter userId:', filterByUserId);
+    }
+
     // For USMLE users, show ALL USMLE questions regardless of step
     // For other categories, filter by specific exam type
     let questions;
     let total;
-    
-    if (examCategory === 'usmle') {
+
+    // If filtering by specific user, get their questions
+    if (filterByUserId) {
+      const submitterQuestions = await QuestionModel.getByUploader(filterByUserId);
+      // Filter by exam category/type and apply pagination
+      const filteredQuestions = submitterQuestions.filter(q => {
+        if (examCategory === 'usmle') {
+          return q.exam_category === 'usmle';
+        } else {
+          return q.exam_category === examCategory && q.exam_type === examType;
+        }
+      });
+      total = filteredQuestions.length;
+      questions = filteredQuestions.slice(offset, offset + limit);
+    } else if (examCategory === 'usmle') {
       // Show all USMLE questions for USMLE users
       questions = await QuestionModel.findAllByCategory(limit, offset, examCategory, true);
       total = await QuestionModel.getCountByCategory(examCategory, true);
@@ -199,14 +233,14 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
       questions = await QuestionModel.findAll(limit, offset, examCategory, examType, true);
       total = await QuestionModel.getCount(examCategory, examType, true);
     }
-    
+
     console.log(`=== MAIN QUESTIONS RESPONSE ===`);
     console.log(`Total questions found: ${total}`);
     console.log(`Returning ${questions.length} questions:`);
     questions.slice(0, 5).forEach((q: any) => {
       console.log(`- Q${q.id}: ${q.exam_category}/${q.exam_type} - ${q.question?.substring(0, 50)}...`);
     });
-    
+
     res.json({
       questions,
       pagination: {

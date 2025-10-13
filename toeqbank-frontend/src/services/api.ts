@@ -120,9 +120,21 @@ export interface QuestionsResponse {
 }
 
 export const questionService = {
+  // Get list of users who have submitted questions
+  getQuestionSubmitters: async (): Promise<{ id: number; username: string }[]> => {
+    const response = await api.get('/questions/submitters');
+    return response.data;
+  },
+
   // Get all questions with pagination
-  getQuestions: async (limit = 50, offset = 0): Promise<QuestionsResponse> => {
-    const response = await api.get(`/questions?limit=${limit}&offset=${offset}`);
+  getQuestions: async (limit = 50, offset = 0, userId?: number): Promise<QuestionsResponse> => {
+    const params = new URLSearchParams();
+    params.set('limit', limit.toString());
+    params.set('offset', offset.toString());
+    if (userId) {
+      params.set('userId', userId.toString());
+    }
+    const response = await api.get(`/questions?${params.toString()}`);
     return response.data;
   },
 
