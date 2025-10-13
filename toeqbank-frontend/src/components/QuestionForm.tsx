@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { questionService, imageService, Question, Image, imageDescriptionService, ImageDescription, questionMetadataService, examService } from '../services/api';
 import ImageManager from './ImageManager';
 import ImageUploadModal from './ImageUploadModal';
@@ -55,6 +57,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   const [editingExams, setEditingExams] = useState<{[key: string]: boolean}>({});
   const [isMetadataDialogOpen, setIsMetadataDialogOpen] = useState(false);
   const [isExamsDialogOpen, setIsExamsDialogOpen] = useState(false);
+  const [explanationTab, setExplanationTab] = useState<'write' | 'preview'>('write');
 
   // Update form data when initialData changes (for CSV import)
   useEffect(() => {
@@ -1162,15 +1165,74 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
               <label htmlFor="explanation" className="block text-sm font-medium text-gray-700 mb-1">
                 Explanation
               </label>
-              <textarea
-                id="explanation"
-                value={formData.explanation}
-                onChange={(e) => handleInputChange('explanation', e.target.value)}
-                placeholder="Provide a comprehensive explanation..."
-                style={{width: '100%', minHeight: '168px'}}
-                className="px-3 py-2 text-base border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-vertical"
-                rows={7}
-              />
+
+              {/* Write/Preview Tabs */}
+              <div className="flex border-b border-gray-300 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setExplanationTab('write')}
+                  className={`px-4 py-2 font-medium text-sm transition-colors ${
+                    explanationTab === 'write'
+                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Write
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExplanationTab('preview')}
+                  className={`px-4 py-2 font-medium text-sm transition-colors ${
+                    explanationTab === 'preview'
+                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Preview
+                </button>
+              </div>
+
+              {/* Write Tab */}
+              {explanationTab === 'write' ? (
+                <div>
+                  <textarea
+                    id="explanation"
+                    value={formData.explanation}
+                    onChange={(e) => handleInputChange('explanation', e.target.value)}
+                    placeholder="Provide a comprehensive explanation using markdown formatting..."
+                    style={{width: '100%', minHeight: '168px'}}
+                    className="px-3 py-2 text-base border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-vertical"
+                    rows={7}
+                  />
+
+                  {/* Markdown Guide */}
+                  <div className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-600">
+                    <strong className="text-gray-700">Markdown Quick Guide:</strong>
+                    <div className="mt-1 grid grid-cols-2 gap-2">
+                      <div><code className="bg-white px-1">**bold**</code> → <strong>bold</strong></div>
+                      <div><code className="bg-white px-1">- item</code> → bullet list</div>
+                      <div><code className="bg-white px-1">1. item</code> → numbered list</div>
+                      <div><code className="bg-white px-1">| A | B |</code> → table</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Preview Tab */
+                <div
+                  className="px-3 py-2 text-base border border-gray-300 rounded bg-white"
+                  style={{width: '100%', minHeight: '168px'}}
+                >
+                  {formData.explanation ? (
+                    <div className="markdown-content">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {formData.explanation}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 italic">No explanation to preview. Switch to Write tab to add content.</p>
+                  )}
+                </div>
+              )}
               
               {/* Explanation Images */}
               {selectedImages.filter(item => item.usageType === 'explanation').length > 0 && (
