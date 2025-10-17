@@ -348,7 +348,7 @@ const MyContributions: React.FC = () => {
                             <div className="flex items-center gap-2 text-base">
                               <button
                                 onClick={(e) => handleEditQuestion(e, question.id)}
-                                className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-100 rounded transition-colors flex items-center gap-1"
+                                className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-100 rounded transition-colors flex items-center gap-1"
                                 title="Edit question"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -358,7 +358,7 @@ const MyContributions: React.FC = () => {
                               </button>
                               <button
                                 onClick={(e) => handleDeleteQuestion(e, question.id, question.question_number)}
-                                className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-100 rounded transition-colors flex items-center gap-1"
+                                className="px-3 py-1 text-sm text-red-600 hover:bg-red-100 rounded transition-colors flex items-center gap-1"
                                 title="Delete question"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
