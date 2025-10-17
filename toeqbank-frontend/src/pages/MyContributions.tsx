@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { questionService, imageService, Image } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import './MyContributions.css';
 
 interface MyQuestion {
@@ -9,6 +10,7 @@ interface MyQuestion {
   question: string;
   correct_answer: string;
   review_status: string;
+  exam_category?: string;
   created_at?: string;
   reviewed_at?: string;
   reviewer_name?: string;
@@ -19,6 +21,7 @@ interface MyImage extends Image {
 }
 
 const MyContributions: React.FC = () => {
+  const { user } = useAuth();
   const [myQuestions, setMyQuestions] = useState<MyQuestion[]>([]);
   const [myImages, setMyImages] = useState<MyImage[]>([]);
   const [myReturnedQuestions, setMyReturnedQuestions] = useState<MyQuestion[]>([]);
@@ -28,6 +31,7 @@ const MyContributions: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'questions' | 'images'>('questions');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
+  const [examCategoryFilter, setExamCategoryFilter] = useState<string>(user?.exam_category || 'echo');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -130,6 +134,9 @@ const MyContributions: React.FC = () => {
   const getFilteredQuestions = () => {
     let filtered = myQuestions;
 
+    // Apply exam category filter
+    filtered = filtered.filter(q => q.exam_category === examCategoryFilter);
+
     // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(q => q.review_status === statusFilter);
@@ -181,6 +188,18 @@ const MyContributions: React.FC = () => {
 
         {/* Filter Section */}
         <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium text-gray-700">Exam category:</label>
+            <select
+              value={examCategoryFilter}
+              onChange={(e) => setExamCategoryFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="echo">Echo</option>
+              <option value="usmle">USMLE</option>
+            </select>
+          </div>
+
           <div className="flex items-center gap-4">
             <label className="text-sm font-medium text-gray-700">Filter by status:</label>
             <select
