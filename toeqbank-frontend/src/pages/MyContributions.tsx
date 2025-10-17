@@ -95,6 +95,27 @@ const MyContributions: React.FC = () => {
     }
   };
 
+  const handleEditQuestion = (e: React.MouseEvent, questionId: number) => {
+    e.stopPropagation();
+    navigate(`/edit-question/${questionId}`);
+  };
+
+  const handleDeleteQuestion = async (e: React.MouseEvent, questionId: number, questionNumber: string) => {
+    e.stopPropagation();
+
+    if (!window.confirm(`Are you sure you want to delete question ${questionNumber}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await questionService.deleteQuestion(questionId);
+      // Remove from local state
+      setMyQuestions(myQuestions.filter(q => q.id !== questionId));
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to delete question');
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     if (bytes === 0) return '0 Bytes';
@@ -342,6 +363,26 @@ const MyContributions: React.FC = () => {
                                   ✓ {new Date(question.reviewed_at).toLocaleDateString()}
                                 </span>
                               )}
+                              <div className="flex items-center gap-2 ml-auto">
+                                <button
+                                  onClick={(e) => handleEditQuestion(e, question.id)}
+                                  className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                                  title="Edit question"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteQuestion(e, question.id, question.question_number)}
+                                  className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors"
+                                  title="Delete question"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
