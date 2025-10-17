@@ -9,7 +9,7 @@ interface MyQuestion {
   question: string;
   correct_answer: string;
   review_status: string;
-  created_at: string;
+  created_at?: string;
   reviewed_at?: string;
   reviewer_name?: string;
 }
@@ -70,6 +70,8 @@ const MyContributions: React.FC = () => {
         return 'bg-green-100 text-green-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
+      case 'pending submission':
+        return 'bg-blue-100 text-blue-800';
       case 'rejected':
         return 'bg-red-100 text-red-800';
       case 'returned':
@@ -99,9 +101,12 @@ const MyContributions: React.FC = () => {
   // Helper function to filter by date
   const filterByDate = (item: MyQuestion | MyImage) => {
     if (dateFilter === 'all') return true;
-    if (!item.created_at) return true; // If no date, include it
 
-    const createdDate = new Date(item.created_at);
+    // Type guard: if created_at is undefined, include the item
+    const createdAt = item.created_at;
+    if (!createdAt) return true;
+
+    const createdDate = new Date(createdAt);
     const now = new Date();
     const daysDiff = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -184,7 +189,8 @@ const MyContributions: React.FC = () => {
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
+              <option value="pending submission">Pending Submission</option>
+              <option value="pending">Pending Review</option>
               <option value="approved">Approved</option>
               <option value="returned">Needs Revision</option>
               <option value="rejected">Rejected</option>
@@ -264,7 +270,7 @@ const MyContributions: React.FC = () => {
             ) : (
               <div className="space-y-8">
                 {/* Group questions by status */}
-                {['returned', 'rejected', 'pending', 'approved'].map(status => {
+                {['returned', 'rejected', 'pending submission', 'pending', 'approved'].map(status => {
                   const statusQuestions = getFilteredQuestions().filter(q => {
                     if (statusFilter === 'all') {
                       return q.review_status === status;
@@ -277,6 +283,7 @@ const MyContributions: React.FC = () => {
                   const statusConfig = {
                     returned: { icon: '↩️', title: 'Needs Revision', color: 'orange', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
                     rejected: { icon: '❌', title: 'Rejected', color: 'red', bgColor: 'bg-red-50', borderColor: 'border-red-200' },
+                    'pending submission': { icon: '📝', title: 'Pending Submission', color: 'blue', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
                     pending: { icon: '⏳', title: 'Pending Review', color: 'yellow', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' },
                     approved: { icon: '✅', title: 'Approved', color: 'green', bgColor: 'bg-green-50', borderColor: 'border-green-200' }
                   };
@@ -309,7 +316,7 @@ const MyContributions: React.FC = () => {
                                 {question.question.length > 80 ? question.question.substring(0, 80) + '...' : question.question}
                               </span>
                               <span className="text-sm text-gray-500 whitespace-nowrap min-w-fit">
-                                {new Date(question.created_at).toLocaleDateString()}
+                                {question.created_at ? new Date(question.created_at).toLocaleDateString() : 'Unknown'}
                               </span>
                               {question.reviewed_at && (
                                 <span className="text-sm text-green-600 whitespace-nowrap min-w-fit">
