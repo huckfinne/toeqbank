@@ -1,6 +1,21 @@
 import React, { useState, useRef } from 'react';
 import { questionService } from '../services/api';
 
+interface ValidationError {
+  row: number;
+  column?: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationError[];
+  rowCount: number;
+  hasHeaders: boolean;
+}
+
 const FileUpload: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -14,9 +29,209 @@ const FileUpload: React.FC = () => {
   const [startingPage, setStartingPage] = useState<string>('');
   const [endingPage, setEndingPage] = useState<string>('');
   const [chapter, setChapter] = useState<string>('');
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    result.push(current.trim());
+    return result;
+  };
+
+  const validateCSV = (csvContent: string): ValidationResult => {
+    const errors: ValidationError[] = [];
+    const warnings: ValidationError[] = [];
+
+    const lines = csvContent.split('\n').filter(line => line.trim());
+
+    if (lines.length === 0) {
+      errors.push({ row: 0, message: 'CSV file is empty', severity: 'error' });
+      return { valid: false, errors, warnings, rowCount: 0, hasHeaders: false };
+    }
+
+    // Check if first line is a header
+    const firstLine = lines[0].toLowerCase();
+    const hasHeaders = firstLine.includes('question') && firstLine.includes('correct_answer');
+
+    const dataLines = hasHeaders ? lines.slice(1) : lines;
+    const validAnswers = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+    dataLines.forEach((line, index) => {
+      const rowNum = hasHeaders ? index + 2 : index + 1;
+      const columns = parseCSVLine(line);
+
+      // Check minimum columns
+      if (columns.length < 8) {
+        errors.push({
+          row: rowNum,
+          message: `Insufficient columns (found ${columns.length}, need at least 8)`,
+          severity: 'error'
+        });
+        return;
+      }
+
+      // Determine column indices
+      const questionIdx = hasHeaders ? 0 : 1; // question_number, question if no header
+      const correctAnswerIdx = hasHeaders ? 0 : 7; // depends on structure
+
+      // For no-header CSVs: 0=q_num, 1=question, 2-6=choices, 7=answer, 8=explanation, 9=source
+      const question = hasHeaders ? columns[0] : columns[1];
+      const correctAnswer = hasHeaders ? columns[columns.length > 7 ? 7 : 0] : columns[7];
+
+      // Validate question text
+      if (!question || question.trim().length === 0) {
+        errors.push({
+          row: rowNum,
+          column: 'question',
+          message: 'Question text is empty',
+          severity: 'error'
+        });
+      }
+
+      // Validate correct answer
+      if (!correctAnswer || !validAnswers.includes(correctAnswer.toUpperCase())) {
+        errors.push({
+          row: rowNum,
+          column: 'correct_answer',
+          message: `Invalid correct answer: "${correctAnswer}". Must be A, B, C, D, E, F, or G`,
+          severity: 'error'
+        });
+      }
+
+      // Check for image fields if in with-images or mixed mode
+      if (uploadMode === 'with-images' || uploadMode === 'mixed') {
+        const hasImageDescription = columns.length > 10 && columns[10] && columns[10].trim();
+        const hasImageModality = columns.length > 11 && columns[11] && columns[11].trim();
+        const hasImageView = columns.length > 12 && columns[12] && columns[12].trim();
+        const hasImageUsage = columns.length > 13 && columns[13] && columns[13].trim();
+        const hasImageType = columns.length > 14 && columns[14] && columns[14].trim();
+
+        const hasAnyImageField = hasImageDescription || hasImageModality || hasImageView || hasImageUsage || hasImageType;
+
+        if (uploadMode === 'with-images' && !hasAnyImageField) {
+          errors.push({
+            row: rowNum,
+            message: 'Image fields are required in "With Images" mode',
+            severity: 'error'
+          });
+        }
+
+        // If any image field is present, validate them
+        if (hasAnyImageField) {
+          if (!hasImageDescription) {
+            errors.push({
+              row: rowNum,
+              column: 'image_description',
+              message: 'Image description is required when image fields are present',
+              severity: 'error'
+            });
+          }
+
+          if (!hasImageModality) {
+            errors.push({
+              row: rowNum,
+              column: 'image_modality',
+              message: 'Image modality is required (TTE, TEE, or non-echo)',
+              severity: 'error'
+            });
+          } else {
+            const modality = columns[11].toLowerCase();
+            if (!['tte', 'tee', 'toe', 'non-echo'].includes(modality)) {
+              errors.push({
+                row: rowNum,
+                column: 'image_modality',
+                message: `Invalid modality: "${columns[11]}". Must be TTE, TEE, or non-echo`,
+                severity: 'error'
+              });
+            }
+          }
+
+          if (!hasImageUsage) {
+            errors.push({
+              row: rowNum,
+              column: 'image_usage',
+              message: 'Image usage is required (question or explanation)',
+              severity: 'error'
+            });
+          } else if (!['question', 'explanation'].includes(columns[13].toLowerCase())) {
+            errors.push({
+              row: rowNum,
+              column: 'image_usage',
+              message: `Invalid usage: "${columns[13]}". Must be "question" or "explanation"`,
+              severity: 'error'
+            });
+          }
+
+          if (!hasImageType) {
+            errors.push({
+              row: rowNum,
+              column: 'image_type',
+              message: 'Image type is required (still or cine)',
+              severity: 'error'
+            });
+          } else if (!['still', 'cine'].includes(columns[14].toLowerCase())) {
+            errors.push({
+              row: rowNum,
+              column: 'image_type',
+              message: `Invalid type: "${columns[14]}". Must be "still" or "cine"`,
+              severity: 'error'
+            });
+          }
+        }
+      }
+
+      // Warnings for empty choices
+      const choiceStart = hasHeaders ? 1 : 2;
+      const choiceEnd = hasHeaders ? 6 : 7;
+      let emptyChoices = 0;
+      for (let i = choiceStart; i < choiceEnd; i++) {
+        if (!columns[i] || columns[i].trim().length === 0) {
+          emptyChoices++;
+        }
+      }
+
+      if (emptyChoices > 2) {
+        warnings.push({
+          row: rowNum,
+          message: `Only ${5 - emptyChoices} answer choices provided. Consider adding more options.`,
+          severity: 'warning'
+        });
+      }
+    });
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      rowCount: dataLines.length,
+      hasHeaders
+    };
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
@@ -24,10 +239,32 @@ const FileUpload: React.FC = () => {
         setError('Please select a CSV file');
         return;
       }
-      
+
       setSelectedFile(file);
       setError(null);
       setUploadResult(null);
+
+      // Read and validate the file
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        const result = validateCSV(content);
+        setValidationResult(result);
+        setShowValidation(true);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleCSVDataChange = (value: string) => {
+    setCsvData(value);
+    if (value.trim()) {
+      const result = validateCSV(value);
+      setValidationResult(result);
+      setShowValidation(true);
+    } else {
+      setValidationResult(null);
+      setShowValidation(false);
     }
   };
 
@@ -37,7 +274,7 @@ const FileUpload: React.FC = () => {
       setError('Please select a file first');
       return;
     }
-    
+
     if (inputMethod === 'paste' && !csvData.trim()) {
       setError('Please paste CSV data first');
       return;
@@ -46,6 +283,13 @@ const FileUpload: React.FC = () => {
     // Validate required fields
     if (!description.trim()) {
       setError('Please provide a description');
+      return;
+    }
+
+    // Check validation results
+    if (validationResult && !validationResult.valid) {
+      setError(`Cannot upload: CSV has ${validationResult.errors.length} error(s). Please fix the errors shown below.`);
+      setShowValidation(true);
       return;
     }
 
@@ -108,6 +352,8 @@ const FileUpload: React.FC = () => {
     setStartingPage('');
     setEndingPage('');
     setChapter('');
+    setValidationResult(null);
+    setShowValidation(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -515,7 +761,7 @@ const FileUpload: React.FC = () => {
               <textarea
                 id="csv-textarea"
                 value={csvData}
-                onChange={(e) => setCsvData(e.target.value)}
+                onChange={(e) => handleCSVDataChange(e.target.value)}
                 placeholder="Paste your CSV data here (including headers)..."
                 className="px-3 py-2 text-base border border-gray-300 rounded focus:outline-none focus:border-blue-500 resize-vertical"
                 style={{
@@ -529,6 +775,125 @@ const FileUpload: React.FC = () => {
               <div className="text-right text-sm text-gray-600 mt-2">
                 {csvData.split('\n').length - 1} lines
               </div>
+            </div>
+          )}
+
+          {/* Validation Results Display */}
+          {showValidation && validationResult && (
+            <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+              {/* Summary Box */}
+              <div style={{
+                padding: '15px',
+                borderRadius: '8px',
+                border: '2px solid',
+                borderColor: validationResult.valid ? '#28a745' : '#dc3545',
+                backgroundColor: validationResult.valid ? '#d4edda' : '#f8d7da',
+                marginBottom: '15px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '24px' }}>
+                    {validationResult.valid ? '✓' : '✗'}
+                  </span>
+                  <div>
+                    <h4 style={{
+                      margin: 0,
+                      color: validationResult.valid ? '#155724' : '#721c24',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}>
+                      {validationResult.valid
+                        ? 'CSV Validation Passed'
+                        : `CSV Validation Failed: ${validationResult.errors.length} Error${validationResult.errors.length !== 1 ? 's' : ''} Found`
+                      }
+                    </h4>
+                    <p style={{
+                      margin: '5px 0 0 0',
+                      color: validationResult.valid ? '#155724' : '#721c24',
+                      fontSize: '14px'
+                    }}>
+                      {validationResult.rowCount} data row{validationResult.rowCount !== 1 ? 's' : ''} found
+                      {validationResult.hasHeaders && ' (with headers)'}
+                      {validationResult.warnings.length > 0 &&
+                        ` | ${validationResult.warnings.length} warning${validationResult.warnings.length !== 1 ? 's' : ''}`
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Errors List */}
+              {validationResult.errors.length > 0 && (
+                <div style={{
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid #dc3545',
+                  backgroundColor: '#fff5f5',
+                  marginBottom: '15px'
+                }}>
+                  <h5 style={{
+                    margin: '0 0 10px 0',
+                    color: '#721c24',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>❌</span>
+                    Errors (must be fixed before upload):
+                  </h5>
+                  <ul style={{
+                    margin: '0',
+                    paddingLeft: '20px',
+                    fontSize: '13px',
+                    color: '#721c24'
+                  }}>
+                    {validationResult.errors.map((error, index) => (
+                      <li key={index} style={{ marginBottom: '5px' }}>
+                        <strong>Row {error.row}</strong>
+                        {error.column && <span> (Column: {error.column})</span>}: {error.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Warnings List */}
+              {validationResult.warnings.length > 0 && (
+                <div style={{
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid #ffc107',
+                  backgroundColor: '#fff3cd',
+                  marginBottom: '15px'
+                }}>
+                  <h5 style={{
+                    margin: '0 0 10px 0',
+                    color: '#856404',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>⚠️</span>
+                    Warnings (can still upload, but review recommended):
+                  </h5>
+                  <ul style={{
+                    margin: '0',
+                    paddingLeft: '20px',
+                    fontSize: '13px',
+                    color: '#856404'
+                  }}>
+                    {validationResult.warnings.map((warning, index) => (
+                      <li key={index} style={{ marginBottom: '5px' }}>
+                        <strong>Row {warning.row}</strong>
+                        {warning.column && <span> (Column: {warning.column})</span>}: {warning.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
