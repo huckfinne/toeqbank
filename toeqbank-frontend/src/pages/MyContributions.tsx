@@ -345,27 +345,8 @@ const MyContributions: React.FC = () => {
                             }`}
                             onClick={() => handleQuestionClick(question.id)}
                           >
-                            <div className="flex items-center justify-between gap-6 text-base">
-                              <div className="flex items-center gap-6 flex-1 min-w-0">
-                                <span className="font-bold text-gray-900 bg-white px-4 py-2 rounded whitespace-nowrap text-sm min-w-fit shadow-sm">
-                                  {question.question_number}
-                                </span>
-                                <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap min-w-fit ${getStatusColor(question.review_status)}`}>
-                                  {question.review_status.toUpperCase().replace('_', ' ')}
-                                </span>
-                                <span className="text-gray-800 flex-1 text-sm leading-relaxed truncate">
-                                  {question.question.length > 60 ? question.question.substring(0, 60) + '...' : question.question}
-                                </span>
-                                <span className="text-sm text-gray-500 whitespace-nowrap min-w-fit">
-                                  {question.created_at ? new Date(question.created_at).toLocaleDateString() : 'Unknown'}
-                                </span>
-                                {question.reviewed_at && (
-                                  <span className="text-sm text-green-600 whitespace-nowrap min-w-fit">
-                                    ✓ {new Date(question.reviewed_at).toLocaleDateString()}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-6 text-base">
+                              <div className="flex items-center gap-2">
                                 <button
                                   onClick={(e) => handleEditQuestion(e, question.id)}
                                   className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-100 rounded transition-colors flex items-center gap-1"
@@ -387,6 +368,23 @@ const MyContributions: React.FC = () => {
                                   Del
                                 </button>
                               </div>
+                              <span className="font-bold text-gray-900 bg-white px-4 py-2 rounded whitespace-nowrap text-sm min-w-fit shadow-sm">
+                                {question.question_number}
+                              </span>
+                              <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap min-w-fit ${getStatusColor(question.review_status)}`}>
+                                {question.review_status.toUpperCase().replace('_', ' ')}
+                              </span>
+                              <span className="text-gray-800 flex-1 text-sm leading-relaxed">
+                                {question.question.length > 60 ? question.question.substring(0, 60) + '...' : question.question}
+                              </span>
+                              <span className="text-sm text-gray-500 whitespace-nowrap min-w-fit">
+                                {question.created_at ? new Date(question.created_at).toLocaleDateString() : 'Unknown'}
+                              </span>
+                              {question.reviewed_at && (
+                                <span className="text-sm text-green-600 whitespace-nowrap min-w-fit">
+                                  ✓ {new Date(question.reviewed_at).toLocaleDateString()}
+                                </span>
+                              )}
                             </div>
                           </div>
                         ))}
