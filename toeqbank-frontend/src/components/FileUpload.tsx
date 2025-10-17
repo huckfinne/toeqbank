@@ -83,140 +83,176 @@ const FileUpload: React.FC = () => {
       const rowNum = hasHeaders ? index + 2 : index + 1;
       const columns = parseCSVLine(line);
 
+      // Expected structure WITHOUT headers (standard format):
+      // 0: question_number, 1: question, 2-6: choices A-E, 7: correct_answer, 8: explanation, 9: source_folder
+      // WITH image fields (columns 10-15):
+      // 10: image_description, 11: image_modality, 12: image_view, 13: image_usage, 14: image_type, 15: image_url
+
       // Check minimum columns
-      if (columns.length < 8) {
+      const minCols = (uploadMode === 'with-images') ? 16 : 10;
+      const recommendedCols = (uploadMode === 'with-images') ? 16 : (uploadMode === 'mixed') ? 10 : 10;
+
+      if (columns.length < 10) {
         errors.push({
           row: rowNum,
-          message: `Insufficient columns (found ${columns.length}, need at least 8)`,
+          message: `Insufficient columns: found ${columns.length}, need at least 10. Expected format: question_number, question, choice_a, choice_b, choice_c, choice_d, choice_e, correct_answer, explanation, source_folder${uploadMode !== 'without-images' ? ', [+ image fields]' : ''}`,
           severity: 'error'
         });
         return;
       }
 
-      // Determine column indices
-      const questionIdx = hasHeaders ? 0 : 1; // question_number, question if no header
-      const correctAnswerIdx = hasHeaders ? 0 : 7; // depends on structure
+      // Column indices for standard format (no headers)
+      const questionIdx = 1;
+      const choiceStartIdx = 2;
+      const choiceEndIdx = 7;
+      const correctAnswerIdx = 7;
+      const explanationIdx = 8;
+      const sourceIdx = 9;
 
-      // For no-header CSVs: 0=q_num, 1=question, 2-6=choices, 7=answer, 8=explanation, 9=source
-      const question = hasHeaders ? columns[0] : columns[1];
-      const correctAnswer = hasHeaders ? columns[columns.length > 7 ? 7 : 0] : columns[7];
+      // Image field indices (if present)
+      const imageDescIdx = 10;
+      const imageModalityIdx = 11;
+      const imageViewIdx = 12;
+      const imageUsageIdx = 13;
+      const imageTypeIdx = 14;
+      const imageUrlIdx = 15;
 
       // Validate question text
+      const question = columns[questionIdx];
       if (!question || question.trim().length === 0) {
         errors.push({
           row: rowNum,
-          column: 'question',
-          message: 'Question text is empty',
+          column: `Column ${questionIdx + 1} (question)`,
+          message: `Question text is empty. This should be column ${questionIdx + 1} (after question_number).`,
           severity: 'error'
         });
       }
 
       // Validate correct answer
-      if (!correctAnswer || !validAnswers.includes(correctAnswer.toUpperCase())) {
+      const correctAnswer = columns[correctAnswerIdx];
+      if (!correctAnswer || correctAnswer.trim().length === 0) {
         errors.push({
           row: rowNum,
-          column: 'correct_answer',
-          message: `Invalid correct answer: "${correctAnswer}". Must be A, B, C, D, E, F, or G`,
+          column: `Column ${correctAnswerIdx + 1} (correct_answer)`,
+          message: `Correct answer is empty. This should be column ${correctAnswerIdx + 1}. Found: "${correctAnswer}". Must be A, B, C, D, E, F, or G.`,
+          severity: 'error'
+        });
+      } else if (!validAnswers.includes(correctAnswer.toUpperCase().trim())) {
+        errors.push({
+          row: rowNum,
+          column: `Column ${correctAnswerIdx + 1} (correct_answer)`,
+          message: `Invalid correct answer in column ${correctAnswerIdx + 1}: "${correctAnswer}". Must be exactly one of: A, B, C, D, E, F, or G (case-insensitive, single letter only).`,
           severity: 'error'
         });
       }
 
       // Check for image fields if in with-images or mixed mode
       if (uploadMode === 'with-images' || uploadMode === 'mixed') {
-        const hasImageDescription = columns.length > 10 && columns[10] && columns[10].trim();
-        const hasImageModality = columns.length > 11 && columns[11] && columns[11].trim();
-        const hasImageView = columns.length > 12 && columns[12] && columns[12].trim();
-        const hasImageUsage = columns.length > 13 && columns[13] && columns[13].trim();
-        const hasImageType = columns.length > 14 && columns[14] && columns[14].trim();
+        const hasImageDescription = columns.length > imageDescIdx && columns[imageDescIdx] && columns[imageDescIdx].trim();
+        const hasImageModality = columns.length > imageModalityIdx && columns[imageModalityIdx] && columns[imageModalityIdx].trim();
+        const hasImageView = columns.length > imageViewIdx && columns[imageViewIdx] && columns[imageViewIdx].trim();
+        const hasImageUsage = columns.length > imageUsageIdx && columns[imageUsageIdx] && columns[imageUsageIdx].trim();
+        const hasImageType = columns.length > imageTypeIdx && columns[imageTypeIdx] && columns[imageTypeIdx].trim();
 
         const hasAnyImageField = hasImageDescription || hasImageModality || hasImageView || hasImageUsage || hasImageType;
 
         if (uploadMode === 'with-images' && !hasAnyImageField) {
           errors.push({
             row: rowNum,
-            message: 'Image fields are required in "With Images" mode',
+            message: `Image fields are required in "With Images" mode. Columns ${imageDescIdx + 1}-${imageTypeIdx + 1} (image_description through image_type) are missing or empty.`,
             severity: 'error'
           });
         }
 
         // If any image field is present, validate them
         if (hasAnyImageField) {
+          // Validate image description
           if (!hasImageDescription) {
             errors.push({
               row: rowNum,
-              column: 'image_description',
-              message: 'Image description is required when image fields are present',
+              column: `Column ${imageDescIdx + 1} (image_description)`,
+              message: `Image description is required when image fields are present. This should be column ${imageDescIdx + 1}.`,
               severity: 'error'
             });
           }
 
+          // Validate image modality
           if (!hasImageModality) {
             errors.push({
               row: rowNum,
-              column: 'image_modality',
-              message: 'Image modality is required (TTE, TEE, or non-echo)',
+              column: `Column ${imageModalityIdx + 1} (image_modality)`,
+              message: `Image modality is required. This should be column ${imageModalityIdx + 1}. Must be one of: TTE, TEE, or non-echo.`,
               severity: 'error'
             });
           } else {
-            const modality = columns[11].toLowerCase();
+            const modality = columns[imageModalityIdx].toLowerCase().trim();
             if (!['tte', 'tee', 'toe', 'non-echo'].includes(modality)) {
               errors.push({
                 row: rowNum,
-                column: 'image_modality',
-                message: `Invalid modality: "${columns[11]}". Must be TTE, TEE, or non-echo`,
+                column: `Column ${imageModalityIdx + 1} (image_modality)`,
+                message: `Invalid modality in column ${imageModalityIdx + 1}: "${columns[imageModalityIdx]}". Must be exactly one of: "TTE", "TEE", or "non-echo" (case-insensitive). Found text appears to be: "${columns[imageModalityIdx].substring(0, 50)}${columns[imageModalityIdx].length > 50 ? '...' : ''}"`,
                 severity: 'error'
               });
             }
           }
 
+          // Validate image usage
           if (!hasImageUsage) {
             errors.push({
               row: rowNum,
-              column: 'image_usage',
-              message: 'Image usage is required (question or explanation)',
+              column: `Column ${imageUsageIdx + 1} (image_usage)`,
+              message: `Image usage is required. This should be column ${imageUsageIdx + 1}. Must be either "question" or "explanation".`,
               severity: 'error'
             });
-          } else if (!['question', 'explanation'].includes(columns[13].toLowerCase())) {
-            errors.push({
-              row: rowNum,
-              column: 'image_usage',
-              message: `Invalid usage: "${columns[13]}". Must be "question" or "explanation"`,
-              severity: 'error'
-            });
+          } else {
+            const usage = columns[imageUsageIdx].toLowerCase().trim();
+            if (!['question', 'explanation'].includes(usage)) {
+              errors.push({
+                row: rowNum,
+                column: `Column ${imageUsageIdx + 1} (image_usage)`,
+                message: `Invalid usage in column ${imageUsageIdx + 1}: "${columns[imageUsageIdx]}". Must be exactly either "question" or "explanation" (case-insensitive). Found: "${columns[imageUsageIdx]}"`,
+                severity: 'error'
+              });
+            }
           }
 
+          // Validate image type
           if (!hasImageType) {
             errors.push({
               row: rowNum,
-              column: 'image_type',
-              message: 'Image type is required (still or cine)',
+              column: `Column ${imageTypeIdx + 1} (image_type)`,
+              message: `Image type is required. This should be column ${imageTypeIdx + 1}. Must be either "still" or "cine".`,
               severity: 'error'
             });
-          } else if (!['still', 'cine'].includes(columns[14].toLowerCase())) {
-            errors.push({
-              row: rowNum,
-              column: 'image_type',
-              message: `Invalid type: "${columns[14]}". Must be "still" or "cine"`,
-              severity: 'error'
-            });
+          } else {
+            const type = columns[imageTypeIdx].toLowerCase().trim();
+            if (!['still', 'cine'].includes(type)) {
+              errors.push({
+                row: rowNum,
+                column: `Column ${imageTypeIdx + 1} (image_type)`,
+                message: `Invalid type in column ${imageTypeIdx + 1}: "${columns[imageTypeIdx]}". Must be exactly either "still" or "cine" (case-insensitive). Found: "${columns[imageTypeIdx]}"`,
+                severity: 'error'
+              });
+            }
           }
         }
       }
 
       // Warnings for empty choices
-      const choiceStart = hasHeaders ? 1 : 2;
-      const choiceEnd = hasHeaders ? 6 : 7;
       let emptyChoices = 0;
-      for (let i = choiceStart; i < choiceEnd; i++) {
+      let filledChoices = [];
+      for (let i = choiceStartIdx; i < choiceEndIdx; i++) {
         if (!columns[i] || columns[i].trim().length === 0) {
           emptyChoices++;
+        } else {
+          filledChoices.push(String.fromCharCode(65 + (i - choiceStartIdx))); // A, B, C, etc.
         }
       }
 
       if (emptyChoices > 2) {
         warnings.push({
           row: rowNum,
-          message: `Only ${5 - emptyChoices} answer choices provided. Consider adding more options.`,
+          message: `Only ${5 - emptyChoices} answer choices provided (${filledChoices.join(', ')}). Consider adding more options for columns ${choiceStartIdx + 1}-${choiceEndIdx}.`,
           severity: 'warning'
         });
       }
