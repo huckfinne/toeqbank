@@ -27,6 +27,7 @@ const MyContributions: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'questions' | 'images'>('questions');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -95,25 +96,58 @@ const MyContributions: React.FC = () => {
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  // Helper function to filter by date
+  const filterByDate = (item: MyQuestion | MyImage) => {
+    if (dateFilter === 'all') return true;
+    if (!item.created_at) return true; // If no date, include it
+
+    const createdDate = new Date(item.created_at);
+    const now = new Date();
+    const daysDiff = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    switch (dateFilter) {
+      case '7days':
+        return daysDiff <= 7;
+      case '30days':
+        return daysDiff <= 30;
+      case '90days':
+        return daysDiff <= 90;
+      case '180days':
+        return daysDiff <= 180;
+      case '1year':
+        return daysDiff <= 365;
+      default:
+        return true;
+    }
+  };
+
   // Filter functions
   const getFilteredQuestions = () => {
-    if (statusFilter === 'all') return myQuestions;
-    return myQuestions.filter(q => q.review_status === statusFilter);
+    let filtered = myQuestions;
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(q => q.review_status === statusFilter);
+    }
+
+    // Apply date filter
+    filtered = filtered.filter(filterByDate);
+
+    return filtered;
   };
 
   const getFilteredImages = () => {
-    if (statusFilter === 'all') return myImages;
-    return myImages.filter(img => img.review_status === statusFilter);
-  };
+    let filtered = myImages;
 
-  const getFilteredReturnedQuestions = () => {
-    if (statusFilter === 'all') return myReturnedQuestions;
-    return myReturnedQuestions.filter(q => q.review_status === statusFilter);
-  };
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(img => img.review_status === statusFilter);
+    }
 
-  const getFilteredReturnedImages = () => {
-    if (statusFilter === 'all') return myReturnedImages;
-    return myReturnedImages.filter(img => img.review_status === statusFilter);
+    // Apply date filter
+    filtered = filtered.filter(filterByDate);
+
+    return filtered;
   };
 
   if (loading) {
@@ -141,7 +175,7 @@ const MyContributions: React.FC = () => {
         )}
 
         {/* Filter Section */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <label className="text-sm font-medium text-gray-700">Filter by status:</label>
             <select
@@ -154,6 +188,22 @@ const MyContributions: React.FC = () => {
               <option value="approved">Approved</option>
               <option value="returned">Needs Revision</option>
               <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium text-gray-700">Filter by date:</label>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All Time</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="90days">Last 90 Days</option>
+              <option value="180days">Last 6 Months</option>
+              <option value="1year">Last Year</option>
             </select>
           </div>
         </div>
