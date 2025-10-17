@@ -582,9 +582,9 @@ router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Reques
               questionIndex: questions.length // Track which question this belongs to
             };
             imageDescriptions.push(imageDesc);
-            
-            // Set review status to 'returned' for questions needing images
-            question.review_status = 'returned';
+
+            // Set review status to 'pending submission' for questions needing images
+            question.review_status = 'pending submission';
             question.review_notes = 'Question needs image to be uploaded before review';
           } else {
             // No image fields provided - question is ready for review
@@ -695,8 +695,8 @@ router.post('/upload', requireAuth, upload.single('csvFile'), async (req: Reques
             questionIndex: questions.length
           };
           imageDescriptions.push(imageDesc);
-          
-          question.review_status = 'returned';
+
+          question.review_status = 'pending submission';
           question.review_notes = 'Question needs image to be uploaded before review';
         } else {
           question.review_status = 'pending';
