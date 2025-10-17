@@ -25,7 +25,7 @@ const MyContributions: React.FC = () => {
   const [myReturnedImages, setMyReturnedImages] = useState<MyImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'questions' | 'images' | 'returned'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'images'>('questions');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const navigate = useNavigate();
 
@@ -45,30 +45,16 @@ const MyContributions: React.FC = () => {
       console.log('✅ Questions response:', questionsResponse);
       console.log('✅ Images response:', imagesResponse);
       
-      // Separate regular and returned items
+      // Store ALL questions and images (no filtering)
       const allQuestions = questionsResponse;
       const allImages = imagesResponse;
-      
-      // Filter returned items (status: 'returned' or 'rejected')
-      const returnedQuestions = allQuestions.filter(q => 
-        q.review_status === 'returned' || q.review_status === 'rejected'
-      );
-      const returnedImages = allImages.filter(img => 
-        img.review_status === 'returned' || img.review_status === 'rejected'
-      );
-      
-      // Filter regular items (not returned)
-      const regularQuestions = allQuestions.filter(q => 
-        q.review_status !== 'returned' && q.review_status !== 'rejected'
-      );
-      const regularImages = allImages.filter(img => 
-        img.review_status !== 'returned' && img.review_status !== 'rejected'
-      );
-      
-      setMyQuestions(regularQuestions);
-      setMyImages(regularImages);
-      setMyReturnedQuestions(returnedQuestions);
-      setMyReturnedImages(returnedImages);
+
+      setMyQuestions(allQuestions);
+      setMyImages(allImages);
+
+      // No longer need separate returned lists - we'll show all in main tabs
+      setMyReturnedQuestions([]);
+      setMyReturnedImages([]);
     } catch (err: any) {
       console.error('❌ Error loading contributions:', err);
       setError(err.response?.data?.error || 'Failed to load contributions');
@@ -144,7 +130,7 @@ const MyContributions: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-900">My Contributions</h1>
           <div className="text-sm text-gray-500">
-            {myQuestions.length} questions, {myImages.length} images, {getFilteredReturnedQuestions().length + getFilteredReturnedImages().length} returned items
+            {myQuestions.length} questions • {myImages.length} images
           </div>
         </div>
 
@@ -202,19 +188,6 @@ const MyContributions: React.FC = () => {
                 </svg>
                 Images ({getFilteredImages().length})
               </button>
-              <button
-                onClick={() => setActiveTab('returned')}
-                className={`relative px-6 py-4 font-semibold text-sm transition-all duration-200 ${
-                  activeTab === 'returned'
-                    ? 'text-red-600 bg-white border-l border-t border-r border-gray-200 rounded-t-lg -mb-px z-10'
-                    : 'text-gray-500 bg-gray-50 border border-gray-200 rounded-t-lg hover:text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                Returned ({getFilteredReturnedQuestions().length + getFilteredReturnedImages().length})
-              </button>
             </nav>
           </div>
         </div>
@@ -239,36 +212,67 @@ const MyContributions: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="space-y-1">
-                {getFilteredQuestions().map((question, index) => (
-                  <div 
-                    key={question.id} 
-                    className={`px-6 py-5 cursor-pointer transition-all duration-200 hover:bg-blue-50 hover:shadow-sm border-l-4 border-transparent hover:border-blue-400 ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
-                    }`}
-                    onClick={() => handleQuestionClick(question.id)}
-                  >
-                    <div className="flex items-center gap-8 text-base">
-                      <span className="font-bold text-gray-900 bg-gray-100 px-4 py-2 rounded whitespace-nowrap text-sm min-w-fit">
-                        {question.question_number}
-                      </span>
-                      <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap min-w-fit ${getStatusColor(question.review_status)}`}>
-                        {question.review_status.toUpperCase().replace('_', ' ')}
-                      </span>
-                      <span className="text-gray-800 flex-1 text-sm leading-relaxed">
-                        {question.question.length > 80 ? question.question.substring(0, 80) + '...' : question.question}
-                      </span>
-                      <span className="text-sm text-gray-500 whitespace-nowrap min-w-fit">
-                        {new Date(question.created_at).toLocaleDateString()}
-                      </span>
-                      {question.reviewed_at && (
-                        <span className="text-sm text-green-600 whitespace-nowrap min-w-fit">
-                          ✓ {new Date(question.reviewed_at).toLocaleDateString()}
-                        </span>
-                      )}
+              <div className="space-y-8">
+                {/* Group questions by status */}
+                {['returned', 'rejected', 'pending', 'approved'].map(status => {
+                  const statusQuestions = getFilteredQuestions().filter(q => {
+                    if (statusFilter === 'all') {
+                      return q.review_status === status;
+                    }
+                    return q.review_status === status && q.review_status === statusFilter;
+                  });
+
+                  if (statusQuestions.length === 0) return null;
+
+                  const statusConfig = {
+                    returned: { icon: '↩️', title: 'Needs Revision', color: 'orange', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+                    rejected: { icon: '❌', title: 'Rejected', color: 'red', bgColor: 'bg-red-50', borderColor: 'border-red-200' },
+                    pending: { icon: '⏳', title: 'Pending Review', color: 'yellow', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' },
+                    approved: { icon: '✅', title: 'Approved', color: 'green', bgColor: 'bg-green-50', borderColor: 'border-green-200' }
+                  };
+
+                  const config = statusConfig[status as keyof typeof statusConfig];
+
+                  return (
+                    <div key={status}>
+                      <h3 className={`text-lg font-semibold text-${config.color}-700 mb-3 flex items-center`}>
+                        <span className="mr-2">{config.icon}</span>
+                        {config.title} ({statusQuestions.length})
+                      </h3>
+                      <div className={`rounded-lg ${config.bgColor} ${config.borderColor} border-2 overflow-hidden`}>
+                        {statusQuestions.map((question, index) => (
+                          <div
+                            key={question.id}
+                            className={`px-6 py-4 cursor-pointer transition-all duration-200 hover:bg-white hover:shadow-sm border-l-4 border-transparent hover:border-${config.color}-400 ${
+                              index < statusQuestions.length - 1 ? 'border-b border-gray-200' : ''
+                            }`}
+                            onClick={() => handleQuestionClick(question.id)}
+                          >
+                            <div className="flex items-center gap-6 text-base">
+                              <span className="font-bold text-gray-900 bg-white px-4 py-2 rounded whitespace-nowrap text-sm min-w-fit shadow-sm">
+                                {question.question_number}
+                              </span>
+                              <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap min-w-fit ${getStatusColor(question.review_status)}`}>
+                                {question.review_status.toUpperCase().replace('_', ' ')}
+                              </span>
+                              <span className="text-gray-800 flex-1 text-sm leading-relaxed">
+                                {question.question.length > 80 ? question.question.substring(0, 80) + '...' : question.question}
+                              </span>
+                              <span className="text-sm text-gray-500 whitespace-nowrap min-w-fit">
+                                {new Date(question.created_at).toLocaleDateString()}
+                              </span>
+                              {question.reviewed_at && (
+                                <span className="text-sm text-green-600 whitespace-nowrap min-w-fit">
+                                  ✓ {new Date(question.reviewed_at).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -414,170 +418,6 @@ const MyContributions: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Returned Tab */}
-        {activeTab === 'returned' && (
-          <div>
-            {(getFilteredReturnedQuestions().length === 0 && getFilteredReturnedImages().length === 0) ? (
-              <div className="text-center py-12">
-                <div className="text-gray-500 mb-4">
-                  <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No returned items</h3>
-                <p className="text-gray-500 mb-4">All your submissions are in good standing.</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Returned Questions */}
-                {getFilteredReturnedQuestions().length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Returned Questions ({getFilteredReturnedQuestions().length})
-                    </h3>
-                    <div className="space-y-4">
-                      {getFilteredReturnedQuestions().map((question) => (
-                        <div 
-                          key={question.id} 
-                          className="border-2 border-red-200 rounded-lg px-6 py-4 cursor-pointer transition-all duration-200 bg-red-50 hover:border-red-300 hover:shadow-md"
-                          onClick={() => handleQuestionClick(question.id)}
-                        >
-                          <div className="flex items-center gap-6 text-base">
-                            <span className="font-bold text-gray-900 bg-gray-100 px-4 py-2 rounded whitespace-nowrap text-sm">
-                              {question.question_number}
-                            </span>
-                            <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${getStatusColor(question.review_status)}`}>
-                              {question.review_status.toUpperCase().replace('_', ' ')}
-                            </span>
-                            <span className="text-gray-800 flex-1 truncate text-sm leading-relaxed">
-                              {question.question.length > 80 ? question.question.substring(0, 80) + '...' : question.question}
-                            </span>
-                            <span className="text-sm text-gray-500 whitespace-nowrap ml-4">
-                              {new Date(question.created_at).toLocaleDateString()}
-                            </span>
-                            {question.reviewed_at && (
-                              <span className="text-sm text-red-600 whitespace-nowrap ml-2">
-                                ⚠ {new Date(question.reviewed_at).toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Returned Images */}
-                {getFilteredReturnedImages().length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      Returned Images ({getFilteredReturnedImages().length})
-                    </h3>
-                    <div className="image-gallery">
-                      <table className="w-full table-fixed border-collapse bg-red-50 rounded-lg">
-                        <tbody>
-                          {Array.from({ length: Math.ceil(getFilteredReturnedImages().length / 4) }, (_, rowIndex) => (
-                            <tr key={rowIndex}>
-                              {Array.from({ length: 4 }, (_, colIndex) => {
-                                const imageIndex = rowIndex * 4 + colIndex;
-                                const image = getFilteredReturnedImages()[imageIndex];
-                                
-                                if (!image) {
-                                  return <td key={colIndex} className="w-1/4 p-4"></td>;
-                                }
-                                
-                                return (
-                                  <td key={colIndex} className="w-1/4 p-4 border border-red-200">
-                                    <div className="transition-transform hover:scale-105">
-                                      <div className="text-center mb-1">
-                                        <span className="px-2 py-1 text-sm font-bold rounded bg-red-500 text-white">
-                                          ID: {image.id}
-                                        </span>
-                                      </div>
-                                      <div 
-                                        className="relative bg-gray-100 rounded overflow-hidden mx-auto mb-2 cursor-pointer" 
-                                        style={{width: '96px', height: '96px', maxWidth: '96px', maxHeight: '96px'}}
-                                        onClick={() => handleImageClick(image.id)}
-                                      >
-                                        {image.mime_type?.startsWith('video/') ? (
-                                          <video
-                                            src={imageService.getImageUrl(image.file_path || image.filename)}
-                                            className="w-full h-full object-cover"
-                                            style={{width: '96px', height: '96px', maxWidth: '96px', maxHeight: '96px'}}
-                                            muted
-                                            loop
-                                          />
-                                        ) : (
-                                          <img
-                                            src={imageService.getImageUrl(image.file_path || image.filename)}
-                                            alt={image.description || image.filename}
-                                            className="w-full h-full object-cover"
-                                            style={{width: '96px', height: '96px', maxWidth: '96px', maxHeight: '96px'}}
-                                            onError={(e) => {
-                                              const img = e.currentTarget;
-                                              img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"%3E%3Crect fill="%23f0f0f0" width="96" height="96"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3EImage Not Available%3C/text%3E%3C/svg%3E';
-                                            }}
-                                          />
-                                        )}
-                                        
-                                        <div className="absolute top-1 left-1">
-                                          <span className={`px-1 py-0.5 text-xs font-semibold rounded ${
-                                            image.image_type === 'cine' 
-                                              ? 'bg-purple-100 text-purple-800' 
-                                              : 'bg-green-100 text-green-800'
-                                          }`}>
-                                            {image.image_type === 'cine' ? 'CINE' : 'STILL'}
-                                          </span>
-                                        </div>
-
-                                        <div className="absolute top-1 right-1">
-                                          <span className={`px-1 py-0.5 text-xs font-semibold rounded ${getStatusColor(image.review_status || 'pending')}`}>
-                                            {(image.review_status || 'pending').toUpperCase().replace('_', ' ')}
-                                          </span>
-                                        </div>
-                                      </div>
-
-                                      <div className="text-center text-xs">
-                                        <div className="font-medium truncate mb-1 text-red-700" title={image.description || image.filename}>
-                                          {image.description || image.filename}
-                                        </div>
-                                        
-                                        <div className="text-red-600 mb-1">
-                                          {formatFileSize(image.file_size || 0)}
-                                        </div>
-
-                                        {image.reviewed_at && (
-                                          <div className="text-xs text-red-600 mb-1">
-                                            Returned: {new Date(image.reviewed_at).toLocaleDateString()}
-                                          </div>
-                                        )}
-
-                                        <div className="text-xs text-gray-500">
-                                          Uploaded: {image.created_at ? new Date(image.created_at).toLocaleDateString() : 'Unknown'}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
